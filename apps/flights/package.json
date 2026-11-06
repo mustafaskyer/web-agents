@@ -15,6 +15,7 @@
     "@fontsource/poppins": "^5.3.0",
     "@web-agents/chat": "workspace:*",
     "@web-agents/core": "workspace:*",
+    "@web-agents/local-agent": "workspace:*",
     "@web-agents/react": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

@@ -1,4 +1,5 @@
 import { AgentChat, createCloudAdapter } from "@web-agents/chat";
+import { createLocalAdapter } from "@web-agents/local-agent";
 import { EnableTools, usePathname, WebAgentsProvider } from "@web-agents/react";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 import { Orders } from "./Orders";
@@ -12,8 +13,8 @@ import { ClearCartButton } from "./tools/ClearCartButton";
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => null;
 
-// Once per page: it checks /api/chat on first use.
-const cloud = createCloudAdapter();
+// Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
 
 const GLOBAL_TOOLS = ["get_cart"];
 const ROUTE_TOOLS = { "/orders": ["list_orders"] };
@@ -148,7 +149,7 @@ function Shell() {
         {path === "/orders" ? <Orders /> : <Shop />}
         <Cart />
       </main>
-      <AgentChat adapter={cloud} position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
+      <AgentChat adapters={ADAPTERS} position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
         <Devtools spotlight={VISUALS.spotlight} />
       </Suspense>

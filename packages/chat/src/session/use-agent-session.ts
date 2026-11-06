@@ -5,10 +5,11 @@
  * The conversation survives route changes and reloads (sessionStorage).
  */
 import { onAgentEvent } from "@web-agents/core";
-import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { newId } from "../shared";
 import { callModelContextTool, listToolDescriptors } from "../tools";
 import type { AdapterStatus, AgentAdapter, AgentMessage, ToolDescriptor } from "../types";
+import { useAdapterStatus } from "./use-adapter-status";
 import { initialSession, type SessionError, type SessionState, sessionReducer } from "./reducer";
 
 /** Options for `useAgentSession`. */
@@ -34,8 +35,6 @@ export interface AgentSession {
 }
 
 const MAX_STORED = 60;
-const READY: AdapterStatus = { state: "ready" };
-const noSubscribe = (): (() => void) => () => {};
 
 function load(key: string | false): SessionState {
   if (!key || typeof sessionStorage === "undefined") return initialSession;
@@ -104,16 +103,7 @@ export function useAgentSession(adapter: AgentAdapter, { storageKey = "web-agent
   }, [refreshTools]);
 
   // ---------- adapter status ----------
-  const subscribe = useCallback((l: () => void) => (adapter.subscribe ?? noSubscribe)(l), [adapter]);
-  // Same value → same object: an adapter may build a fresh status object per call.
-  const lastStatus = useRef<{ key: string; value: AdapterStatus }>({ key: "", value: READY });
-  const readStatus = useCallback((): AdapterStatus => {
-    const value = adapter.status?.() ?? READY;
-    const key = JSON.stringify(value);
-    if (key !== lastStatus.current.key) lastStatus.current = { key, value };
-    return lastStatus.current.value;
-  }, [adapter]);
-  const adapterStatus = useSyncExternalStore(subscribe, readStatus, () => READY);
+  const adapterStatus = useAdapterStatus(adapter);
 
   // ---------- confirmation parking, from the agent cursor ----------
   useEffect(

@@ -41,7 +41,7 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 | Schemas | **Standard Schema** (`@standard-schema/spec` 1.1) + Standard JSON Schema; zod 4 in examples | same contract Mastra `createTool` uses → library-agnostic |
 | Agent runtime | pluggable `AgentAdapter`; first adapter = **Vercel AI SDK v7** + `@ai-sdk/anthropic`, browser executes tools | user decision; key stays server-side |
 | Default model | `claude-opus-5-5` (env `WEB_AGENTS_MODEL` overrides; `claude-sonnet-5-5` for cheaper public demos) | current recommended default |
-| In-browser agent | **transformers.js v4** (WebGPU, Qwen3 1.7B/4B ONNX) in a Worker; Chrome Prompt API provider when available | WebLLM tool calling still "WIP" |
+| In-browser agent | **transformers.js v4** (WebGPU or WASM, Qwen3 0.6B ONNX by default; 1.7B opt-in) in a Worker; Chrome Prompt API provider when available | WebLLM tool calling still "WIP" |
 | Devtools host | standalone panel **and** optional TanStack Devtools plugin (`@tanstack/devtools` 0.16, still 0.x) | don't force TanStack on users |
 | Schema form | hand-rolled ~200-line JSON-schema renderer | WebMCP schemas are shallow; RJSF ≥100 KB with ajv |
 | Router (examples) | React Router 7 (data mode, `createBrowserRouter`), pinned `^7.18.5` | small; provider is router-agnostic via `pathname` (apps pass `useLocation().pathname`). 8.x exists (8.5 on 2026-11-06); not adopted in Phase 4 |
@@ -273,7 +273,7 @@ export interface AgentAdapter {
   readonly label: string;
   status?(): AdapterStatus;                               // e.g. { state: "downloading", progress: 0.42 }; may return a new object per call
   subscribe?(listener: () => void): () => void;           // status changes
-  prepare?(): Promise<void>;                              // opt-in heavy setup, e.g. model download (Phase 6)
+  prepare?(signal?: AbortSignal): Promise<void>;          // opt-in heavy setup (model download), started by a click; abort cancels
   run(req: AgentRunRequest): AsyncIterable<AgentStreamPart>;
 }
 export interface AgentRunRequest {
@@ -295,7 +295,15 @@ export interface AgentRunRequest {
 //    Only the page's same-origin path reaches the system prompt. NOT abuse protection: public deploys need a rate-limiting guard (Phase 7).
 // "@web-agents/chat/vite":   webAgentsChatDev({ path?, handler? }) — mounts /api/chat in `vite dev`, key from .env files
 // "@web-agents/chat/chat.css": the widget's styles (unlayered, every rule scoped by a .wa-chat* class)
-// "@web-agents/local-agent": createLocalAdapter({ model?: string, worker?: Worker })
+// "@web-agents/local-agent" (Phase 6): createLocalAdapter({ providers?, model?, worker?: Worker | (() => Worker), maxSteps = 4,
+//    stepTimeoutMs = 60_000, label = "On-device" }) → AgentAdapter with status/subscribe/prepare(signal). Providers, first
+//    available wins: createPromptApiProvider() (Chrome LanguageModel, JSON-constrained tool calls), then
+//    createTransformersProvider({ model?, dtype?, worker? }) (Qwen3 0.6B: q4f16 on WebGPU ~585 MB, q4 on WASM ~934 MB;
+//    1.7B is opt-in — its 1.4 GB session ran out of WASM memory in testing).
+//    LocalProvider { id, label, toolsInline?, availability(), prepare(onProgress, signal?), generate({ system, messages,
+//    tools, signal, onToken }), dispose?() }. detectLocalProviders(). Apps: optimizeDeps.exclude + worker.format "es".
+// AdapterStatus "needs-download" carries an optional `note` (shown in the download card); <AgentChat adapters> shows a
+// radio-group switcher (choice in localStorage "web-agents:chat:adapter") and a consent-first download card.
 ```
 
 ---
@@ -365,4 +373,6 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   whether to ship it (`VITE_WEBMCP_POLYFILL`). Phase 5 mounted `<AgentChat />` in all three apps (bottom-left in dev, opposite the devtools; bottom-right in prod).
 - The open chat panel sits in a corner and can cover the control a confirm-gated tool waits on ("Show me" scrolls it
   into view but doesn't move the panel). Follow-up: collapse or shift the panel while a card is awaiting confirmation.
-- In-browser models: 1–2 GB downloads; ship as opt-in, cache with the Cache API, show progress.
+- In-browser models: 0.6–0.9 GB downloads by default (done in Phase 6: opt-in card, determinate progress, Cancel, Cache API +
+  `navigator.storage.persist()`). The build also emits ONNX Runtime's ~27 MB WASM as a static asset (fetched only after
+  Download). Small models are weak at multi-step plans: the local adapter caps steps at 4 and ranks ≤ 8 tools.

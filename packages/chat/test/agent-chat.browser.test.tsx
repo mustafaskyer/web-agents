@@ -3,7 +3,8 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { AgentChat } from "../src/components/AgentChat";
-import type { AgentAdapter, AgentRunRequest, AgentStreamPart } from "../src/types";
+import { act } from "react";
+import type { AdapterStatus, AgentAdapter, AgentRunRequest, AgentStreamPart } from "../src/types";
 import { cleanupFixtures, echoForm, modelContext, uniqueName, until } from "./browser-utils";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -151,5 +152,65 @@ describe("<AgentChat>", () => {
     await until(() => q('[data-role="assistant"]')?.textContent === "Second time lucky.", 1000, "retried reply");
     expect(host().querySelectorAll('[data-role="user"]')).toHaveLength(1);
     await screen.unmount();
+  });
+
+  it("switches adapters (persisted) and walks a download: consent → progress → cancel → ready", async () => {
+    localStorage.removeItem("web-agents:chat:adapter");
+    const cloud = fakeAdapter(async function* () {
+      yield { type: "finish", reason: "stop" };
+    });
+    let status: AdapterStatus = { state: "needs-download", bytes: 1_440_000_000, note: "Already on this device." };
+    const listeners = new Set<() => void>();
+    const set = (s: AdapterStatus) => {
+      status = s;
+      for (const l of listeners) l();
+    };
+    let lastSignal: AbortSignal | undefined;
+    const local: AgentAdapter = {
+      id: "local",
+      label: "On-device",
+      status: () => status,
+      subscribe: (l) => {
+        listeners.add(l);
+        return () => listeners.delete(l);
+      },
+      async prepare(signal) {
+        lastSignal = signal;
+        set({ state: "downloading", progress: 0.25 });
+      },
+      run: async function* () {
+        yield { type: "finish", reason: "stop" };
+      },
+    };
+    const screen = await render(<AgentChat adapters={[{ ...cloud, id: "cloud", label: "Cloud" }, local]} defaultOpen storageKey={false} />);
+    const radios = () => [...host().querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+    expect(radios().map((r) => r.textContent)).toEqual(["Cloud", "On-device"]);
+    expect(radios()[0]!.getAttribute("aria-checked")).toBe("true");
+    expect(q(".wa-chat__download")).toBeNull();
+
+    await userEvent.click(radios()[1]!);
+    expect(localStorage.getItem("web-agents:chat:adapter")).toBe("local");
+    expect(q(".wa-chat__download")?.textContent).toContain(
+      "Downloads 1.4 GB once. Nothing you type leaves your browser. Already on this device.",
+    );
+    expect(q<HTMLTextAreaElement>("textarea")!.disabled).toBe(true);
+
+    await userEvent.click([...host().querySelectorAll("button")].find((b) => b.textContent === "Download")!);
+    const bar = q('[role="progressbar"]')!;
+    expect(bar.getAttribute("aria-valuenow")).toBe("25");
+    expect(q(".wa-chat__download-meta")?.textContent).toBe("25% · 360 MB of 1.4 GB");
+
+    await userEvent.click([...host().querySelectorAll("button")].find((b) => b.textContent === "Cancel")!);
+    expect(lastSignal?.aborted).toBe(true);
+
+    act(() => set({ state: "ready" }));
+    await until(() => !q(".wa-chat__download"), 1000, "card gone");
+    expect(q<HTMLTextAreaElement>("textarea")!.disabled).toBe(false);
+    await screen.unmount();
+
+    // the choice survives a remount
+    const again = await render(<AgentChat adapters={[{ ...cloud, id: "cloud", label: "Cloud" }, local]} defaultOpen storageKey={false} />);
+    expect(radios()[1]!.getAttribute("aria-checked")).toBe("true");
+    await again.unmount();
   });
 });

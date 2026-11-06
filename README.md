@@ -23,6 +23,7 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 | [`@web-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
 | [`@web-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
 | [`@web-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (Claude on your server, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `/api/chat` handler and a Vite dev plugin. |
+| [`@web-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
 | [`@web-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
 
 | App | |

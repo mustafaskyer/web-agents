@@ -58,6 +58,9 @@ packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + d
 packages/chat/          @web-agents/chat: <AgentChat> (components/), AgentAdapter types, createCloudAdapter (adapter/cloud.ts:
                         the model ↔ tool loop, adapter/wire.ts: AI SDK UI message stream), session/ (reducer + useAgentSession),
                         /server (createChatHandler), /vite (webAgentsChatDev), chat.css
+packages/local-agent/   @web-agents/local-agent: createLocalAdapter (index.ts), loop.ts (shared on-device agent loop),
+                        tool-call-parser.ts, tools.ts (rank/compact/validate), providers/transformers (worker + engine +
+                        main-thread provider), providers/prompt-api (Chrome LanguageModel)
 packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
@@ -160,6 +163,10 @@ mid-run (the cursor must vanish and the tool still complete).
   before a run) the session waits for the page's tools to settle (`toolchange` quiet for ~150 ms), or a navigation's new
   tools miss the next request. Claude Opus 5.5 can't disable thinking: signed reasoning is kept in the history
   (`AgentPart` "reasoning") and sent back; `maxOutputTokens` must leave room for it.
+- `@web-agents/local-agent` loads transformers.js only inside its worker (`new Worker(new URL("./worker.ts", …))` in
+  source; a tsdown plugin rewrites it to `./worker.js` in dist). Apps need `optimizeDeps.exclude` for the package and
+  transformers, and `worker: { format: "es" }`. pnpm denies the install scripts of transformers' Node-only deps
+  (`allowBuilds` in pnpm-workspace.yaml). Unit tests never download a model.
 - Library CSS is unlayered on purpose: an app's plain `button { color: inherit }` beats any `@layer` rule.
 - Only `packages/chat/src/server/**` may import `@ai-sdk/anthropic` (Biome `noRestrictedImports` override).
 - Example drawers/sheets are non-modal (`role="dialog"` + `inert` page), never `showModal()`: the top layer would hide

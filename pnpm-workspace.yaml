@@ -3,6 +3,9 @@ packages:
   - "packages/*"
 allowBuilds:
   esbuild: true
+  # transformers.js' Node-only deps: the browser (Web Worker) build never uses them
+  onnxruntime-node: false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - "@biomejs/biome@2.6.6"
   - "@biomejs/cli-android-arm64@2.6.6"

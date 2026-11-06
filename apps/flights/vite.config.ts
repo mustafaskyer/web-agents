@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [react(), webAgentsChatDev()],
   // Resolve @web-agents/* to their TypeScript source, so package edits hot-reload without a build.
   resolve: { conditions: ["@web-agents/source", ...defaultClientConditions] },
+  // The on-device model runs in a module worker: Vite must see the package's `new Worker(new URL(…))` unbundled
+  optimizeDeps: { exclude: ["@web-agents/local-agent", "@huggingface/transformers"] },
+  worker: { format: "es" },
   server: { port: 5175, strictPort: true },
   preview: { port: 4175, strictPort: true },
 });

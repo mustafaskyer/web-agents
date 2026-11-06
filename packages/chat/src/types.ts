@@ -20,7 +20,8 @@ export type ToolOutput = ModelContextToolResult;
 export type AdapterStatus =
   | { state: "ready" }
   | { state: "unavailable"; reason: string }
-  | { state: "needs-download"; bytes?: number }
+  /** `note`: a caveat for the download card, e.g. "No WebGPU here: a smaller, slower model runs on the CPU." */
+  | { state: "needs-download"; bytes?: number; note?: string }
   | { state: "downloading"; progress: number }
   | { state: "loading" }
   | { state: "error"; error: string };
@@ -91,7 +92,7 @@ export interface AgentAdapter {
   status?(): AdapterStatus;
   /** Status changes (a download progressing, the cloud check finishing). */
   subscribe?(listener: () => void): () => void;
-  /** Opt-in heavy setup, e.g. a model download (Phase 6). */
-  prepare?(): Promise<void>;
+  /** Opt-in heavy setup, e.g. a model download, started by the person's click. Aborting `signal` cancels it. */
+  prepare?(signal?: AbortSignal): Promise<void>;
   run(req: AgentRunRequest): AsyncIterable<AgentStreamPart>;
 }

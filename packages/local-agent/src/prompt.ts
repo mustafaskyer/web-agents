@@ -1,0 +1,91 @@
+/**
+ * Prompts for small on-device models: short rules, one exact output format, a
+ * worked example, and the recent conversation only.
+ */
+import type { AgentMessage } from "@web-agents/chat";
+import type { ChatTurn, CompactTool } from "./types";
+
+const MAX_TURNS = 12;
+const MAX_TOOL_TEXT = 1500;
+
+const RULES = `You are an assistant inside the web page the user is looking at. You act on the page with tools; the user watches each step.
+Rules:
+- Only use the tools listed. Never invent tool names or arguments; ask for missing values.
+- Some tools wait for the user to confirm on the page (orders, bookings, deletions). If a result says it was cancelled, tell the user; never claim it succeeded.
+- A tool result starting with "Error:" failed. Explain briefly and suggest a fix.
+- Do one step at a time. Keep replies short and plain.`;
+
+const TAG_FORMAT = `To use a tool, reply ONLY with:
+<tool_call>{"name": "TOOL_NAME", "arguments": {...}}</tool_call>
+Otherwise reply in plain text.`;
+
+const JSON_FORMAT = `Reply with JSON only: {"type": "tool_call", "name": "TOOL_NAME", "arguments": {...}} to use a tool, or {"type": "message", "text": "..."} to answer.`;
+
+/** A plausible example call for the first tool: required args filled with their first enum value or a placeholder. */
+function example(tool: CompactTool, json: boolean): string {
+  const s = tool.parameters as { properties?: Record<string, { type?: string; enum?: unknown[] }>; required?: string[] };
+  const args: Record<string, unknown> = {};
+  for (const key of s.required ?? Object.keys(s.properties ?? {}).slice(0, 1)) {
+    const p = s.properties?.[key];
+    args[key] = p?.enum?.[0] ?? (p?.type === "number" || p?.type === "integer" ? 1 : p?.type === "boolean" ? true : "…");
+  }
+  return json
+    ? JSON.stringify({ type: "tool_call", name: tool.name, arguments: args })
+    : `<tool_call>${JSON.stringify({ name: tool.name, arguments: args })}</tool_call>`;
+}
+
+/** What `buildLocalSystemPrompt` adds to the fixed rules. */
+export interface LocalPromptOptions {
+  /** The page's path, for context. */
+  path?: string;
+  /**
+   * Tools listed in the prompt text, with the JSON reply format (the Prompt API path, whose output is JSON-constrained).
+   * Without it the tools go through the chat template and calls use `<tool_call>` tags (the Qwen path).
+   */
+  toolsInline?: CompactTool[];
+  /** For the worked example. */
+  firstTool?: CompactTool;
+}
+
+/** The system prompt (well under ~600 tokens). */
+export function buildLocalSystemPrompt({ path, toolsInline, firstTool }: LocalPromptOptions = {}): string {
+  const json = !!toolsInline;
+  const parts = [RULES, json ? JSON_FORMAT : TAG_FORMAT];
+  const first = firstTool ?? toolsInline?.[0];
+  if (first) parts.push(`Example:\n${example(first, json)}`);
+  if (toolsInline?.length)
+    parts.push(`Tools:\n${toolsInline.map((t) => `- ${t.name}: ${t.description} Arguments: ${JSON.stringify(t.parameters)}`).join("\n")}`);
+  if (path) parts.push(`The user is on the page "${path}".`);
+  return parts.join("\n\n");
+}
+
+/** A tool result's text. */
+export const textOf = (output: { content?: Array<{ type: string; text?: string }> } | undefined): string =>
+  (output?.content ?? []).map((c) => c.text ?? "").join("\n");
+
+/** The conversation as chat-template turns: the model sees its own earlier calls and their results. Last 12 turns. */
+export function toChatTemplateMessages(history: readonly AgentMessage[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
+  for (const m of history) {
+    if (m.role === "user") {
+      turns.push({ role: "user", content: m.parts.map((p) => (p.type === "text" ? p.text : "")).join("\n") });
+      continue;
+    }
+    let text = "";
+    const results: ChatTurn[] = [];
+    for (const p of m.parts) {
+      if (p.type === "text") text += p.text;
+      else if (p.type === "tool") {
+        text += `<tool_call>${JSON.stringify({ name: p.name, arguments: p.input ?? {} })}</tool_call>`;
+        const result = p.state === "cancelled" ? "Cancelled by the user." : p.error || textOf(p.output) || "(no result)";
+        results.push({ role: "tool", name: p.name, content: result.slice(0, MAX_TOOL_TEXT) });
+      }
+    }
+    if (text) turns.push({ role: "assistant", content: text });
+    turns.push(...results);
+  }
+  // start the window on a user turn
+  let start = Math.max(0, turns.length - MAX_TURNS);
+  while (start > 0 && turns[start]!.role !== "user") start--;
+  return turns.slice(start);
+}

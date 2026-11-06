@@ -11,7 +11,9 @@ import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 
 import { createPortal } from "react-dom";
 import { useAgentSession } from "../session/use-agent-session";
 import type { AgentAdapter } from "../types";
+import { AdapterSwitcher } from "./AdapterSwitcher";
 import { Composer } from "./Composer";
+import { DownloadCard } from "./DownloadCard";
 import { ChatIcon, CloseIcon, ResetIcon } from "./icons";
 import { MessageList } from "./MessageList";
 import { Suggestions, suggestionsFor } from "./Suggestions";
@@ -35,6 +37,8 @@ export interface AgentChatProps {
   /** sessionStorage key for the conversation; `false` keeps it in memory. Default "web-agents:chat". */
   storageKey?: string | false;
 }
+
+const ADAPTER_KEY = "web-agents:chat:adapter";
 
 function useHost(className: string | undefined, position: string): HTMLElement | null {
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -66,8 +70,16 @@ export function AgentChat({
 }: AgentChatProps) {
   const all = useMemo(() => adapters ?? (adapter ? [adapter] : []), [adapter, adapters]);
   if (all.length === 0) throw new Error("<AgentChat> needs an `adapter` (or `adapters`), e.g. createCloudAdapter().");
-  const [adapterId, setAdapterId] = useState(all[0]!.id);
+  // the person's last choice, when that adapter is still offered
+  const [adapterId, setAdapterId] = useState(() => {
+    const saved = typeof localStorage === "undefined" ? null : localStorage.getItem(ADAPTER_KEY);
+    return all.some((a) => a.id === saved) ? saved! : all[0]!.id;
+  });
   const current = all.find((a) => a.id === adapterId) ?? all[0]!;
+  const choose = (id: string): void => {
+    setAdapterId(id);
+    localStorage.setItem(ADAPTER_KEY, id);
+  };
 
   const host = useHost(className, position);
   const session = useAgentSession(current, { storageKey });
@@ -106,7 +118,30 @@ export function AgentChat({
             ? "Connecting to the assistant…"
             : status.state === "downloading"
               ? `Downloading the model… ${Math.round(status.progress * 100)}%`
-              : "This assistant needs a one-time download before it can answer.";
+              : "Download the model to start.";
+
+  // ---------- model download (opt-in, cancellable) ----------
+  const download = useRef<AbortController | null>(null);
+  const size = useRef<number | undefined>(undefined);
+  if (status.state === "needs-download") size.current = status.bytes;
+  const startDownload = (): void => {
+    download.current?.abort();
+    const ctrl = new AbortController();
+    download.current = ctrl;
+    current.prepare?.(ctrl.signal).catch(() => {}); // failures show as the adapter's "error" status
+  };
+  const other = all.find((a) => a.id !== current.id);
+  const downloadCard =
+    current.prepare && (status.state === "needs-download" || status.state === "downloading" || status.state === "error") ? (
+      <DownloadCard
+        status={status}
+        bytes={size.current}
+        onDownload={startDownload}
+        onCancel={() => download.current?.abort()}
+        onUseOther={other ? () => choose(other.id) : undefined}
+        otherLabel={other?.label}
+      />
+    ) : null;
 
   const last = session.messages.at(-1);
   const busyTool = last?.parts.some((p) => p.type === "tool" && (p.state === "running" || p.state === "awaiting-confirmation"));
@@ -128,21 +163,6 @@ export function AgentChat({
       >
         <header className="wa-chat__header">
           <h2 id={titleId}>{title}</h2>
-          {all.length > 1 && (
-            <select
-              className="wa-chat__switcher"
-              aria-label="Assistant"
-              value={current.id}
-              disabled={session.status === "streaming"}
-              onChange={(e) => setAdapterId(e.target.value)}
-            >
-              {all.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
-          )}
           {session.messages.length > 0 && (
             <button type="button" className="wa-chat__icon" onClick={session.reset} aria-label="New chat" title="New chat">
               <ResetIcon />
@@ -152,6 +172,9 @@ export function AgentChat({
             <CloseIcon />
           </button>
         </header>
+        {all.length > 1 && (
+          <AdapterSwitcher adapters={all} value={current.id} disabled={session.status === "streaming"} onChange={choose} />
+        )}
 
         {session.messages.length === 0 ? (
           <div className="wa-chat__empty">
@@ -160,9 +183,13 @@ export function AgentChat({
               click.
             </p>
             {chips.length > 0 && !unavailable && <Suggestions items={chips} onPick={session.send} />}
+            {downloadCard}
           </div>
         ) : (
-          <MessageList messages={session.messages} thinking={thinking} />
+          <>
+            <MessageList messages={session.messages} thinking={thinking} />
+            {downloadCard}
+          </>
         )}
 
         {session.status === "error" && session.error && (

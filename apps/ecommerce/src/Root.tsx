@@ -4,6 +4,7 @@
  * pathname, since React Router's pushState is invisible without the Navigation API.
  */
 import { AgentChat, createCloudAdapter } from "@web-agents/chat";
+import { createLocalAdapter } from "@web-agents/local-agent";
 import { WebAgentsProvider } from "@web-agents/react";
 import { lazy, Suspense, useMemo } from "react";
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
@@ -21,8 +22,8 @@ const Devtools = import.meta.env.DEV
   : () => null;
 
 const VISUALS = { spotlight: true };
-// Once per page: it checks /api/chat on first use.
-const cloud = createCloudAdapter();
+// Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
 
 function Shell() {
   const cart = useCart();
@@ -47,7 +48,7 @@ function Shell() {
       </div>
       <CartDrawer />
       {/* inside the provider: the assistant sees exactly the tools this page has on */}
-      <AgentChat adapter={cloud} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
+      <AgentChat adapters={ADAPTERS} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
         <Devtools initialSettings={{ spotlight: VISUALS.spotlight }} />
       </Suspense>
