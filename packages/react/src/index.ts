@@ -9,7 +9,7 @@ export type {} from "./jsx";
 
 export { WebAgentsProvider } from "./provider";
 export type { WebAgentsProviderProps } from "./provider";
-export { useWebAgents } from "./context";
+export { useOptionalWebAgents, useWebAgents } from "./context";
 export type { WebAgentsContextValue, WebAgentsVisuals } from "./context";
 export { EnableTools, useEnableTools } from "./use-enable-tools";
 export { useEnabledTools } from "./use-enabled-tools";

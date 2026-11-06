@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "check": "biome ci . && turbo run typecheck test build"
+    "check": "biome ci . && turbo run typecheck test build size",
+    "size": "turbo run size"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

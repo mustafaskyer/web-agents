@@ -29,7 +29,9 @@ export type { ToolRegistry, ToolRegistryOptions } from "./registry";
 export { createCallTracker, deferRelease, RESPONSE_GRACE_MS } from "./deferred";
 export type { CallTracker, DeferReleaseOptions } from "./deferred";
 export { matchPath } from "./path-match";
-export { errorResult, toToolResult } from "./result";
+export { errorResult, errorText, isAbortError, toToolResult } from "./result";
+export { executeTool, normalizeToolResult } from "./execute";
+export type { ExecuteToolOptions } from "./execute";
 
 // The WebMCP types are global (see ./webmcp). These named aliases let other packages import
 // them explicitly, which also pulls the global declarations into their emitted .d.ts.

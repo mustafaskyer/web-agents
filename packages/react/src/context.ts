@@ -25,3 +25,8 @@ export function useWebAgents(): WebAgentsContextValue {
   if (!value) throw new Error("useWebAgents must be used inside <WebAgentsProvider>");
   return value;
 }
+
+/** Like `useWebAgents`, but null outside a provider: for UI that also works without one (devtools). */
+export function useOptionalWebAgents(): WebAgentsContextValue | null {
+  return useContext(WebAgentsContext);
+}

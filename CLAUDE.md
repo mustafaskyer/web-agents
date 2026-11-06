@@ -30,7 +30,8 @@ compete with the user (the cursor yields the moment they interact). Roadmap and 
 ```bash
 pnpm install
 pnpm dev                                   # apps/playground (Vite) with HMR into package source
-pnpm check                                 # biome ci + typecheck + test + build (what CI runs)
+pnpm check                                 # biome ci + typecheck + test + build + size (what CI runs)
+pnpm --filter @web-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9 KB, whole package ≤ 13 KB
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
 pnpm --filter @web-agents/core test        # one package
@@ -50,7 +51,9 @@ packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals
                         web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
 packages/react/         @web-agents/react: <WebAgentsProvider>, useWebTool, useEnableTools, useToolAnswer, JSX attr types
 packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
-packages/devtools/      @web-agents/devtools: floating "agent console" (window.agent.run); rebuilt in Phase 3
+packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
+                        panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
+                        TanStack plugin), event-client.ts; keeps window.agent.run
 .agents/plans/          roadmap + phase plans (execute with /execute <plan>)
 tsconfig.base.json      shared compiler options (incl. customConditions)
 ```
@@ -135,4 +138,9 @@ mid-run (the cursor must vanish and the tool still complete).
   stay until the agent has its answer (`apps/playground/src/tools/useAnswerGrace.ts`).
 - The agent-browser CLI's Chrome may produce no frames (rAF never fires, screenshots time out), which freezes the cursor
   and every gated tool. If so, drive the playground with Playwright's Chromium (`node_modules/playwright`) instead.
-- `executeTool` arg shapes differ by Chrome version (object vs JSON string); see `packages/devtools/src/console.ts`.
+- `executeTool` arg shapes differ by Chrome version (object vs JSON string); use core's `executeTool()` (`packages/core/src/execute.ts`),
+  never `document.modelContext.executeTool` directly from library UI.
+- The devtools hotkey (Alt+Shift+A) is a trusted keydown on the page, so pressing it makes the cursor yield like any
+  other key; drive tools ~1 s later in scripted checks (input inside the panel itself never yields).
+- Devtools browser tests pre-bundle React in `optimizeDeps.include`; a dependency discovered mid-run reloads Vite and
+  leaves two copies of React ("Cannot read properties of null (reading 'useState')").

@@ -120,9 +120,10 @@ export interface YieldOptions {
 export const UI_HOST_ATTR = "data-web-agents-ui";
 
 // tool calls from library UIs — Phase 3 creates (devtools is the first consumer), Phase 5 reuses
-export function executeTool(name: string, args: Record<string, unknown>, opts?: { signal?: AbortSignal }):
+export interface ExecuteToolOptions { signal?: AbortSignal }
+export function executeTool(name: string, args: Record<string, unknown>, opts?: ExecuteToolOptions):
   Promise<ModelContextToolResult | null>;   // getTools() lookup, Chrome 150/156 args-shape fallback, null on navigation,
-                                            // abort → cancelTool?.(name) + AbortError
+                                            // abort → cancelTool?.(name) + AbortError. Done in Phase 3 (core/src/execute.ts).
 export function normalizeToolResult(res: ModelContextToolResult | string): ModelContextToolResult;
 export interface AgentVisuals {
   setSpotlight(spotlight: boolean | SpotlightOptions): void;
@@ -132,7 +133,7 @@ export interface AgentVisuals {
 
 // events — Phase 1
 export type AgentEvent =
-  | { type: "start"; tool: string; at: number }
+  | { type: "start"; tool: string; at: number; args?: unknown }   // args: imperative tools only (Phase 3)
   | { type: "fill"; tool: string; field: string; value: string | boolean }
   | { type: "park"; tool: string; prompt: string }
   | { type: "result"; tool: string; result: unknown; ms: number }
@@ -141,6 +142,11 @@ export type AgentEvent =
   | { type: "yield"; reason: "pointer" | "keyboard" | "wheel" | "touch" }
   | { type: "resume" };
 export function onAgentEvent(listener: (e: AgentEvent) => void): () => void;
+// Since Phase 3: an imperative tool with no element on screen still emits start + result/error (no animation),
+// so every call through the registerTool wrapper is observable. A call that rejects with an AbortError emits `cancel`,
+// never `error` (toolcancel may emit a second `cancel` for the same call; consumers ignore one with no open call).
+// Events still carry no call id: consumers correlate by tool name ("newest unfinished call"). If Phase 5 needs exact
+// correlation, add an optional `callId` to AgentEvent here first.
 
 // WebTool — Phase 2  (shape is a structural superset of Mastra's createTool config)
 export interface WebToolConfig<I = unknown, O = unknown> {
@@ -192,6 +198,8 @@ export function createCallTracker(): CallTracker;
 export function matchPath(pattern: string, pathname: string): boolean;   // literal, :param, trailing *, "*"
 export function toToolResult(value: unknown): ModelContextToolResult;    // same rules as the polyfill
 export function errorResult(err: unknown): ModelContextToolResult;
+export function errorText(err: unknown): string;          // err.message or String(err) (Phase 3)
+export function isAbortError(err: unknown): boolean;      // cancellation, not failure (Phase 3)
 
 // registry — Phase 2 (framework-agnostic, ref-counted)
 export function createToolRegistry(
@@ -229,7 +237,8 @@ useEnableTools(["apply_promo"]);           // enable while mounted (ref-counted)
 <EnableTools names={["apply_promo"]} />    // component form
 useWebTool(tool, { enabled?: boolean });   // inline tool, registered while mounted → { registered, supported }; works without a provider
 useEnabledTools();                         // catalog ids registered right now
-useWebAgents();                            // { registry, visuals: { setSpotlight, setYieldToUser } | null, pathname, … }
+useWebAgents();                            // { registry, visuals: { setSpotlight, setYieldToUser } | null, pathname, getContext, ensureVisuals }
+useOptionalWebAgents();                    // same, or null outside a provider (Phase 3; for library UI that works without one)
 usePathname();                             // location.pathname via Navigation API / popstate
 useToolAnswer();                           // today's useAnswerGrace, for declarative forms
 useAgentEvents(listener);                  // subscribe to core events
@@ -239,8 +248,21 @@ useAgentEvents(listener);                  // subscribe to core events
 ### `@web-agents/devtools` (Phase 3)
 
 ```ts
-export function installWebAgentsDevtools(options?: DevtoolsOptions): () => void;  // vanilla floating panel
-// "@web-agents/devtools/react":   <WebAgentsDevtools />, webAgentsDevtoolsPlugin()  (TanStack plugin)
+export function installWebAgentsDevtools(options?: DevtoolsOptions): () => void;  // vanilla floating panel (idempotent)
+export interface DevtoolsOptions {
+  visuals?: Pick<AgentVisuals, "setSpotlight" | "setYieldToUser"> | null;  // React host defaults to the provider's
+  initialOpen?: boolean;                    // default false
+  initialSettings?: Partial<DevtoolsSettings>;  // below saved settings; pass `spotlight` matching the installed visuals
+  hotkey?: string | false;                  // default "Alt+Shift+A"
+  eventClient?: boolean;                    // TanStack event bus bridge (pluginId "web-agents"), default true
+}
+export function createDevtoolsStore(options?: DevtoolsStoreOptions): DevtoolsStore;  // useSyncExternalStore store, serialisable snapshots
+export { SchemaForm, defaultValueFor, parseSchema, toAgentRunCode, toExecuteToolCode };  // reusable (Phase 5 tool cards)
+export function installAgentConsole(o?): () => void;   // deprecated alias
+// "@web-agents/devtools/react":   <WebAgentsDevtools {...DevtoolsOptions} />, useDevtoolsStore(options),
+//                                 webAgentsDevtoolsPlugin(options) → { id: "web-agents", name: "Web Agents", render }
+// peers: react, react-dom (required); @web-agents/react, @tanstack/react-devtools (optional; /react entry)
+// window.agent = { run(name, args), list() } is kept for back-compat (set by the store, restored on destroy).
 ```
 
 ### `@web-agents/chat` (Phase 5) / `@web-agents/local-agent` (Phase 6)
@@ -274,13 +296,18 @@ export interface AgentRunRequest {
 Every UI the libraries inject (devtools panel, chat widget) has a host element with the `data-web-agents-ui`
 attribute. `user-yield.ts` ignores input whose `composedPath()` contains such a host. Otherwise clicking *Run* in
 devtools or typing in the chat would hide the agent cursor the user just asked for.
+Floating UIs render in a shadow root at `z-index: calc(var(--agent-z) + 100)`, above the spotlight. In-place UIs
+(a host with a size, e.g. the devtools tab inside TanStack Devtools) are cut out of the spotlight by the cursor (Phase 3).
+Library UIs call tools through core's `executeTool()`, never `document.modelContext.executeTool` directly.
 
 ## Quality bar (TODO "priorities": performance, animation, UI/UX, DX) — applies to every phase
 
-- **Performance budgets**: `@web-agents/core` ≤ 9 KB min+gz (check with `pnpm --filter @web-agents/core size`;
-  no `size` script exists yet). After Phase 2 the whole package is ~10.7 KB min+gz; the visuals-only import
-  (`installAgentVisuals`, `onAgentEvent`) tree-shakes to ~8 KB. Decide in Phase 3 whether to raise the budget or
-  split WebTool/registry into a `@web-agents/core/tools` entry;
+- **Performance budgets** (`pnpm --filter @web-agents/core size`, part of `pnpm check`; Vite/Rolldown minify + gzip -9,
+  measured through a re-export so tree-shaking applies): **visuals-only import (`installAgentVisuals`, `onAgentEvent`)
+  ≤ 9 KB min+gz** (8.96 KB after Phase 3: only ~0.04 KB of headroom left) and **whole package ≤ 13 KB** (12.4 KB after Phase 3).
+  Decision (Phase 3): no `@web-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
+  shrink what a visuals-only page pays, and it would churn every import for no gain. The per-import budget keeps the
+  cursor lean; the whole-package budget caps WebTool/registry/executeTool growth. Revisit if a non-bundled (CDN) build ships;
   no work when idle (rAF loop stops, no polling while the tab is hidden); per-frame DOM reads happen before writes;
   INP unaffected (all listeners `passive`, capture-phase work O(1)).
 - **Animation**: transforms/opacity only; spring/minimum-jerk motion stays in `motion.ts`; every new animation has a

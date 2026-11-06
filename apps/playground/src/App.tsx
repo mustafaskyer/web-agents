@@ -1,5 +1,5 @@
 import { EnableTools, usePathname, WebAgentsProvider } from "@web-agents/react";
-import type { MouseEvent, ReactNode } from "react";
+import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 import { Orders } from "./Orders";
 import { CartProvider, PRODUCTS, money, useCart } from "./store";
 import { AddToCartForm } from "./tools/AddToCartForm";
@@ -7,6 +7,9 @@ import { ApplyPromoForm } from "./tools/ApplyPromoForm";
 import { CheckoutForm } from "./tools/CheckoutForm";
 import { catalog } from "./tools/catalog";
 import { ClearCartButton } from "./tools/ClearCartButton";
+
+// Dev only: the condition guards the import() itself, so the production bundle has no devtools.
+const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => null;
 
 const GLOBAL_TOOLS = ["get_cart"];
 const ROUTE_TOOLS = { "/orders": ["list_orders"] };
@@ -93,7 +96,7 @@ function Shop() {
   return (
     <section className="catalog">
       <h1>Storefront</h1>
-      <p className="muted">Each card is a declarative WebMCP tool. Use the agent console on the right to call one.</p>
+      <p className="muted">Each card is a declarative WebMCP tool. Open the devtools (bottom right, or Alt+Shift+A) to call one.</p>
       <div className="grid">
         {PRODUCTS.map((p) => (
           <article key={p.sku} className="card">
@@ -141,6 +144,9 @@ function Shell() {
         {path === "/orders" ? <Orders /> : <Shop />}
         <Cart />
       </main>
+      <Suspense>
+        <Devtools spotlight={VISUALS.spotlight} />
+      </Suspense>
     </WebAgentsProvider>
   );
 }

@@ -6,7 +6,7 @@ confirmation" state) without the tools knowing it exists, plus the tooling aroun
 
 ```
 pnpm install
-pnpm dev         # apps/playground on http://localhost:5173: open the "Agent console" and hit Run
+pnpm dev         # apps/playground on http://localhost:5173: open the devtools (bottom right, Alt+Shift+A) and run a tool
 pnpm check       # biome ci + typecheck + tests + build, everything CI runs
 ```
 
@@ -20,7 +20,7 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 | [`@web-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
 | [`@web-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
 | [`@web-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
-| [`@web-agents/devtools`](packages/devtools) | Floating panel that lists the page's tools and runs them with JSON args (`window.agent.run`). |
+| [`@web-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
 
 | App | |
 |---|---|
@@ -40,11 +40,12 @@ apps/playground/src/
     catalog.ts           defineWebTool: get_cart (global), list_orders (/orders), remove_promo (while shown)
   App.tsx             ← <WebAgentsProvider tools={catalog} global routes context={cart}> (installs the cursor)
   store.tsx           ← app state (cart)
-  main.tsx            ← polyfill (dev) → render → agent console (dev)
+  main.tsx            ← polyfill (dev) → render
+  Devtools.tsx        ← dev only, lazy: <WebAgentsDevtools /> (or the TanStack tab with ?tanstack)
 packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool.
 packages/react        ← provider + hooks: which tools are on, registered without churn
 packages/polyfill     ← dev only: document.modelContext + declarative forms + lifecycle events
-packages/devtools     ← dev only: the panel that plays the agent
+packages/devtools     ← dev only: the panel that plays the agent and records every call
 ```
 
 A declarative tool is just a form with two attributes. Its submit handler answers the agent

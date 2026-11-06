@@ -4,6 +4,7 @@ import { cleanupFixtures, cursorVisible, fixture, modelContext, recordEvents, re
 import { onAgentEvent } from "./events";
 import { type AgentVisuals, installAgentVisuals } from "./visuals";
 import { CONFIRM, TARGET } from "./confirm";
+import { UI_HOST_ATTR } from "./user-yield";
 import { defineWebTool, registerWebTool, toModelContextTool } from "./web-tool";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -108,14 +109,31 @@ describe("installAgentVisuals", () => {
     expect(order).toEqual(["start", "execute", "result"]);
   });
 
-  it("runs an imperative tool with nothing on screen immediately", async () => {
+  it("keeps in-place library UI out of the spotlight", async () => {
+    visuals?.setSpotlight(true);
+    fixture(`<div ${UI_HOST_ATTR} style="position:fixed;left:0;bottom:0;width:200px;height:60px"></div>`);
+    const name = uniqueName("t_spot");
+    const form = toolForm(name);
+    await tick();
+    const run = modelContext().executeTool(name, { qty: 2 });
+    const spot = document.querySelector(".agent-spotlight") as HTMLElement;
+    // The browser normalises the path ("H 200"): match the host's hole loosely.
+    await until(() => spot.classList.contains("is-visible") && /H\s?200\b/.test(spot.style.clipPath), 3000, "spotlight with a UI hole");
+    await run;
+    expect(form.isConnected).toBe(true);
+    visuals?.setSpotlight(false);
+  });
+
+  it("runs an imperative tool with nothing on screen immediately, and still reports the run", async () => {
     const name = uniqueName("t_offscreen");
     modelContext().registerTool({ name, description: "test", execute: () => "done" });
     const started = performance.now();
     const res = await modelContext().executeTool(name, {});
     expect(resultText(res)).toContain("done");
     expect(performance.now() - started).toBeLessThan(100);
-    expect(rec.types()).not.toContain("start");
+    expect(rec.types()).toEqual(["start", "result"]);
+    expect(rec.events[1]).toMatchObject({ type: "result", tool: name, result: "done" });
+    expect(rec.events[0]).toMatchObject({ type: "start", tool: name, args: {} });
   });
 
   it("never submits to the page when the call is cancelled while the cursor is on its way", async () => {

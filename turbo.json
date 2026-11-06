@@ -5,6 +5,7 @@
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "dev": { "cache": false, "persistent": true },
     "typecheck": {},
-    "test": { "outputs": ["coverage/**"] }
+    "test": { "outputs": ["coverage/**"] },
+    "size": {}
   }
 }

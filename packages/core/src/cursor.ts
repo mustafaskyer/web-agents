@@ -12,6 +12,7 @@
  * drifting off its target.
  */
 import { type Vec, Spring, SpringSet, arcPoint, clamp, distance, minimumJerk, random, travelTime } from "./motion";
+import { UI_HOST_ATTR } from "./user-yield";
 
 interface Aim {
   el: Element;
@@ -120,6 +121,29 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number): str
   );
 }
 
+/** How often the spotlight re-finds in-place library UI hosts, in ms. */
+const UI_HOSTS_REFRESH_MS = 250;
+
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** `a` minus `b`, as up to four non-overlapping boxes (bands above and below, slices left and right). */
+function subtractRect(a: Box, b: Box): Box[] {
+  if (b.right <= a.left || b.left >= a.right || b.bottom <= a.top || b.top >= a.bottom) return [a];
+  const out: Box[] = [];
+  if (b.top > a.top) out.push({ left: a.left, top: a.top, right: a.right, bottom: b.top });
+  if (b.bottom < a.bottom) out.push({ left: a.left, top: b.bottom, right: a.right, bottom: a.bottom });
+  const top = Math.max(a.top, b.top);
+  const bottom = Math.min(a.bottom, b.bottom);
+  if (b.left > a.left) out.push({ left: a.left, top, right: b.left, bottom });
+  if (b.right < a.right) out.push({ left: b.right, top, right: a.right, bottom });
+  return out;
+}
+
 class GhostCursor {
   // ---- DOM ----
   private cursorEl!: HTMLDivElement;
@@ -139,6 +163,12 @@ class GhostCursor {
   /** The spotlight's clear window: softer than the ring, so focus shifts feel calm. */
   private spot = new SpringSet({ x: 0, y: 0, w: 0, h: 0 }, 150, 24);
   private spotlight: Required<SpotlightOptions> | null = null;
+  /** Viewport rects of in-place library UI (devtools, chat), cut out of the spotlight. Read in step, written in render. */
+  private uiHoles: Box[] = [];
+  private uiHosts: Element[] = [];
+  private uiHostsAt = -Infinity;
+  /** The last clip-path written, so a still spotlight costs no style work. */
+  private spotClip = "";
   private spotTarget: Element | null = null;
   /** After a click the window stops following layout shifts until the next move. */
   private spotFrozen = false;
@@ -456,6 +486,7 @@ class GhostCursor {
     this.liveEl.setAttribute("role", "status");
 
     this.spotEl = div("agent-spotlight");
+    this.spotClip = "";
     this.spotEl.setAttribute("aria-hidden", "true");
     this.applySpotlightStyle();
 
@@ -597,6 +628,15 @@ class GhostCursor {
       }
     }
     if (this.spotTarget && !still) this.spot.step(dt);
+    // Library UI rendered in place (the devtools tab inside TanStack Devtools) stays sharp too.
+    // Floating hosts are 0×0 and sit above the spotlight anyway.
+    // The host list is re-queried a few times a second, not every frame; usually it's empty.
+    if (!this.spotTarget) this.uiHosts = [];
+    else if (now - this.uiHostsAt > UI_HOSTS_REFRESH_MS) {
+      this.uiHosts = [...document.querySelectorAll(`[${UI_HOST_ATTR}]`)];
+      this.uiHostsAt = now;
+    }
+    this.uiHoles = this.uiHosts.map((el) => el.getBoundingClientRect()).filter((r) => r.width && r.height);
   }
 
   private stepSpring(s: Spring, dt: number, still: boolean): void {
@@ -632,8 +672,19 @@ class GhostCursor {
       // Full-viewport layer with a rounded hole (even-odd), so only the focus stays sharp.
       const w = innerWidth;
       const h = innerHeight;
-      const hole = roundedRect(this.spot.get("x") - sx, this.spot.get("y") - sy, this.spot.get("w"), this.spot.get("h"), 14);
-      this.spotEl.style.clipPath = `path(evenodd, "M0 0H${w}V${h}H0Z${hole}")`;
+      const x = this.spot.get("x") - sx;
+      const y = this.spot.get("y") - sy;
+      const sw = this.spot.get("w");
+      const sh = this.spot.get("h");
+      // Even-odd: a point inside two holes is filled again, so UI holes leave out the spotlight window's box.
+      const box = { left: x, top: y, right: x + sw, bottom: y + sh };
+      const ui = this.uiHoles
+        .flatMap((r) => subtractRect(r, box))
+        .map((r) => `M${r.left} ${r.top}H${r.right}V${r.bottom}H${r.left}Z`)
+        .join("");
+      const clip = `path(evenodd, "M0 0H${w}V${h}H0Z${roundedRect(x, y, sw, sh, 14)}${ui}")`;
+      // Settled window: skip the write, which would restyle a viewport-sized layer every frame.
+      if (clip !== this.spotClip) this.spotEl.style.clipPath = this.spotClip = clip;
     }
   }
 

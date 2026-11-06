@@ -26,11 +26,13 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "size": "node scripts/size.mjs"
   },
   "devDependencies": {
     "tsdown": "^0.23.7",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "vite": "^8.3.6"
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0"

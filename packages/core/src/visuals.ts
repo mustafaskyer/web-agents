@@ -27,6 +27,7 @@
 import { CONFIRM, TARGET, confirmPrompt } from "./confirm";
 import { agentCursor, reduced, wait, type SpotlightOptions } from "./cursor";
 import { type AgentEvent, emit } from "./events";
+import { errorText, isAbortError } from "./result";
 import { type YieldOptions, watchUserInput } from "./user-yield";
 
 export type { SpotlightOptions, YieldOptions };
@@ -211,6 +212,12 @@ function start({
     log(e);
     emit(e);
   };
+
+  /** A cancelled call is a `cancel`, never an `error`: consumers must not show it as a failure. */
+  const reportFailure = (tool: string, err: unknown, startedAt: number): void =>
+    report(
+      isAbortError(err) ? { type: "cancel", tool } : { type: "error", tool, error: errorText(err), ms: performance.now() - startedAt },
+    );
 
   const runs = new Map<string, Run>();
   /** Imperative tools that name their element with a selector (WebTool `target`) instead of `toolname`. */
@@ -419,7 +426,7 @@ function start({
           },
           (err: unknown) => {
             if (!live()) throw err;
-            report({ type: "error", tool: toolName, error: String(err), ms: performance.now() - run.startedAt });
+            reportFailure(toolName, err, run.startedAt);
             setTimeout(() => finish(toolName, run.generation), linger);
             throw err;
           },
@@ -515,10 +522,12 @@ function start({
 
   // biome-ignore lint/suspicious/noExplicitAny: a tool may declare any argument type; registration must accept them all
   async function runGated(tool: ModelContextTool<any>, args: unknown, ctx?: ModelContextExecuteOptions): Promise<unknown> {
-    const el = alive ? byTool(tool.name) : null; // torn down: just run it
-    if (!el || el instanceof HTMLFormElement) return tool.execute(args, ctx as ModelContextExecuteOptions);
+    if (!alive) return tool.execute(args, ctx as ModelContextExecuteOptions); // torn down: just run it
+    const el = byTool(tool.name);
+    if (el instanceof HTMLFormElement) return tool.execute(args, ctx as ModelContextExecuteOptions);
+    if (!el) return runUnseen(tool, args, ctx);
 
-    report({ type: "start", tool: tool.name, at: performance.now() });
+    report({ type: "start", tool: tool.name, at: performance.now(), args });
     agentCursor.say(`${tool.name} started`);
     const run = startRun(tool.name, el);
     if ((tool as { [CONFIRM]?: string })[CONFIRM]) return runConfirmed(tool, args, ctx, el, run);
@@ -549,11 +558,26 @@ function start({
       agentCursor.say(`${tool.name} done`);
       return result;
     } catch (err) {
-      report({ type: "error", tool: tool.name, error: String(err), ms: performance.now() - run.startedAt });
+      reportFailure(tool.name, err, run.startedAt);
       throw err;
     } finally {
       clearTimeout(timeout);
       setTimeout(() => finish(tool.name, run.generation), linger);
+    }
+  }
+
+  /** No element to animate: run at once, but still report the run (devtools, chat). */
+  // biome-ignore lint/suspicious/noExplicitAny: see runGated
+  async function runUnseen(tool: ModelContextTool<any>, args: unknown, ctx?: ModelContextExecuteOptions): Promise<unknown> {
+    const startedAt = performance.now();
+    report({ type: "start", tool: tool.name, at: startedAt, args });
+    try {
+      const result = await tool.execute(args, ctx as ModelContextExecuteOptions);
+      report({ type: "result", tool: tool.name, result, ms: performance.now() - startedAt });
+      return result;
+    } catch (err) {
+      reportFailure(tool.name, err, startedAt);
+      throw err;
     }
   }
 
@@ -595,7 +619,7 @@ function start({
     } catch (err) {
       settled = true;
       if (run.parked && current()) agentCursor.unpark(); // the shared cursor may be parked for another tool by now
-      report({ type: "error", tool: tool.name, error: String(err), ms: performance.now() - run.startedAt });
+      reportFailure(tool.name, err, run.startedAt);
       throw err;
     } finally {
       run.parked = false;

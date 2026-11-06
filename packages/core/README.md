@@ -22,6 +22,14 @@ onAgentEvent((e) => console.debug("[agent]", e)); // start, fill, park, result, 
 The one contract: the element a tool acts on carries `toolname="<unique tool name>"`.
 Declarative forms already have it; imperative tools add it to their control.
 
+Imperative tools with no element on screen run at once (nothing to animate) but still emit
+`start` and `result` / `error`, so devtools and chat see every call.
+
+Library UIs call tools like an agent with `executeTool(name, args, { signal })`: it looks the tool up
+in `getTools()`, absorbs the Chrome 150/156 argument-shape difference, normalises the result
+(`normalizeToolResult`), resolves `null` when the call navigated, and on abort calls
+`cancelTool(name)` where available and rejects with an `AbortError`.
+
 Ships the WebMCP types as globals (`document.modelContext`, `SubmitEvent.agentInvoked`,
 `respondWith`) and as named exports (`ModelContext`, `ModelContextTool`, …).
 
@@ -164,8 +172,10 @@ except the tool the cursor is working in (the nearest `[toolname]` element, e.g.
 product form), and the clear window glides from tool to tool. Tune it with
 `spotlight: { blur: 4, dim: 0.08, padding: 12 }`. It never takes pointer events, so the
 user can still click to confirm. Toggle it at runtime with the controller that
-`installAgentVisuals` returns (`visuals.setSpotlight(false)`); the dev console has a
-_Spotlight_ switch wired to it. The demo turns it on in `apps/playground/src/main.tsx`.
+`installAgentVisuals` returns (`visuals.setSpotlight(false)`); the devtools' Settings tab has a
+_Spotlight_ switch wired to it. The demo turns it on in `apps/playground/src/App.tsx`.
+In-place library UI (a `data-web-agents-ui` host with a size, e.g. the devtools tab inside
+TanStack Devtools) is cut out of the blur too.
 
 ## What the browser does for you
 
@@ -180,16 +190,16 @@ _Spotlight_ switch wired to it. The demo turns it on in `apps/playground/src/mai
 ## Trying it (apps/playground)
 
 1. `pnpm dev` at the repo root, open the page.
-2. In the agent console, run `add_to_cart_mug-01` with `{"qty":3}` → the cursor glides to
-   the qty field, types `3`, moves to "Add to cart" and clicks; the cart updates on the
-   click; the console logs the tool result.
+2. Open the devtools (bottom right, or Alt+Shift+A), expand `add_to_cart_mug-01`, set qty to 3
+   and Run → the cursor glides to the qty field, types `3`, moves to "Add to cart" and clicks;
+   the cart updates on the click; the Timeline tab shows the call, the `qty` fill and the result.
 3. Run `apply_promo` with `{"code":"123"}` → the cursor types the code and clicks
    "Apply"; the totals show 10% off. `123` is the only valid code: any other code shows
    an error under the field and the agent gets the same message. Once a code is applied
    the promo form (and the `apply_promo` tool) goes away; _Remove_ in the totals brings it back.
 4. Run `place_order` (no arguments) → the cursor parks on "Place order · $total" with a
-   _Click … to confirm_ prompt. Click the button yourself to complete (polyfill only: ✕ in
-   the console cancels). The order uses the applied code, which is then used up.
+   _Click … to confirm_ prompt. Click the button yourself to complete (polyfill only: Cancel in
+   the devtools cancels). The order uses the applied code, which is then used up.
    The button (and the `place_order` tool) only exists while the cart has items.
 
    A form that hides itself as a result of its own action waits ~0.5 s after answering
@@ -213,8 +223,8 @@ Or from DevTools: `await agent.run("add_to_cart_tee-02", { qty: 2 })`.
   whichever signal arrives first.
 - Native `executeTool` takes the tool object from `getTools()` plus a JSON **string**
   of args, and resolves to a JSON string. Native `getTools()` also returns
-  `inputSchema` as a string. The dev console handles both shapes, and so does the
-  polyfill.
+  `inputSchema` as a string. Core's `executeTool()` handles both shapes (devtools and chat
+  use it), and so does the polyfill.
   Keystroke-by-keystroke typing is only possible for imperative tools, where `execute`
   receives the args.
 - Imperative tools are synchronised by wrapping `registerTool`. This is the one place the

@@ -6,8 +6,11 @@
 import type { YieldReason } from "./user-yield";
 
 export type AgentEvent =
-  /** A tool run started (first lifecycle signal seen). `at` is performance.now(). */
-  | { type: "start"; tool: string; at: number }
+  /**
+   * A tool run started (first lifecycle signal seen). `at` is performance.now().
+   * `args`: what the agent passed, when known (imperative tools; declarative forms only show `fill`s).
+   */
+  | { type: "start"; tool: string; at: number; args?: unknown }
   /** The agent filled a field of a declarative form; emitted once the cursor has typed it. */
   | { type: "fill"; tool: string; field: string; value: string | boolean }
   /** The browser paused on a submit button for the user's confirmation. */
