@@ -9,7 +9,7 @@ import { useToolAnswer } from "@web-agents/react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { SearchIcon } from "../components/icons";
-import { productLine, searchProducts } from "../data/catalog";
+import { categoryOverview, productLine, searchProducts } from "../data/catalog";
 import { TO_BUY } from "./openProduct";
 import styles from "./SearchBox.module.css";
 
@@ -33,7 +33,14 @@ export function SearchBox() {
     const list = hits.slice(0, ANSWER_LIMIT).map(productLine).join("\n");
     const more = hits.length > ANSWER_LIMIT ? `\n…and ${hits.length - ANSWER_LIMIT} more on the page.` : "";
     const found = q ? `${hits.length} result${hits.length === 1 ? "" : "s"} for "${q}"` : `All ${hits.length} products`;
-    answer(e.nativeEvent as SubmitEvent, Promise.resolve(hits.length ? `${found}:\n${list}${more}${TO_BUY}` : `No products match "${q}".`));
+    answer(
+      e.nativeEvent as SubmitEvent,
+      Promise.resolve(
+        hits.length
+          ? `${found}:\n${list}${more}${TO_BUY}`
+          : `No products match "${q}". Try one other word, or browse_category:\n${categoryOverview()}`,
+      ),
+    );
   }
 
   return (

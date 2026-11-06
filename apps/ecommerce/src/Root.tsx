@@ -15,6 +15,7 @@ import { CartProvider, useCart } from "./store/cart";
 import { UiProvider, useUi } from "./store/ui";
 import { catalog, drawerSafeTools, globalTools } from "./tools/catalog";
 import type { StoreContext } from "./tools/context";
+import { STORE_INSTRUCTIONS } from "./tools/instructions";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
@@ -23,7 +24,7 @@ const Devtools = import.meta.env.DEV
 
 const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
-const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: STORE_INSTRUCTIONS })];
 
 /** A tool that isn't about the cart closes the drawer first: the agent never works on a page hidden behind it. */
 function CloseDrawerForOtherTools() {

@@ -258,4 +258,21 @@ describe("runLocalAgent", () => {
       parts.push(p);
     expect(parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("")).toBe("Two mugs are in your cart.");
   });
+
+  it("the replacement for a parroted answer keeps a short list when the result is one", async () => {
+    const provider = fake(['<tool_call>{"name":"add_to_cart","arguments":{"qty":1}}</tool_call>', "Opened Apparel:"]);
+    const result =
+      "Opened Apparel:\n- Ocean Tee [ocean-tee]: $48.00\n- Linen Shirt [linen-shirt]: $92.00\n- Field Hoodie: $118.00\n- Ocean Socks: $16.00\nTo buy one: open_product.";
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, {
+      messages: [user],
+      tools,
+      signal: new AbortController().signal,
+      callTool: vi.fn(async () => ({ content: [{ type: "text", text: result }] })),
+    }))
+      parts.push(p);
+    expect(parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("")).toBe(
+      "Opened Apparel:\n- Ocean Tee [ocean-tee]: $48.00\n- Linen Shirt [linen-shirt]: $92.00\n- Field Hoodie: $118.00\n…and 1 more.",
+    );
+  });
 });

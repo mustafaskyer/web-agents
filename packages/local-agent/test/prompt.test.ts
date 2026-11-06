@@ -26,4 +26,11 @@ describe("buildLocalSystemPrompt", () => {
   it("says when there's nothing to call", () => {
     expect(buildLocalSystemPrompt({ tools: [] })).toContain("This page has no tools right now");
   });
+
+  it("adds the site's own instructions, and the step-by-step method", () => {
+    const prompt = buildLocalSystemPrompt({ tools: [search], instructions: "  To buy: search, open_product, add_to_cart.  " });
+    expect(prompt).toContain("About this site:\nTo buy: search, open_product, add_to_cart.");
+    expect(prompt).toContain('search with the key word only ("bag", not "I want a beautiful bag")');
+    expect(buildLocalSystemPrompt({ tools: [search] })).not.toContain("About this site");
+  });
 });

@@ -15,7 +15,7 @@ import { createTransformersProvider, type TransformersProviderOptions } from "./
 import type { LocalProvider, ProviderAvailability } from "./types";
 
 /** Options for `createLocalAdapter`. */
-export interface LocalAdapterOptions extends Pick<LocalLoopOptions, "maxSteps" | "stepTimeoutMs"> {
+export interface LocalAdapterOptions extends Pick<LocalLoopOptions, "maxSteps" | "stepTimeoutMs" | "instructions"> {
   /** Engines to try, in order. Default: Chrome's Prompt API, then transformers.js. */
   providers?: LocalProvider[];
   /** transformers.js model id (default: Qwen3 0.6B ONNX; "onnx-community/Qwen3-1.7B-ONNX" needs more memory). */
@@ -142,6 +142,7 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
         maxSteps: opts.maxSteps,
         stepTimeoutMs: opts.stepTimeoutMs,
         toolsInline: current.toolsInline,
+        instructions: opts.instructions,
       })) {
         // Chrome's model reported "available" but can't start: drop it and answer with the next provider instead
         if (part.type === "error" && current.broken) break;

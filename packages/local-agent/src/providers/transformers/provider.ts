@@ -6,7 +6,7 @@
  * create a session in testing (`std::bad_alloc`: out of WASM memory while loading), so it's opt-in via `model`.
  */
 import type { GenerateRequest, GenerateResult, LocalProvider, ProviderAvailability } from "../../types";
-import { claimPage, estimateTokens, lockBrowser, releasePage, tooBigForDevice } from "./guard";
+import { claimPage, estimateTokens, LARGE_MODEL_BYTES, lockBrowser, releasePage, tooBigForDevice } from "./guard";
 import type { Device, Dtype, FromWorker, ToWorker } from "./protocol";
 
 /** Verified on the model cards (onnx-community, 2026-11): weights + tokenizer, in bytes. */
@@ -33,8 +33,9 @@ export interface TransformersProviderOptions {
    */
   worker?: Worker | (() => Worker);
   /**
-   * Most prompt tokens per generation (estimated). Default 1536. The loop offers fewer tools and less history to stay
-   * under it: on WebGPU the whole prompt is read in one GPU pass, and a long one can stall the display.
+   * Most prompt tokens per generation (estimated). Default 3072 for models up to 650 MB (Qwen3 0.6B), 1536 above
+   * (LFM2.5 1.2B). The loop offers fewer tools and less history to stay under it: on WebGPU the whole prompt is read in
+   * one GPU pass, and a long one on a large model can stall the display.
    */
   maxInputTokens?: number;
 }
@@ -94,6 +95,7 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
   let nextId = 1;
   const pending = new Map<number, (m: FromWorker) => void>();
 
+  let chosenDtype: Dtype | null = null;
   const choice = async () => {
     detected ??= await detectDevice();
     const { device, f16 } = detected;
@@ -101,6 +103,7 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
     // without shader-f16 an f16 model fails at its first token ("requires f16 but the device does not support it")
     const dtype: Dtype = opts.dtype ?? (device === "webgpu" && f16 ? "q4f16" : "q4");
     model = chosen;
+    chosenDtype = dtype;
     return { device, model: chosen, dtype };
   };
 
@@ -143,7 +146,10 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
   };
   // A page kept in the back/forward cache would keep its model in GPU memory: free it; it reloads from cache on return.
   if (typeof addEventListener === "function") addEventListener("pagehide", () => worker && terminate());
-  const maxInputTokens = opts.maxInputTokens ?? 1536;
+  const inputBudget = (): number => {
+    const bytes = model && chosenDtype ? (sizeOf(model, chosenDtype) ?? 0) : 0;
+    return opts.maxInputTokens ?? (bytes > LARGE_MODEL_BYTES ? 1536 : 3072);
+  };
   const sizeOf = (m: string, dtype: Dtype): number | undefined =>
     (MODELS[m as keyof typeof MODELS] as Record<Dtype, number> | undefined)?.[dtype];
 
@@ -245,7 +251,7 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
 
     async fits({ system, messages, tools }) {
       const text = system + messages.map((m) => m.content).join("\n") + JSON.stringify(tools);
-      return estimateTokens(text) <= maxInputTokens;
+      return estimateTokens(text) <= inputBudget();
     },
 
     dispose() {

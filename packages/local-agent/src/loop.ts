@@ -20,6 +20,11 @@ export interface LocalLoopOptions {
   maxTools?: number;
   /** Pass the tools in the prompt text (providers without native chat-template tools). */
   toolsInline?: boolean;
+  /**
+   * What the site is and how its tools fit together, in a few short lines ("To buy: search, open_product, then
+   * add_to_cart"). Small models can't infer a site's flow from tool names; this is where the site tells them.
+   */
+  instructions?: string;
 }
 
 const TOO_LONG = "This request is too long for the on-device model. Start a new chat, or try the cloud assistant.";
@@ -92,8 +97,14 @@ export function echoes(prose: string, turns: readonly ChatTurn[]): boolean {
   return turns.some((t) => (t.role === "tool" || t.role === "assistant") && normalize(t.content).includes(head));
 }
 
-/** A tool result's first line, for a one-line answer. */
-const firstLine = (text: string): string => text.split("\n")[0]!.trim();
+/** A tool result's gist, for a short answer: its first line, plus up to 3 list lines when that line introduces them. */
+function brief(text: string): string {
+  const [first = "", ...rest] = text.trim().split("\n");
+  if (!first.trim().endsWith(":")) return first.trim();
+  const items = rest.filter((l) => l.trim().startsWith("-")).slice(0, 3);
+  const more = rest.filter((l) => l.trim().startsWith("-")).length - items.length;
+  return [first.trim(), ...items, ...(more > 0 ? [`…and ${more} more.`] : [])].join("\n");
+}
 
 /** After a failed call answered with prose: the failure, and what to do instead. */
 export const failedPrompt = (error: string): string =>
@@ -116,7 +127,7 @@ export async function* runLocalAgent(
   req: AgentRunRequest,
   opts: LocalLoopOptions = {},
 ): AsyncGenerator<AgentStreamPart> {
-  const { maxSteps = 6, stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false } = opts;
+  const { maxSteps = 6, stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false, instructions } = opts;
   const query = lastUserText(req.messages);
   const format = provider.callFormat ?? "tags";
   const turns: ChatTurn[] = toChatTemplateMessages(req.messages, format);
@@ -138,7 +149,15 @@ export async function* runLocalAgent(
     let fitted = false;
     for (const max of [...new Set([maxTools, 4, 2, 1])].filter((n) => n <= maxTools)) {
       tools = rankTools(req.tools, query, { max, recent: used.slice(-2) });
-      system = buildLocalSystemPrompt({ path, page, tools, toolsInline: toolsInline ? tools : undefined, firstTool: tools[0], format });
+      system = buildLocalSystemPrompt({
+        path,
+        page,
+        tools,
+        toolsInline: toolsInline ? tools : undefined,
+        firstTool: tools[0],
+        format,
+        instructions,
+      });
       if (!provider.fits || (await provider.fits({ system, messages: turns, tools }).catch(() => true))) {
         fitted = true;
         break;
@@ -203,7 +222,7 @@ export async function* runLocalAgent(
       let prose = parsed.text.trim();
       // a final answer that only repeats an earlier result or reply: say what the last call did instead
       if (quiet && !failure && parsed.calls.length === 0 && parsed.errors.length === 0 && echoes(prose, turns))
-        prose = firstLine(results.at(-1)!);
+        prose = brief(results.at(-1)!);
       if (prose && (attempt === 1 ? quiet || !streamed : prose !== shown.trim()))
         yield { type: "text-delta", messageId, delta: (shown ? "\n\n" : "") + prose };
       if (attempt === 1) shown = (quiet ? "" : streamed) || prose;

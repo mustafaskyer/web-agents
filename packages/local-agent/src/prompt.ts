@@ -10,12 +10,16 @@ const MAX_TURNS = 12;
 const MAX_TOOL_TEXT = 1500;
 
 const RULES = `You are an assistant inside the web page the user is looking at. You act on the page with tools; the user watches each step.
+How to work:
+1. Work out what the user wants: something to find, a page to open, or an action (add, remove, book, buy).
+2. Take one step with the best tool. To find something, search with the key word only ("bag", not "I want a beautiful bag").
+3. Read the result, then take the next step. If nothing was found, try a simpler word or a likely category before giving up.
+4. When you found what they asked for, or need them to choose, reply in one or two short sentences. Ask before buying or adding something they didn't ask to add.
 Rules:
 - Only use the tools listed. Never invent tool names or arguments; ask for missing values.
 - Some tools wait for the user to confirm on the page (orders, bookings, deletions). If a result says it was cancelled, tell the user; never claim it succeeded.
 - Never say you did something unless a tool result says it happened.
 - A tool result starting with "Error:" failed. Explain briefly and suggest a fix.
-- Do one step at a time. Keep replies short and plain.
 - Asked what you can do, say in plain words what the tools below let you do here.`;
 
 const TAG_FORMAT = `To use a tool, reply ONLY with:
@@ -64,12 +68,23 @@ export interface LocalPromptOptions {
   firstTool?: CompactTool;
   /** The model's call format (chat-template path). Default "tags". */
   format?: CallFormat;
+  /** What the site is and how its tools fit together, from the site (`createLocalAdapter({ instructions })`). */
+  instructions?: string;
 }
 
 /** The system prompt (well under ~600 tokens). */
-export function buildLocalSystemPrompt({ path, page, tools, toolsInline, firstTool, format = "tags" }: LocalPromptOptions = {}): string {
+export function buildLocalSystemPrompt({
+  path,
+  page,
+  tools,
+  toolsInline,
+  firstTool,
+  format = "tags",
+  instructions,
+}: LocalPromptOptions = {}): string {
   const json = !!toolsInline;
   const parts = [RULES, json ? JSON_FORMAT : format === "pythonic" ? PYTHONIC_FORMAT : TAG_FORMAT];
+  if (instructions?.trim()) parts.push(`About this site:\n${instructions.trim()}`);
   const first = firstTool ?? toolsInline?.[0] ?? tools?.[0];
   if (first) parts.push(`Example:\n${example(first, json, format)}`);
   if (toolsInline?.length)

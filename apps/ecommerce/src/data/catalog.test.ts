@@ -12,6 +12,18 @@ describe("catalog", () => {
     expect(searchProducts("TEE").map((p) => p.slug)).toContain("ocean-tee");
   });
 
+  it("searches word by word, with tags, ignoring filler words and plurals", () => {
+    expect(searchProducts("I want a beautiful bag")[0]?.slug).toBe("canvas-tote");
+    expect(searchProducts("wallet")[0]?.slug).toBe("leather-cardholder");
+    expect(
+      searchProducts("hats")
+        .map((p) => p.slug)
+        .toSorted(),
+    ).toEqual(["trail-cap", "wool-beanie"]);
+    expect(searchProducts("something for coffee").map((p) => p.slug)).toEqual(expect.arrayContaining(["stoneware-mug", "pour-over-set"]));
+    expect(searchProducts("a beautiful one")).toEqual([]);
+  });
+
   it("filters by category and limits", () => {
     expect(searchProducts("", { category: "home" }).every((p) => p.category === "home")).toBe(true);
     expect(searchProducts("", { limit: 3 })).toHaveLength(3);

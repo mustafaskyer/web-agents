@@ -30,6 +30,8 @@ export interface Product {
   /** Cents. */
   price: number;
   description: string;
+  /** Words people search with that the name doesn't say ("bag" for the tote, "wallet" for the cardholder). */
+  tags: string[];
   details: { fit: string; fabric: string; care: string };
   /** One option axis at most (size, colour or format): enough for a demo. */
   variants?: { name: string; options: string[] };
@@ -62,21 +64,50 @@ export interface SearchOptions {
   limit?: number;
 }
 
-/** Case-insensitive match on name, description and category; name prefixes first, then other name matches, then the rest. */
+/** Words that say nothing about which product: "a beautiful bag" searches for "bag". */
+const STOP_WORDS = new Set(
+  "a an the some any my me i we you for to of in on with and or is are want need looking find show get buy please one good nice beautiful pretty cool new best great cheap something thing product products item".split(
+    " ",
+  ),
+);
+
+const words = (s: string): string[] =>
+  s
+    .toLowerCase()
+    .split(/[^a-z0-9-]+/)
+    .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
+
+/** "bags" finds "bag", "mugs" finds "mug". */
+const singular = (w: string): string => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
+
+/**
+ * Case-insensitive search, word by word: name, tags, category and description. The whole phrase at the start of a
+ * name ranks first; a sentence works too ("I want a beautiful bag" finds the tote by its "bag" tag).
+ */
 export function searchProducts(query: string, { category, limit }: SearchOptions = {}): Product[] {
   const q = query.trim().toLowerCase();
-  const rank = (p: Product): number => {
+  const terms = [...new Set(words(q).map(singular))];
+  const score = (p: Product): number => {
+    if (!q) return 1;
     const name = p.name.toLowerCase();
-    if (!q) return 3;
-    if (name.startsWith(q) || name.split(/\s+/).some((w) => w.startsWith(q))) return 0;
-    if (name.includes(q)) return 1;
-    if (p.description.toLowerCase().includes(q) || p.category.includes(q)) return 2;
-    return -1;
+    let s = 0;
+    if (name.startsWith(q) || name.split(/\s+/).some((w) => w.startsWith(q))) s += 20;
+    else if (name.includes(q)) s += 10;
+    const nameWords = name.split(/\s+/).map(singular);
+    const tagWords = p.tags.flatMap((t) => t.toLowerCase().split(/\s+/)).map(singular);
+    const descriptionWords = words(p.description).map(singular);
+    for (const t of terms) {
+      if (nameWords.some((w) => w.startsWith(t))) s += 4;
+      if (tagWords.includes(t)) s += 3;
+      if (singular(p.category) === t) s += 2;
+      if (descriptionWords.includes(t)) s += 1;
+    }
+    return s;
   };
   return PRODUCTS.filter((p) => !category || p.category === category)
-    .map((p) => ({ p, r: rank(p) }))
-    .filter(({ r }) => r >= 0)
-    .sort((a, b) => a.r - b.r)
+    .map((p) => ({ p, s: score(p) }))
+    .filter(({ s }) => s > 0)
+    .sort((a, b) => b.s - a.s)
     .slice(0, limit)
     .map(({ p }) => p);
 }
@@ -104,3 +135,12 @@ export function describeProduct(p: Product): string {
   const stock = p.stock === 0 ? " Sold out." : p.stock <= 5 ? ` Only ${p.stock} left.` : "";
   return `${p.name} (${money(p.price)}).${options}${stock}`;
 }
+
+/** One line per category with what's in it: where to look when a search finds nothing. */
+export const categoryOverview = (): string =>
+  CATEGORIES.map(
+    (c) =>
+      `- ${c.slug}: ${listByCategory(c.slug)
+        .map((p) => p.name)
+        .join(", ")}`,
+  ).join("\n");

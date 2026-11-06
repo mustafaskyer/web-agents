@@ -63,6 +63,14 @@ from disk. WASM runs single-threaded unless the page is cross-origin isolated (C
 - **Prompt API:** tool calls come from JSON-constrained output (`responseConstraint`). The API's native tools run
   their `execute` inside `prompt()`, which would bypass the loop's validation and the cursor's pacing.
 
+## Site instructions
+
+Small models can't infer a site's flow from tool names. Pass a few plain lines as `instructions`: what the site is
+and which tools lead to which ("add_to_cart only exists on a product's page: open_product first"). They go into the
+system prompt under "About this site", after a general step-by-step method (work out the intent, search with the key
+word only, read each result, try a simpler word before giving up, ask before buying). Keep them short: every token
+counts against the prompt budget.
+
 ## Not freezing the machine
 
 A model on WebGPU holds hundreds of MB of GPU memory, shared with the whole system on Apple silicon, and the GPU can't
@@ -76,7 +84,7 @@ until restart. So the transformers.js provider:
 - **frees the model on `pagehide`** (a page in the back/forward cache would otherwise keep it), and reloads it from the
   browser cache on the next message;
 - **refuses models over 650 MB** when `navigator.deviceMemory` reports less than 8 GB;
-- **caps the prompt** at `maxInputTokens` (default 1536, estimated): the loop offers fewer tools, then less history,
+- **caps the prompt** at `maxInputTokens` (estimated; default 3072 for models up to 650 MB, 1536 above): the loop offers fewer tools, then less history,
   until it fits. Chrome's built-in model does the same against its own window (`contextWindow`, ~1000 tokens on some
   devices).
 
@@ -88,7 +96,7 @@ between versions; every call is guarded, and anything unexpected reads as "unava
 
 ## API
 
-`createLocalAdapter({ providers?, model?, worker?, maxSteps = 6, stepTimeoutMs = 60_000, label = "On-device" })`,
-`detectLocalProviders()`, `createTransformersProvider({ model?, dtype?, worker?, maxInputTokens = 1536 })`, `createPromptApiProvider()`,
+`createLocalAdapter({ providers?, model?, worker?, instructions?, maxSteps = 6, stepTimeoutMs = 60_000, label = "On-device" })`,
+`detectLocalProviders()`, `createTransformersProvider({ model?, dtype?, worker?, maxInputTokens? })`, `createPromptApiProvider()`,
 and the loop pieces (`runLocalAgent`, `parseToolCalls`, `rankTools`, `compactSchema`, `validateArgs`) for building
 your own provider (implement `LocalProvider`: `availability()`, `prepare(onProgress, signal)`, `generate(req)`).

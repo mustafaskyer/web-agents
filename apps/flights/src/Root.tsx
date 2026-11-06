@@ -13,6 +13,7 @@ import { Header } from "./components/Header";
 import { BookingProvider, useBooking } from "./store/booking";
 import { catalog, globalTools, routeTools } from "./tools/catalog";
 import type { FlightsContext } from "./tools/context";
+import { SKYLINE_INSTRUCTIONS } from "./tools/instructions";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
@@ -21,7 +22,7 @@ const Devtools = import.meta.env.DEV
 
 const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
-const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: SKYLINE_INSTRUCTIONS })];
 
 function Shell() {
   const booking = useBooking();

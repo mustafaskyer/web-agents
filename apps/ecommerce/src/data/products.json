@@ -5,6 +5,7 @@
     "category": "apparel",
     "price": 4800,
     "description": "A heavyweight cotton tee dyed in small batches, so every one is a slightly different blue.",
+    "tags": ["t-shirt", "shirt", "top", "blue", "cotton"],
     "details": {
       "fit": "Relaxed, true to size",
       "fabric": "240 gsm organic cotton",
@@ -34,6 +35,7 @@
     "category": "apparel",
     "price": 9200,
     "description": "Washed European linen with a soft collar. Gets better every summer.",
+    "tags": ["shirt", "button-up", "summer", "top"],
     "details": {
       "fit": "Boxy, size down for a closer fit",
       "fabric": "100% washed linen",
@@ -63,6 +65,7 @@
     "category": "apparel",
     "price": 11800,
     "description": "Loopback fleece, a double-layer hood and no logo anywhere.",
+    "tags": ["hoodie", "sweatshirt", "sweater", "jumper", "warm"],
     "details": {
       "fit": "Regular",
       "fabric": "420 gsm loopback cotton",
@@ -92,6 +95,7 @@
     "category": "accessories",
     "price": 3200,
     "description": "Rib-knit merino that keeps its shape and never itches.",
+    "tags": ["hat", "beanie", "winter", "warm", "wool"],
     "details": {
       "fit": "One size",
       "fabric": "100% merino wool",
@@ -116,6 +120,7 @@
     "category": "accessories",
     "price": 3800,
     "description": "Waxed canvas with an inside pocket, big enough for a laptop and lunch.",
+    "tags": ["bag", "tote", "shopping bag", "carryall", "laptop bag", "handbag"],
     "details": {
       "fit": "40 × 38 × 12 cm",
       "fabric": "18 oz waxed canvas",
@@ -136,6 +141,7 @@
     "category": "accessories",
     "price": 5400,
     "description": "Four slots and a centre pocket, stitched by hand from vegetable-tanned leather.",
+    "tags": ["wallet", "card holder", "purse", "leather"],
     "details": {
       "fit": "10 × 7 cm",
       "fabric": "Vegetable-tanned leather",
@@ -165,6 +171,7 @@
     "category": "accessories",
     "price": 2900,
     "description": "Six-panel nylon cap that packs flat and dries in minutes.",
+    "tags": ["hat", "cap", "baseball cap", "outdoor"],
     "details": {
       "fit": "Adjustable strap",
       "fabric": "Ripstop nylon",
@@ -190,6 +197,7 @@
     "category": "home",
     "price": 2400,
     "description": "Hand-thrown, with a speckled glaze and a thumb rest that fits.",
+    "tags": ["cup", "mug", "coffee", "tea", "kitchen"],
     "details": {
       "fit": "350 ml",
       "fabric": "Stoneware",
@@ -215,6 +223,7 @@
     "category": "home",
     "price": 6800,
     "description": "A glass carafe and ceramic dripper for two slow cups.",
+    "tags": ["coffee", "coffee maker", "dripper", "kitchen"],
     "details": {
       "fit": "600 ml carafe",
       "fabric": "Borosilicate glass, ceramic",
@@ -240,6 +249,7 @@
     "category": "home",
     "price": 8900,
     "description": "A stonewashed linen blanket for the sofa, the beach and everything in between.",
+    "tags": ["blanket", "throw", "sofa", "bedding"],
     "details": {
       "fit": "130 × 170 cm",
       "fabric": "Stonewashed linen",
@@ -269,6 +279,7 @@
     "category": "home",
     "price": 2200,
     "description": "Pure beeswax, cotton wick, forty hours of honey-scented light.",
+    "tags": ["candle", "light", "scent", "decor"],
     "details": {
       "fit": "8 × 10 cm",
       "fabric": "Beeswax, cotton",
@@ -294,6 +305,7 @@
     "category": "home",
     "price": 5600,
     "description": "Three hand-glazed stoneware bowls that stack into one: breakfast, snacks, a spot for keys.",
+    "tags": ["bowl", "bowls", "kitchen", "dishes", "tableware"],
     "details": {
       "fit": "14, 11 and 8 cm",
       "fabric": "Stoneware",
@@ -314,6 +326,7 @@
     "category": "digital",
     "price": 900,
     "description": "Twelve gradient wallpapers for phone and desktop, in 6K.",
+    "tags": ["wallpaper", "background", "phone", "desktop", "digital download"],
     "details": {
       "fit": "Phone, tablet and desktop sizes",
       "fabric": "PNG, 6K",
@@ -339,6 +352,7 @@
     "category": "digital",
     "price": 2900,
     "description": "Eight photo presets modelled on expired 35 mm stock.",
+    "tags": ["presets", "photo", "lightroom", "photography", "digital download"],
     "details": {
       "fit": "Lightroom and Capture One",
       "fabric": ".xmp, .costyle",
@@ -368,6 +382,7 @@
     "category": "digital",
     "price": 4900,
     "description": "The typeface this store is named after: six weights, desktop and web licence.",
+    "tags": ["font", "typeface", "type", "digital download"],
     "details": {
       "fit": "6 weights, variable",
       "fabric": "OTF, WOFF2",
@@ -393,6 +408,7 @@
     "category": "apparel",
     "price": 1600,
     "description": "Cushioned crew socks in the same blue as the tee.",
+    "tags": ["socks", "blue", "cotton"],
     "details": {
       "fit": "EU 39–46",
       "fabric": "Combed cotton, nylon",
