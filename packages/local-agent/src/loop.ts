@@ -74,6 +74,17 @@ async function* streamProse(provider: LocalProvider, request: GenerateRequest): 
   return result;
 }
 
+const clip = (s: string | null | undefined, max = 80): string | undefined => {
+  const t = s?.replace(/\s+/g, " ").trim();
+  return t ? (t.length > max ? `${t.slice(0, max - 1)}…` : t) : undefined;
+};
+/** The page's title and main heading (skipping the chat's own UI). */
+function pageSummary(): { title?: string; heading?: string } {
+  if (typeof document === "undefined") return {};
+  const h1 = [...document.querySelectorAll("main h1, h1")].find((h) => !h.closest("[data-web-agents-ui]"));
+  return { title: clip(document.title), heading: clip(h1?.textContent) };
+}
+
 /** Run one user message through `provider`: an AgentAdapter `run()` body. */
 export async function* runLocalAgent(
   provider: LocalProvider,
@@ -87,6 +98,7 @@ export async function* runLocalAgent(
   let lastCall = "";
   let repeats = 0;
   const path = typeof location === "undefined" ? undefined : location.pathname;
+  const page = pageSummary();
 
   for (let step = 1; step <= maxSteps; step++) {
     if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
@@ -104,7 +116,7 @@ export async function* runLocalAgent(
       let streamed = "";
       try {
         const it = streamProse(provider, {
-          system: buildLocalSystemPrompt({ path, toolsInline: toolsInline ? tools : undefined, firstTool: tools[0] }),
+          system: buildLocalSystemPrompt({ path, page, tools, toolsInline: toolsInline ? tools : undefined, firstTool: tools[0] }),
           messages: turns,
           tools,
           signal,

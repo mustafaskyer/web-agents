@@ -13,7 +13,8 @@ Rules:
 - Only use the tools listed. Never invent tool names or arguments; ask for missing values.
 - Some tools wait for the user to confirm on the page (orders, bookings, deletions). If a result says it was cancelled, tell the user; never claim it succeeded.
 - A tool result starting with "Error:" failed. Explain briefly and suggest a fix.
-- Do one step at a time. Keep replies short and plain.`;
+- Do one step at a time. Keep replies short and plain.
+- Asked what you can do, say in plain words what the tools below let you do here.`;
 
 const TAG_FORMAT = `To use a tool, reply ONLY with:
 <tool_call>{"name": "TOOL_NAME", "arguments": {...}}</tool_call>
@@ -38,6 +39,10 @@ function example(tool: CompactTool, json: boolean): string {
 export interface LocalPromptOptions {
   /** The page's path, for context. */
   path?: string;
+  /** The page's title and main heading: without them a small model thinks the page is empty. */
+  page?: { title?: string; heading?: string };
+  /** Every tool offered this step: listed in plain words (name and description), whatever the call format. */
+  tools?: CompactTool[];
   /**
    * Tools listed in the prompt text, with the JSON reply format (the Prompt API path, whose output is JSON-constrained).
    * Without it the tools go through the chat template and calls use `<tool_call>` tags (the Qwen path).
@@ -48,14 +53,23 @@ export interface LocalPromptOptions {
 }
 
 /** The system prompt (well under ~600 tokens). */
-export function buildLocalSystemPrompt({ path, toolsInline, firstTool }: LocalPromptOptions = {}): string {
+export function buildLocalSystemPrompt({ path, page, tools, toolsInline, firstTool }: LocalPromptOptions = {}): string {
   const json = !!toolsInline;
   const parts = [RULES, json ? JSON_FORMAT : TAG_FORMAT];
-  const first = firstTool ?? toolsInline?.[0];
+  const first = firstTool ?? toolsInline?.[0] ?? tools?.[0];
   if (first) parts.push(`Example:\n${example(first, json)}`);
   if (toolsInline?.length)
     parts.push(`Tools:\n${toolsInline.map((t) => `- ${t.name}: ${t.description} Arguments: ${JSON.stringify(t.parameters)}`).join("\n")}`);
-  if (path) parts.push(`The user is on the page "${path}".`);
+  else if (tools?.length) parts.push(`Tools on this page:\n${tools.map((t) => `- ${t.name}: ${t.description}`).join("\n")}`);
+  else parts.push("This page has no tools right now: you can only answer in words.");
+  const where = [
+    page?.title && `"${page.title}"`,
+    page?.heading && page.heading !== page.title && `showing "${page.heading}"`,
+    path && `at ${path}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  if (where) parts.push(`The user is on the page ${where}.`);
   return parts.join("\n\n");
 }
 
