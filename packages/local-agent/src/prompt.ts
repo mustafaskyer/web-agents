@@ -32,6 +32,8 @@ Otherwise reply in plain text.`;
 
 const JSON_FORMAT = `Reply with JSON only: {"type": "tool_call", "name": "TOOL_NAME", "arguments": {...}} to use a tool, or {"type": "message", "text": "..."} to answer.`;
 
+const firstSentence = (s: string): string => s.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? s;
+
 /** A plausible example call for the first tool: required args filled with their first enum value or a placeholder. */
 function example(tool: CompactTool, json: boolean, format: CallFormat): string {
   const s = tool.parameters as { properties?: Record<string, { type?: string; enum?: unknown[] }>; required?: string[] };
@@ -89,7 +91,8 @@ export function buildLocalSystemPrompt({
   if (first) parts.push(`Example:\n${example(first, json, format)}`);
   if (toolsInline?.length)
     parts.push(`Tools:\n${toolsInline.map((t) => `- ${t.name}: ${t.description} Arguments: ${JSON.stringify(t.parameters)}`).join("\n")}`);
-  else if (tools?.length) parts.push(`Tools on this page:\n${tools.map((t) => `- ${t.name}: ${t.description}`).join("\n")}`);
+  // the chat template carries each tool's full description: this list is the short version, for orientation
+  else if (tools?.length) parts.push(`Tools on this page:\n${tools.map((t) => `- ${t.name}: ${firstSentence(t.description)}`).join("\n")}`);
   else parts.push("This page has no tools right now: you can only answer in words.");
   const where = [
     page?.title && `"${page.title}"`,

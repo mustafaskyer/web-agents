@@ -11,7 +11,8 @@ import { store } from "./context";
 export const getCart = defineWebTool({
   id: "get_cart",
   title: "Read the cart",
-  description: "List the cart's lines (slug, variant, quantity, price), the promo code and the totals.",
+  description:
+    "Read the cart without opening it: lines (slug, size, quantity, price), promo code and totals. Use to answer questions about the cart, or to get a line's slug and size before update_cart_item or remove_from_cart.",
   annotations: { readOnlyHint: true },
   execute: (_input, ctx) => store(ctx).cart.describe(),
 });
@@ -19,7 +20,8 @@ export const getCart = defineWebTool({
 export const openCart = defineWebTool({
   id: "open_cart",
   title: "Open the cart",
-  description: "Open the cart drawer. While it's open, update_cart_item and remove_from_cart are available.",
+  description:
+    "Show the cart drawer to the user and list its lines. Needed first for update_cart_item and remove_from_cart, which only exist while it's open. Next: change a line, close_cart, or go_to_page checkout.",
   annotations: { idempotentHint: true },
   execute: (_input, ctx) => {
     const { ui, cart } = store(ctx);
@@ -32,7 +34,7 @@ export const openCart = defineWebTool({
 export const closeCart = defineWebTool({
   id: "close_cart",
   title: "Close the cart",
-  description: "Close the cart drawer and go back to the page behind it.",
+  description: "Close the cart drawer, back to the page behind it. Use when the user is done with the cart. Only while the cart is open.",
   annotations: { idempotentHint: true },
   execute: (_input, ctx) => {
     const { ui } = store(ctx);

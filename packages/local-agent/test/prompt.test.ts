@@ -33,4 +33,11 @@ describe("buildLocalSystemPrompt", () => {
     expect(prompt).toContain('search with the key word only ("bag", not "I want a beautiful bag")');
     expect(buildLocalSystemPrompt({ tools: [search] })).not.toContain("About this site");
   });
+
+  it("lists each tool by its first sentence; the chat template carries the rest", () => {
+    const open = { ...search, name: "open_product", description: "Open one product's page. Next: add_to_cart." };
+    const prompt = buildLocalSystemPrompt({ tools: [open] });
+    expect(prompt).toMatch(/^- open_product: Open one product's page\.$/m);
+    expect(prompt).not.toContain("Next: add_to_cart");
+  });
 });

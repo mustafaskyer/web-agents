@@ -27,10 +27,10 @@ export const openProduct = defineWebTool({
   id: "open_product",
   title: "Open a product page",
   description:
-    "Open a product's page by slug, or by search query (the best match opens). The answer lists its options; then use add_to_cart.",
+    "Open one product's page and answer its price, sizes and stock. Use after search_products or browse_category, with a slug they listed (or words from the name). Next: add_to_cart, which only exists on that page.",
   inputSchema: z.object({
-    slug: z.string().optional().describe("Product slug, e.g. ocean-tee"),
-    query: z.string().optional().describe("Used when the slug is unknown: words from the product's name, e.g. linen shirt"),
+    slug: z.string().optional().describe("The product's slug as search_products, browse_category or get_cart list it, e.g. ocean-tee"),
+    query: z.string().optional().describe("When you have no slug: words from the product's name, e.g. linen shirt"),
   }),
   annotations: { readOnlyHint: true },
   execute: ({ slug, query }, ctx) => {
@@ -59,8 +59,13 @@ export const openProduct = defineWebTool({
 export const browseCategory = defineWebTool({
   id: "browse_category",
   title: "Browse a category",
-  description: "Open a category page and list its products with slugs and prices.",
-  inputSchema: z.object({ category: z.enum(categorySlugs).describe("The category to open") }),
+  description:
+    "Open a category page and list its products with slugs and prices. Use when the user wants to see a kind of thing (apparel, accessories, home, digital) or a search found nothing. Next: open_product.",
+  inputSchema: z.object({
+    category: z
+      .enum(categorySlugs)
+      .describe("apparel: clothes; accessories: bags, hats, wallets; home: kitchen and decor; digital: downloads"),
+  }),
   annotations: { readOnlyHint: true },
   // the cursor clicks that category's link in the header
   target: ({ category }) => `[toolname="browse_category"] a[href=${JSON.stringify(`/category/${category}`)}]`,
@@ -71,19 +76,30 @@ export const browseCategory = defineWebTool({
   },
 });
 
-const PAGES = { home: "/", "all-products": "/products" } as const;
+const PAGES = { home: "/", "all-products": "/products", checkout: "/checkout" } as const;
 
 export const goToPage = defineWebTool({
   id: "go_to_page",
   title: "Go to a page",
   description:
-    "Go to the store's home page or the page with every product. For a category use browse_category; for one product, open_product.",
-  inputSchema: z.object({ page: z.enum(["home", "all-products"]).describe("home: the front page; all-products: every product") }),
+    'Go to the home page, the page with every product, or checkout. Use for "go home", "show everything", or before apply_promo and checkout (they only exist on the checkout page). For a category use browse_category; for one product, open_product.',
+  inputSchema: z.object({
+    page: z
+      .enum(["home", "all-products", "checkout"])
+      .describe("home: the front page; all-products: every product; checkout: pay for the cart (needs items in it)"),
+  }),
   annotations: { readOnlyHint: true },
-  // the cursor clicks the logo (home) or "All products" in the header
-  target: ({ page }) => `header a[href=${JSON.stringify(PAGES[page])}]`,
+  // the cursor clicks the logo (home) or "All products" in the header; checkout has no header link
+  target: ({ page }) => (page === "checkout" ? undefined : `header a[href=${JSON.stringify(PAGES[page])}]`),
   execute: ({ page }, ctx) => {
-    store(ctx).navigate(PAGES[page]);
-    return page === "home" ? "Opened the home page." : `Opened all products (${searchProducts("").length}).${TO_BUY}`;
+    const { navigate, cart } = store(ctx);
+    // describe() reads the latest cart (an add_to_cart a moment ago counts); `count` is the last render's
+    if (page === "checkout" && cart.describe().startsWith("The cart is empty"))
+      throw new Error("The cart is empty: add something first (open_product, then add_to_cart).");
+    navigate(PAGES[page]);
+    if (page === "home") return "Opened the home page.";
+    if (page === "checkout")
+      return "Opened checkout. Next: checkout with the user's email and address (ask for what you don't have); apply_promo for a code.";
+    return `Opened all products (${searchProducts("").length}).${TO_BUY}`;
   },
 });

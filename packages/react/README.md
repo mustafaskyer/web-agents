@@ -28,6 +28,22 @@ const catalog = [getCart, listOrders, removePromo];
 <EnableTools names={["remove_promo"]} />      // or useEnableTools(["remove_promo"])
 ```
 
+## Writing tool descriptions
+
+A model picks a tool, and the order of calls, from its description alone. Say four things, in this order, in a
+sentence or two each:
+
+1. **What it does**, and what it answers ("Open one product's page and answer its price, sizes and stock.").
+2. **When to use it** ("Use after search_products or browse_category…").
+3. **What it needs first**, when another tool has to run before it or it only exists on some page ("Only on the
+   checkout page (go_to_page checkout first).", "Needs: the cart open (open_cart).").
+4. **What comes next** ("Next: add_to_cart, which only exists on that page.").
+
+Parameter descriptions say where a value comes from ("the slug as search_products lists it") and its format, with an
+example. Tool answers repeat the next step where it helps ("…Use add_to_cart to buy it."), and errors say how to fix
+them. Ask for what the user didn't give; never invent it. The example apps (`apps/ecommerce/src/tools`,
+`apps/flights/src/tools`) follow this throughout.
+
 ## Provider props
 
 | Prop | Default | |

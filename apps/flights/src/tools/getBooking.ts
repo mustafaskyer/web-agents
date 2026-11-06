@@ -7,7 +7,8 @@ import { app } from "./context";
 export const getBooking = defineWebTool({
   id: "get_booking",
   title: "Look up a booking",
-  description: "Read a confirmed booking's itinerary by its reference.",
+  description:
+    "Look up a confirmed booking's itinerary by its reference (SK-…), from any page. Use when the user asks about a booking they made.",
   inputSchema: z.object({
     reference: z
       .string()

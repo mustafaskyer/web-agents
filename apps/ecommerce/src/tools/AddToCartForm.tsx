@@ -106,7 +106,7 @@ export function AddToCartForm({ product }: { product: Product }) {
     <form
       className={styles.stack}
       toolname="add_to_cart"
-      tooldescription={`Add ${product.name} to the cart.${axis ? ` Pick a ${axis.name.toLowerCase()} first.` : ""}`}
+      tooldescription={`Add ${product.name} to the cart. Only on this product's page (open_product first).${axis ? ` Needs a ${axis.name.toLowerCase()} (${axis.options.join(", ")}): ask the user if they didn't say one.` : ""} The cart opens after. Next: keep shopping, or go_to_page checkout.`}
       toolautosubmit=""
       onSubmit={onSubmit}
     >

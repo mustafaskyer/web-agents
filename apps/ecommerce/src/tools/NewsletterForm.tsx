@@ -25,7 +25,7 @@ export function NewsletterForm() {
     <form
       className={styles.stack}
       toolname="subscribe_newsletter"
-      tooldescription="Subscribe an email address to the store's newsletter. The user confirms on the page."
+      tooldescription="Subscribe an email to the store's newsletter. Only on the home page. Use the email the user gave; ask if you don't have one. The user confirms on the page."
       onSubmit={onSubmit}
     >
       <div className={styles.inline}>

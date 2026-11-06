@@ -79,7 +79,7 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
       className={styles.form}
       data-compact={compact || undefined}
       toolname="search_flights"
-      tooldescription="Search flights. Airports are 3-letter IATA codes (or city names). The answer lists the cheapest flight and how many were found."
+      tooldescription="Step 1 of booking: find flights between two airports on a date, from any page. Airports are 3-letter codes or city names; ask the user for a missing date or destination. Answers how many flights and the cheapest. Next: list_results for ids, or filter_results / sort_results."
       toolautosubmit=""
       onSubmit={onSubmit}
       noValidate

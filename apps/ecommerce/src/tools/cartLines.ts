@@ -12,7 +12,7 @@ import { store } from "./context";
 
 const line = {
   slug: z.string().describe("The line's product slug, as get_cart lists it, e.g. ocean-tee"),
-  variant: z.string().optional().describe("The line's variant (size, colour…), needed when the cart has the product in several"),
+  variant: z.string().optional().describe("The line's size (S, M, L…), as listed; needed when the cart has the product in several"),
 };
 
 /** The drawer row for a line (any variant when none is given). */
@@ -22,7 +22,8 @@ const line$ = ({ slug, variant }: { slug?: string; variant?: string }): string =
 export const updateCartItem = defineWebTool({
   id: "update_cart_item",
   title: "Change a cart line's quantity",
-  description: "Set the quantity of a line in the open cart. 0 removes it.",
+  description:
+    "Set the quantity of one cart line (0 removes it). Needs: the cart open (open_cart), and the line's slug and size as get_cart or open_cart list them.",
   inputSchema: z.object({ ...line, qty: z.number().int().min(0).max(MAX_QTY).describe("The new quantity, e.g. 2") }),
   annotations: { idempotentHint: true },
   target: (input) => `${line$(input)} input`,
@@ -32,7 +33,8 @@ export const updateCartItem = defineWebTool({
 export const removeFromCart = defineWebTool({
   id: "remove_from_cart",
   title: "Remove a cart line",
-  description: "Remove a line from the open cart.",
+  description:
+    "Remove one line from the cart. Needs: the cart open (open_cart), and the line's slug and size as get_cart or open_cart list them.",
   inputSchema: z.object(line),
   annotations: { destructiveHint: true },
   target: (input) => `${line$(input)} button[aria-label^="Remove"]`,

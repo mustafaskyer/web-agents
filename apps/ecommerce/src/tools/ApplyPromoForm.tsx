@@ -38,7 +38,7 @@ export function ApplyPromoForm() {
   return (
     <form
       toolname="apply_promo"
-      tooldescription="Apply a promo code to the cart. The discount shows in the order summary and applies when the order is placed."
+      tooldescription="Apply a promo code the user gave you to the cart. Only on the checkout page (go_to_page checkout first). The discount shows in the order summary."
       toolautosubmit=""
       onSubmit={onSubmit}
     >

@@ -13,8 +13,9 @@ import { app } from "./context";
 export const selectFlight = defineWebTool({
   id: "select_flight",
   title: "Select a flight",
-  description: "Choose a flight from the current results by id and open the booking page.",
-  inputSchema: z.object({ flightId: z.string().describe("The flight's id from search_flights or list_results, e.g. F-3K2") }),
+  description:
+    "Choose one flight by its id and open its booking page. Needs: an id from list_results (search_flights first). Next: fill_traveler_details, then book_flight.",
+  inputSchema: z.object({ flightId: z.string().describe("The flight's id exactly as list_results lists it, e.g. F-3K2") }),
   target: ({ flightId }) => `[data-flight-id=${JSON.stringify(String(flightId).toUpperCase())}] button`,
   execute: ({ flightId }, ctx) => {
     const { booking, navigate } = app(ctx);

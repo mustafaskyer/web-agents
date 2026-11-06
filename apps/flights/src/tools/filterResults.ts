@@ -13,7 +13,8 @@ import { app } from "./context";
 export const filterResults = defineWebTool({
   id: "filter_results",
   title: "Filter flight results",
-  description: "Filter the current flight results by number of stops and/or airlines. Omitted filters stay as they are.",
+  description:
+    "Narrow the current results by stops and/or airlines (omitted filters stay as they are). Needs: a search (search_flights). Next: list_results to see what's left.",
   inputSchema: z.object({
     stops: z.enum(["any", "0", "1", "2"]).optional().describe('"0" = direct only, "1" = exactly one stop, "any" = no limit'),
     airlines: z.array(z.string()).optional().describe('Airline names or codes to keep, e.g. ["Meridian"]. [] shows every airline.'),
@@ -29,7 +30,8 @@ export const filterResults = defineWebTool({
 export const listResults = defineWebTool({
   id: "list_results",
   title: "List flight results",
-  description: "List the first flights as the page shows them (filtered and sorted), with the ids select_flight takes.",
+  description:
+    "List flights from the current results as the page shows them (filtered, sorted), with the ids select_flight needs. Needs: a search (search_flights). Next: select_flight.",
   inputSchema: z.object({ limit: z.number().int().min(1).max(20).default(5).describe("How many to list, 1–20. Default 5.") }),
   annotations: { readOnlyHint: true },
   execute: ({ limit }, ctx) => {

@@ -56,7 +56,7 @@ export function BookFlightForm({ total, onBooked }: { total: number; onBooked():
     <form
       className={styles.stack}
       toolname="book_flight"
-      tooldescription="Book the selected flight for the saved travelers and pay. The user confirms on the page by clicking Book flight."
+      tooldescription="Book and pay for the selected flight. Needs: select_flight, then fill_traveler_details. The user confirms on the page (Book flight)."
       onSubmit={onSubmit}
     >
       <label className="check">

@@ -50,7 +50,7 @@ export function SearchBox() {
     <search className={styles.search}>
       <form
         toolname="search_products"
-        tooldescription="Search the store's products by name, description or category. Lists matches with slugs and prices."
+        tooldescription="Find products by a key word (bag, mug, shirt), from any page. Use first when the user describes something they want. Answers matches with slugs and prices. Next: open_product with a slug."
         toolautosubmit=""
         onSubmit={onSubmit}
       >
@@ -64,7 +64,7 @@ export function SearchBox() {
           enterKeyHint="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          toolparamdescription="What to look for, e.g. linen shirt"
+          toolparamdescription="One or two key words, e.g. bag or linen shirt (not a whole sentence)"
         />
       </form>
     </search>

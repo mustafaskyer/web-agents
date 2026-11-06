@@ -8,16 +8,22 @@ import type { ToolDescriptor } from "@web-agents/chat";
 import type { CompactTool } from "./types";
 
 const KEEP = new Set(["type", "properties", "required", "enum", "minimum", "maximum", "items", "description"]);
-const MAX_DESCRIPTION = 80;
+/**
+ * A tool's description is how a model learns when to call it, what it needs first and what comes next: keep all of
+ * it (a sane cap only). Parameter descriptions are kept shorter.
+ */
+const MAX_DESCRIPTION = 400;
+const MAX_PARAM_DESCRIPTION = 160;
 
-const short = (s: string): string => (s.length > MAX_DESCRIPTION ? `${s.slice(0, MAX_DESCRIPTION - 1)}…` : s);
+const clip = (s: string, max: number): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+const short = (s: string): string => clip(s, MAX_DESCRIPTION);
 
 /** Only what a small model needs: type, properties, required, enum, bounds, items, short descriptions. */
 export function compactSchema(schema: JSONSchema): JSONSchema {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
     if (!KEEP.has(key)) continue;
-    if (key === "description" && typeof value === "string") out.description = short(value);
+    if (key === "description" && typeof value === "string") out.description = clip(value, MAX_PARAM_DESCRIPTION);
     else if (key === "properties" && value && typeof value === "object") {
       out.properties = Object.fromEntries(Object.entries(value).map(([k, v]) => [k, compactSchema(v as JSONSchema)]));
     } else if (key === "items" && value && typeof value === "object") out.items = compactSchema(value as JSONSchema);

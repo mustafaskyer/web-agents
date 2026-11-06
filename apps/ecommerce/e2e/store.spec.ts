@@ -113,6 +113,18 @@ test("go_to_page goes home and to all products", async ({ page }) => {
   await expect(page).toHaveURL(/\/products$/);
 });
 
+test("go_to_page checkout needs something in the cart, then opens checkout and its tools", async ({ page }) => {
+  await open(page, "/");
+  expect(await run(page, "go_to_page", { page: "checkout" })).toMatch(/^The cart is empty: add something first/);
+  await expect(page).toHaveURL(/:\d+\/$/);
+  await run(page, "open_product", { slug: "stoneware-mug" });
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  await run(page, "add_to_cart", { qty: 1 });
+  expect(await run(page, "go_to_page", { page: "checkout" })).toMatch(/^Opened checkout\. Next: checkout/);
+  await expect(page).toHaveURL(/\/checkout$/);
+  await expect.poll(() => list(page)).toEqual(expect.arrayContaining(["checkout", "apply_promo"]));
+});
+
 test("open_product with a guessed slug opens the best match", async ({ page }) => {
   await open(page, "/");
   expect(await run(page, "open_product", { slug: "tee" })).toMatch(/^Opened Ocean Tee \(\$48\.00\)\./);

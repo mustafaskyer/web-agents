@@ -40,7 +40,7 @@ export function TravelerDetailsForm({ kinds }: { kinds: TravelerKind[] }) {
       id="traveler-details"
       className={styles.stack}
       toolname="fill_traveler_details"
-      tooldescription={`Fill in the contact person and ${kinds.length} traveler${kinds.length === 1 ? "" : "s"} (as on their passports) for the selected flight. Fields end in _1, _2, … per traveler.`}
+      tooldescription={`Fill in the contact person and ${kinds.length} traveler${kinds.length === 1 ? "" : "s"} as on their passports. Only on the booking page (select_flight first). Ask the user for details you don't have; never invent them. Fields end in _1, _2, … per traveler. Next: book_flight.`}
       toolautosubmit=""
       onSubmit={onSubmit}
       onChange={() => setSaved(null)}

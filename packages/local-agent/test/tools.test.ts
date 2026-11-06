@@ -13,13 +13,18 @@ describe("compactSchema", () => {
       additionalProperties: false,
       type: "object",
       required: ["qty"],
-      properties: { qty: { type: "integer", minimum: 1, maximum: 9, description: "d".repeat(200), examples: [1] } },
+      properties: { qty: { type: "integer", minimum: 1, maximum: 9, description: "d".repeat(300), examples: [1] } },
     });
     expect(out).toEqual({
       type: "object",
       required: ["qty"],
-      properties: { qty: { type: "integer", minimum: 1, maximum: 9, description: `${"d".repeat(79)}…` } },
+      properties: { qty: { type: "integer", minimum: 1, maximum: 9, description: `${"d".repeat(159)}…` } },
     });
+  });
+
+  it("keeps a tool's whole description (when to call it, what it needs, what's next)", () => {
+    const description = "Open one product's page. Use after search_products. Next: add_to_cart, which only exists on that page.";
+    expect(rankTools([tool("open_product", description)], "x")[0]!.description).toBe(description);
   });
 });
 

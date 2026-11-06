@@ -55,7 +55,7 @@ export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(orde
       id="checkout"
       className={styles.stack}
       toolname="checkout"
-      tooldescription="Place the order for everything in the cart, shipped to the given address. The user confirms on the page by clicking Place order."
+      tooldescription="Place the order for everything in the cart, shipped to the user's address. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page (Place order)."
       onSubmit={onSubmit}
     >
       <fieldset className={styles.fieldset}>

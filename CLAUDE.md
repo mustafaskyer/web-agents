@@ -119,6 +119,11 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 - Write fields like a user: native value setter + `input`/`change` events (React sees them).
 - Only `isTrusted` input may count as the user.
 
+### Tool descriptions
+- Every tool (imperative `description`, declarative `tooldescription`) says: what it does and answers, when to use
+  it, what it needs first (another tool, or the page it lives on), and what comes next. Parameters say where a value
+  comes from, with an example. See `packages/react/README.md` "Writing tool descriptions".
+
 ### Errors
 - A tool's failure is a readable result for the agent (`"Error: …"`) and the same text on the page.
 - Event listeners must never break a tool run (`emit` catches and logs).
