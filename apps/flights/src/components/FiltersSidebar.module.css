@@ -37,7 +37,8 @@
 }
 .sheetRoot {
   position: fixed;
-  inset: 0;
+  /* clear of a docked assistant (@web-agents/chat) */
+  inset: 0 var(--wa-chat-inset-right, 0) 0 var(--wa-chat-inset-left, 0);
   z-index: 50;
 }
 .backdrop {

@@ -126,6 +126,32 @@ describe("createLocalAdapter", () => {
     expect(adapter.status!()).toEqual({ state: "ready" });
   });
 
+  it("a provider that turns out broken hands over to the next one", async () => {
+    let brokenReason: string | undefined;
+    const flaky: LocalProvider = {
+      ...provider("chrome", { state: "available" }),
+      get broken() {
+        return brokenReason;
+      },
+      generate: async () => {
+        brokenReason = "Chrome's model couldn't start.";
+        throw new Error("Chrome's model couldn't start. Switching to the downloadable model.");
+      },
+    };
+    const adapter = createLocalAdapter({ providers: [flaky, provider("transformers", { state: "needs-download", bytes: 5 })] });
+    expect(await settled(adapter)).toEqual({ state: "ready" });
+    const parts: AgentStreamPart[] = [];
+    const req = {
+      messages: [{ id: "u", role: "user" as const, parts: [{ type: "text" as const, text: "hi" }] }],
+      tools: [],
+      signal: new AbortController().signal,
+      callTool: vi.fn(),
+    };
+    for await (const p of adapter.run(req)) parts.push(p);
+    expect(parts.at(-1)).toMatchObject({ type: "error", error: expect.stringMatching(/Switching to the downloadable model/) });
+    expect(await settled(adapter)).toEqual({ state: "needs-download", bytes: 5, note: undefined });
+  });
+
   it("run before ready is an error part, not a throw", async () => {
     const adapter = createLocalAdapter({ providers: [provider("t", { state: "needs-download" })] });
     await settled(adapter);

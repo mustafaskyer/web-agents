@@ -25,7 +25,14 @@ const cloud = createCloudAdapter(); // POSTs to /api/chat; create it once (modul
 
 `<AgentChat>` props: `adapter` or `adapters` (several show a switcher), `title`, `defaultOpen`, `position`
 (`"bottom-right" | "bottom-left"`), `suggestions` (`string[] | false`, default: from the page's tools), `className`,
-`storageKey` (sessionStorage key, `false` for memory only). The conversation survives route changes and reloads.
+`storageKey` (sessionStorage key, `false` for memory only), `layout` (`"docked" | "floating"`). The conversation
+survives route changes and reloads.
+
+`layout="docked"` (default) puts the open panel beside the page, full height, on the `position` side: the page makes
+room (a body margin), so the agent never works under the chat. Drag its inner edge, or focus it and use the arrow keys,
+to resize (320 px up to the window minus 360 px; remembered). While docked, `<html>` gets `data-wa-chat-dock` and
+`--wa-chat-inset-left` / `--wa-chat-inset-right`: offset your own fixed UI (drawers, toasts) with them. Below 640 px it
+is a bottom sheet. `layout="floating"` keeps the pop-over over the page.
 
 Theme with CSS custom properties on `.wa-chat` (`--wa-chat-accent` defaults to the cursor's `--agent`). Dark mode
 follows `prefers-color-scheme`, or `data-theme="dark"` on an ancestor.

@@ -49,6 +49,8 @@ export interface LocalProvider {
   readonly label: string;
   /** List the tools in the prompt text (no chat-template tools support). */
   readonly toolsInline?: boolean;
+  /** Set once the provider found it can't run here after all: the adapter moves on to the next provider. */
+  readonly broken?: string;
   availability(): Promise<ProviderAvailability>;
   /** Download / load the model. `onProgress` gets 0–1. Aborting stops the download. */
   prepare(onProgress: (progress: number) => void, signal?: AbortSignal): Promise<void>;

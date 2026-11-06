@@ -73,7 +73,7 @@ code, pre, .mono { font-family: var(--wa-mono); font-size: 11.5px; }
 
 /* ---------- launcher ---------- */
 .launcher {
-  position: fixed; right: 16px; bottom: 16px; z-index: var(--wa-z);
+  position: fixed; right: calc(16px + var(--wa-chat-inset-right, 0px)); bottom: 16px; z-index: var(--wa-z);
   width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--wa-border);
   display: grid; place-items: center; background: var(--wa-bg); box-shadow: var(--wa-shadow); cursor: pointer;
   transition: transform 0.15s ease-out;
@@ -92,8 +92,9 @@ code, pre, .mono { font-family: var(--wa-mono); font-size: 11.5px; }
   background: var(--wa-bg); border: 0 solid var(--wa-border); box-shadow: var(--wa-shadow);
   animation: wa-in 0.16s ease-out;
 }
-.panel[data-dock="bottom"] { left: 0; right: 0; bottom: 0; border-top-width: 1px; }
-.panel[data-dock="right"] { top: 0; right: 0; bottom: 0; border-left-width: 1px; }
+/* clear of a docked assistant (@web-agents/chat), which publishes its width on <html> */
+.panel[data-dock="bottom"] { left: var(--wa-chat-inset-left, 0); right: var(--wa-chat-inset-right, 0); bottom: 0; border-top-width: 1px; }
+.panel[data-dock="right"] { top: 0; right: var(--wa-chat-inset-right, 0); bottom: 0; border-left-width: 1px; }
 .panel[data-embedded] { position: static; height: 100%; box-shadow: none; animation: none; border: 0; }
 @keyframes wa-in { from { opacity: 0; transform: translateY(8px); } }
 .resize { position: absolute; z-index: 1; touch-action: none; }

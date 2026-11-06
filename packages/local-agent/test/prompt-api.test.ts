@@ -13,17 +13,21 @@ function stubLanguageModel(over: Record<string, unknown> = {}) {
       const e = new Event("downloadprogress") as Event & { loaded: number };
       Object.defineProperty(e, "loaded", { value: 0.5 });
       monitor.dispatchEvent(e);
-      const session = { prompts: [] as unknown[], destroyed: false };
-      sessions.push(session);
-      return {
-        prompt: async (input: unknown, o: unknown) => {
-          session.prompts.push([input, o]);
-          return '{"type":"tool_call","name":"add_to_cart","arguments":{"qty":2}}';
-        },
-        destroy: () => {
-          session.destroyed = true;
-        },
+      const makeSession = (): unknown => {
+        const session = { prompts: [] as unknown[], destroyed: false };
+        sessions.push(session);
+        return {
+          clone: async () => makeSession(),
+          prompt: async (input: unknown, o: unknown) => {
+            session.prompts.push([input, o]);
+            return '{"type":"tool_call","name":"add_to_cart","arguments":{"qty":2}}';
+          },
+          destroy: () => {
+            session.destroyed = true;
+          },
+        };
       };
+      return makeSession();
     }),
     ...over,
   };
@@ -71,8 +75,24 @@ describe("Prompt API provider", () => {
       signal: new AbortController().signal,
     });
     expect(result.text).toContain('"tool_call"');
-    const [, options] = sessions[0]!.prompts[0] as [unknown, { responseConstraint: unknown }];
+    // sessions[0] is the base; the prompt ran in its clone, with the system prompt on the first turn
+    const [input, options] = sessions[1]!.prompts[0] as [Array<{ content: string }>, { responseConstraint: unknown }];
+    expect(input[0]!.content).toMatch(/^sys\n\n---\n\nadd 2$/);
     expect(options.responseConstraint).toEqual(actionSchema(["add_to_cart"]));
-    expect(sessions[0]!.destroyed).toBe(true);
+    expect(sessions[1]!.destroyed).toBe(true);
+    expect(sessions[0]!.destroyed).toBe(false);
+  });
+
+  it("a device that can't start a session marks the provider broken (and unavailable from then on)", async () => {
+    stubLanguageModel({
+      create: async () => {
+        throw new DOMException("The device is unable to create a session to run the model.", "NotSupportedError");
+      },
+    });
+    const provider = createPromptApiProvider();
+    const req = { system: "s", messages: [{ role: "user" as const, content: "hi" }], tools: [], signal: new AbortController().signal };
+    await expect(provider.generate(req)).rejects.toThrow(/couldn't start on this device\. Switching to the downloadable model\./);
+    expect(provider.broken).toBeTruthy();
+    expect(await provider.availability()).toMatchObject({ state: "unavailable" });
   });
 });

@@ -66,14 +66,15 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
   /** The first provider that is ready, else the first that can download, else unavailable. */
   const detect = (): Promise<void> =>
     (detecting ??= (async () => {
-      const found = await detectLocalProviders(providers);
+      const usable = providers.filter((p) => !p.broken);
+      const found = await detectLocalProviders(usable);
       const pick = (state: ProviderAvailability["state"]) => found.findIndex((f) => f.availability.state === state);
       const index = [pick("available"), pick("downloading"), pick("needs-download")].find((i) => i !== -1);
       if (index === undefined) {
         const reason = found.map((f) => (f.availability.state === "unavailable" ? f.availability.reason : "")).find(Boolean);
         return set({ state: "unavailable", reason: reason ?? "No on-device model can run in this browser." });
       }
-      provider = providers[index]!;
+      provider = usable[index]!;
       set(fromAvailability(found[index]!.availability));
     })());
 
@@ -120,11 +121,19 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
       if (status.state !== "ready" || !provider) {
         return yield { type: "error", error: "The on-device model isn't ready: download it first." };
       }
-      yield* runLocalAgent(provider, req, {
+      const current = provider;
+      yield* runLocalAgent(current, req, {
         maxSteps: opts.maxSteps,
         stepTimeoutMs: opts.stepTimeoutMs,
-        toolsInline: provider.toolsInline,
+        toolsInline: current.toolsInline,
       });
+      if (current.broken) {
+        // e.g. Chrome's model reported "available" but can't start: pick the next provider (a download card follows)
+        provider = null;
+        detecting = null;
+        set(STATUS_LOADING);
+        void detect();
+      }
     },
   };
 }

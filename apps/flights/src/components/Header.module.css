@@ -1,4 +1,6 @@
 .header {
+  /* breakpoints follow the header, not the window: a docked assistant takes part of the window */
+  container: header / inline-size;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -48,7 +50,7 @@
     color: var(--ink);
   }
 }
-@media (max-width: 639px) {
+@container header (max-width: 639px) {
   .nav {
     display: none;
   }

@@ -133,6 +133,91 @@
     transform: translateY(8px) scale(0.98);
   }
 }
+/* ---------- docked: beside the page, full height; the page makes room ---------- */
+html[data-wa-chat-dock="right"] body {
+  margin-right: var(--wa-chat-inset-right);
+}
+html[data-wa-chat-dock="left"] body {
+  margin-left: var(--wa-chat-inset-left);
+}
+html[data-wa-chat-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+/* phones keep the bottom sheet */
+@media (min-width: 640px) {
+  /* the panel has its own close button */
+  .wa-chat[data-layout="docked"] .wa-chat__panel:not([hidden]) + .wa-chat__launcher {
+    display: none;
+  }
+  .wa-chat[data-layout="docked"] .wa-chat__panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--wa-chat-width, 380px);
+    height: 100dvh;
+    margin: 0;
+    border-width: 0 0 0 1px;
+    border-radius: 0;
+    box-shadow: none;
+    transform-origin: right center;
+  }
+  .wa-chat[data-layout="docked"][data-position="bottom-left"] .wa-chat__panel {
+    right: auto;
+    left: 0;
+    border-width: 0 1px 0 0;
+    transform-origin: left center;
+  }
+  .wa-chat[data-layout="docked"] .wa-chat__panel[hidden] {
+    transform: translateX(16px);
+  }
+  @starting-style {
+    .wa-chat[data-layout="docked"] .wa-chat__panel:not([hidden]) {
+      transform: translateX(16px);
+    }
+  }
+  .wa-chat[data-layout="docked"][data-position="bottom-left"] .wa-chat__panel[hidden] {
+    transform: translateX(-16px);
+  }
+  @starting-style {
+    .wa-chat[data-layout="docked"][data-position="bottom-left"] .wa-chat__panel:not([hidden]) {
+      transform: translateX(-16px);
+    }
+  }
+  .wa-chat__resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -4px;
+    z-index: 1;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+  }
+  .wa-chat[data-position="bottom-left"] .wa-chat__resize {
+    right: -4px;
+    left: auto;
+  }
+  .wa-chat__resize::after {
+    content: "";
+    position: absolute;
+    inset: 0 3px;
+    border-radius: 999px;
+    background: var(--wa-chat-accent);
+    opacity: 0;
+    transition: opacity 0.15s var(--wa-chat-ease);
+  }
+  .wa-chat__resize:hover::after,
+  .wa-chat__resize:focus-visible::after,
+  html[data-wa-chat-resizing] .wa-chat__resize::after {
+    opacity: 0.5;
+  }
+  .wa-chat__resize:focus-visible {
+    outline: none;
+  }
+}
+
 .wa-chat__header {
   display: flex;
   align-items: center;
@@ -582,11 +667,15 @@
 /* reduced motion: fades only, no movement */
 @media (prefers-reduced-motion: reduce) {
   .wa-chat__panel,
-  .wa-chat__panel[hidden] {
+  .wa-chat__panel[hidden],
+  .wa-chat[data-layout="docked"] .wa-chat__panel[hidden],
+  .wa-chat[data-layout="docked"][data-position="bottom-left"] .wa-chat__panel[hidden] {
     transform: none;
   }
   @starting-style {
-    .wa-chat__panel:not([hidden]) {
+    .wa-chat__panel:not([hidden]),
+    .wa-chat[data-layout="docked"] .wa-chat__panel:not([hidden]),
+    .wa-chat[data-layout="docked"][data-position="bottom-left"] .wa-chat__panel:not([hidden]) {
       transform: none;
     }
   }

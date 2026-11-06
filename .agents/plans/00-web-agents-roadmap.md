@@ -287,7 +287,7 @@ export interface AgentRunRequest {
 // AgentPart = text | reasoning (signed thinking, sent back to the model, not rendered) | tool { id, name, input, state, output?, error?, prompt? }
 // AgentStreamPart = message-start | text-delta | reasoning | tool-call | tool-result | tool-error | step-finish
 //                 | finish { reason: "stop" | "max-steps" | "aborted" } | error { code?: chat_disabled | rate_limited | bad_request | network }
-// <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher); title, defaultOpen, position, suggestions, storageKey
+// <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher); title, defaultOpen, position, suggestions, storageKey, layout ("docked" default, resizable | "floating")
 // createCloudAdapter({ api: "/api/chat", maxSteps: 8, headers, fetch }); useAgentSession(adapter); listToolDescriptors(); callModelContextTool()
 // "@web-agents/chat/server": createChatHandler({ model, system?, effort?, maxOutputTokens?, maxSteps?, guard?, env? }): (req: Request) => Promise<Response>
 //    GET → { enabled, model }; POST → one model step as an AI SDK UI message stream; 503 chat_disabled without a key;

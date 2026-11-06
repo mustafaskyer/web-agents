@@ -1,7 +1,8 @@
 import { installAgentVisuals } from "@web-agents/core";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import "../src/chat.css";
 import { AgentChat } from "../src/components/AgentChat";
 import { act } from "react";
 import type { AdapterStatus, AgentAdapter, AgentRunRequest, AgentStreamPart } from "../src/types";
@@ -112,7 +113,7 @@ describe("<AgentChat>", () => {
     });
     const screen = await render(<AgentChat adapter={adapter} defaultOpen storageKey={false} />);
     await userEvent.type(q<HTMLTextAreaElement>("textarea")!, "go{Enter}");
-    await userEvent.click(q('[aria-label="Stop"]')!); // while the page's tools settle
+    q<HTMLButtonElement>('[aria-label="Stop"]')!.click(); // at once, while the page's tools settle
     await sleep(300);
     expect(started).toBe(false);
     expect(q('[aria-label="Send"]')).not.toBeNull();
@@ -212,5 +213,44 @@ describe("<AgentChat>", () => {
     const again = await render(<AgentChat adapters={[{ ...cloud, id: "cloud", label: "Cloud" }, local]} defaultOpen storageKey={false} />);
     expect(radios()[1]!.getAttribute("aria-checked")).toBe("true");
     await again.unmount();
+  });
+
+  it("docks beside the page on a wide screen, resizes from the keyboard, and gives the room back on close", async () => {
+    await page.viewport(1200, 800);
+    localStorage.removeItem("web-agents:chat:width");
+    const root = document.documentElement;
+    try {
+      const adapter = fakeAdapter(async function* () {
+        yield { type: "finish", reason: "stop" };
+      });
+      const screen = await render(<AgentChat adapter={adapter} storageKey={false} />);
+      expect(root.dataset.waChatDock).toBeUndefined();
+
+      await userEvent.click(q<HTMLButtonElement>(".wa-chat__launcher")!);
+      expect(host().dataset.layout).toBe("docked");
+      expect(root.dataset.waChatDock).toBe("right");
+      expect(root.style.getPropertyValue("--wa-chat-inset-right")).toBe("380px");
+      const panel = q(".wa-chat__panel")!;
+      await until(() => Math.round(panel.getBoundingClientRect().right) === 1200, 1000, "panel at the right edge");
+      expect(Math.round(panel.getBoundingClientRect().width)).toBe(380);
+      expect(getComputedStyle(document.body).marginRight).toBe("380px");
+
+      const handle = q('[role="separator"]')!;
+      handle.focus();
+      await userEvent.keyboard("{ArrowLeft}{Shift>}{ArrowLeft}{/Shift}");
+      expect(handle.getAttribute("aria-valuenow")).toBe(String(380 + 16 + 64));
+      expect(root.style.getPropertyValue("--wa-chat-inset-right")).toBe("460px");
+      expect(localStorage.getItem("web-agents:chat:width")).toBe("460");
+      await userEvent.keyboard("{Home}");
+      expect(handle.getAttribute("aria-valuenow")).toBe("320");
+
+      await userEvent.keyboard("{Escape}");
+      expect(root.dataset.waChatDock).toBeUndefined();
+      expect(root.style.getPropertyValue("--wa-chat-inset-right")).toBe("");
+      await screen.unmount();
+    } finally {
+      localStorage.removeItem("web-agents:chat:width");
+      await page.viewport(414, 896);
+    }
   });
 });

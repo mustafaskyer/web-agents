@@ -31,6 +31,7 @@ export function actionSchema(toolNames: readonly string[]): Record<string, unkno
  * preview whose shape moves, and consumers shouldn't need its type package to compile.
  */
 interface PromptSession {
+  clone(options?: { signal?: AbortSignal }): Promise<PromptSession>;
   prompt(
     input: Array<{ role: string; content: string }>,
     options?: { responseConstraint?: Record<string, unknown>; signal?: AbortSignal },
@@ -52,17 +53,23 @@ const api = (): PromptApi | undefined => (globalThis as { LanguageModel?: Prompt
 
 /** A provider backed by Chrome's built-in model. */
 export function createPromptApiProvider(): LocalProvider {
-  // created in prepare(): it starts Chrome's download and keeps the model loaded; each generation still needs its own
-  // session, because the system prompt (which lists this step's tools) can only be set when a session is created
+  // Created in prepare() (it starts Chrome's download and keeps the model loaded); every generation runs in a clone of
+  // it. Some devices report "available" yet refuse a fresh create() ("unable to create a session"); a clone of a
+  // session that did start avoids a second create.
   let base: PromptSession | null = null;
+  let broken: string | undefined;
   return {
     id: "prompt-api",
     label: "Chrome built-in",
     toolsInline: true,
+    get broken() {
+      return broken;
+    },
 
     async availability(): Promise<ProviderAvailability> {
       const LM = api();
       if (!LM) return { state: "unavailable", reason: UNAVAILABLE };
+      if (broken) return { state: "unavailable", reason: broken };
       try {
         switch (await LM.availability(TEXT_IO)) {
           case "available":
@@ -100,14 +107,21 @@ export function createPromptApiProvider(): LocalProvider {
           ? { role: "user" as const, content: `Result of ${t.name ?? "the tool"}: ${t.content}` }
           : { role: t.role, content: t.content },
       );
-      const last = turns.pop() ?? { role: "user" as const, content: "" };
-      const session = await LM.create({
-        ...TEXT_IO,
-        signal: req.signal,
-        initialPrompts: [{ role: "system", content: req.system }, ...turns],
-      });
+      // the system prompt rides on the first turn: a clone keeps the base's (empty) system prompt
+      const [first, ...rest] = turns.length ? turns : [{ role: "user" as const, content: "" }];
+      const input = [{ role: first!.role, content: `${req.system}\n\n---\n\n${first!.content}` }, ...rest];
+      let session: PromptSession;
       try {
-        const text = await session.prompt([last], { responseConstraint: actionSchema(req.tools.map((t) => t.name)), signal: req.signal });
+        base ??= await LM.create({ ...TEXT_IO, signal: req.signal });
+        session = await base.clone({ signal: req.signal });
+      } catch (err) {
+        if (req.signal.aborted) throw err;
+        // the device can't run it after all: say so once, and let the adapter move to the next provider
+        broken = "Chrome's built-in model couldn't start on this device.";
+        throw new Error(`${broken} Switching to the downloadable model.`, { cause: err });
+      }
+      try {
+        const text = await session.prompt(input, { responseConstraint: actionSchema(req.tools.map((t) => t.name)), signal: req.signal });
         req.onToken?.(""); // nothing streams: the loop shows the parsed message at once
         return { text };
       } finally {

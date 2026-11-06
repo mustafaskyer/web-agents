@@ -1,18 +1,21 @@
 /**
  * <AgentChat>: a launcher and a non-modal chat panel. The agent works the page
- * through its WebMCP tools while the person watches, so the panel never covers
- * it with a backdrop and never steals the cursor's spotlight.
+ * through its WebMCP tools while the person watches, so by default the panel
+ * docks beside the page (which makes room for it) rather than covering it, and
+ * the person can drag it wider or narrower. `layout="floating"` keeps the
+ * corner pop-over instead.
  *
  * The panel lives in a body-level host carrying `data-web-agents-ui`, so typing
  * here never counts as "the user took over" for the agent cursor.
  */
 import { UI_HOST_ATTR } from "@web-agents/core";
-import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { type CSSProperties, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { useAgentSession } from "../session/use-agent-session";
 import type { AgentAdapter } from "../types";
 import { AdapterSwitcher } from "./AdapterSwitcher";
 import { Composer } from "./Composer";
+import { ResizeHandle, useDock } from "./dock";
 import { DownloadCard } from "./DownloadCard";
 import { ChatIcon, CloseIcon, ResetIcon } from "./icons";
 import { MessageList } from "./MessageList";
@@ -28,8 +31,13 @@ export interface AgentChatProps {
   title?: string;
   /** Open on first render. Default false. */
   defaultOpen?: boolean;
-  /** Corner for the launcher and panel. Default "bottom-right". */
+  /** Side (and corner) for the launcher and panel. Default "bottom-right". */
   position?: "bottom-right" | "bottom-left";
+  /**
+   * "docked" (default): beside the page, full height, resizable; the page makes room. "floating": a pop-over in the
+   * corner. Narrow screens get a bottom sheet either way.
+   */
+  layout?: "docked" | "floating";
   /** Starter prompts for an empty conversation; default: derived from the page's tools. `false` hides them. */
   suggestions?: string[] | false;
   /** Extra class on the host element (theme with the `--wa-chat-*` properties). */
@@ -64,6 +72,7 @@ export function AgentChat({
   title = "Assistant",
   defaultOpen = false,
   position = "bottom-right",
+  layout = "docked",
   suggestions,
   className,
   storageKey,
@@ -82,8 +91,13 @@ export function AgentChat({
   };
 
   const host = useHost(className, position);
+  const side = position === "bottom-left" ? "left" : "right";
   const session = useAgentSession(current, { storageKey });
   const [open, setOpen] = useState(defaultOpen);
+  const dock = useDock(open && layout === "docked", side);
+  useEffect(() => {
+    if (host) host.dataset.layout = layout;
+  }, [host, layout]);
   const panelId = useId();
   const titleId = useId();
   const launcherRef = useRef<HTMLButtonElement>(null);
@@ -95,7 +109,8 @@ export function AgentChat({
   }, [open]);
 
   function close() {
-    setOpen(false);
+    // commit first: the launcher is hidden while the panel is open, and a hidden button can't take focus
+    flushSync(() => setOpen(false));
     launcherRef.current?.focus();
   }
 
@@ -160,7 +175,9 @@ export function AgentChat({
         data-state={open ? "open" : "closed"}
         hidden={!open}
         onKeyDown={onKeyDown}
+        style={layout === "docked" ? ({ "--wa-chat-width": `${dock.width}px` } as CSSProperties) : undefined}
       >
+        {dock.active && <ResizeHandle side={side} width={dock.width} onResize={dock.setWidth} />}
         <header className="wa-chat__header">
           <h2 id={titleId}>{title}</h2>
           {session.messages.length > 0 && (
