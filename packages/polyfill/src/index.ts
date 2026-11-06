@@ -158,6 +158,8 @@ export function installWebMCPPolyfill(): ModelContext | undefined {
       } else {
         prop.type = "string";
         if (el instanceof HTMLSelectElement) prop.enum = [...el.options].map((o) => o.value);
+        // what the browser would check: lets agents (and devtools) send the right shape
+        else if (el.type === "email" || el.type === "date" || el.type === "url") prop.format = el.type === "url" ? "uri" : el.type;
       }
       const label = el.labels?.[0]?.textContent?.trim();
       prop.description = el.getAttribute("toolparamdescription") || label || el.getAttribute("aria-description") || el.name;

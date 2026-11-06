@@ -2,7 +2,7 @@
 import { useId, useRef, useState } from "react";
 import { defaultValueFor } from "../schema-form/defaults";
 import { type DevtoolsStore, isOpen, type ToolView } from "../store";
-import { ChevronIcon, LocateIcon, PlayIcon } from "./icons";
+import { ChevronIcon, LocateIcon, PlayIcon, SpinnerIcon } from "./icons";
 import { ToolRunner } from "./tool-runner";
 import { useDevtools } from "./use-devtools";
 
@@ -67,12 +67,12 @@ function QuickRun({
       type="button"
       className="btn icon ghost run-quick"
       disabled={disabled || running}
-      aria-label={`Run ${tool.name}`}
+      aria-label={running ? `${tool.name} is running` : `Run ${tool.name}`}
       title={running ? "Running…" : "Run with the last arguments (or the defaults)"}
-      data-running={running || undefined}
+      aria-busy={running || undefined}
       onClick={() => void store.runTool(tool.name, args())}
     >
-      <PlayIcon />
+      {running ? <SpinnerIcon /> : <PlayIcon />}
     </button>
   );
 }

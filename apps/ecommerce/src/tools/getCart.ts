@@ -1,5 +1,5 @@
 /**
- * Imperative WebTools: get_cart, open_cart (global)
+ * Imperative WebTools: get_cart, open_cart (global), close_cart (while the drawer is open)
  *
  * get_cart reads; open_cart shows the drawer, which turns on the drawer's own
  * tools (update_cart_item, remove_from_cart). The cart button in the header
@@ -26,5 +26,18 @@ export const openCart = defineWebTool({
     if (ui.cartOpen) return "The cart is already open.";
     ui.openCart();
     return `Opened the cart.\n${cart.describe()}`;
+  },
+});
+
+export const closeCart = defineWebTool({
+  id: "close_cart",
+  title: "Close the cart",
+  description: "Close the cart drawer and go back to the page behind it.",
+  annotations: { idempotentHint: true },
+  execute: (_input, ctx) => {
+    const { ui } = store(ctx);
+    if (!ui.cartOpen) return "The cart is already closed.";
+    ui.closeCart();
+    return "Closed the cart.";
   },
 });

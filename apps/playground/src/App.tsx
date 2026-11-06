@@ -20,7 +20,7 @@ const GLOBAL_TOOLS = ["get_cart"];
 const ROUTE_TOOLS = { "/orders": ["list_orders"] };
 const VISUALS = {
   log: (entry: unknown) => console.debug("[agent-visuals]", entry),
-  spotlight: true, // blur the page except the tool the agent is working in
+  spotlight: false, // blur the page except the tool the agent is working in (toggle in devtools Settings)
 };
 
 function Totals() {

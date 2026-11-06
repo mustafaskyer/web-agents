@@ -38,7 +38,7 @@ export function NewsletterForm() {
             placeholder="you@example.com"
             required
             autoComplete="email"
-            toolparamdescription="The email to subscribe"
+            toolparamdescription="The email to subscribe, e.g. mustafa@example.com"
           />
         </label>
         <button type="submit" className="btn primary">

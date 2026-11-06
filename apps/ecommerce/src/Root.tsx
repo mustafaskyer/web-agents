@@ -5,7 +5,7 @@
  */
 import { AgentChat, createCloudAdapter } from "@web-agents/chat";
 import { createLocalAdapter } from "@web-agents/local-agent";
-import { WebAgentsProvider } from "@web-agents/react";
+import { useAgentEvents, WebAgentsProvider } from "@web-agents/react";
 import { lazy, Suspense, useMemo } from "react";
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { CartDrawer } from "./components/CartDrawer";
@@ -13,7 +13,7 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { CartProvider, useCart } from "./store/cart";
 import { UiProvider, useUi } from "./store/ui";
-import { catalog, globalTools } from "./tools/catalog";
+import { catalog, drawerSafeTools, globalTools } from "./tools/catalog";
 import type { StoreContext } from "./tools/context";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
@@ -21,9 +21,18 @@ const Devtools = import.meta.env.DEV
   ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
-const VISUALS = { spotlight: true };
+const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+
+/** A tool that isn't about the cart closes the drawer first: the agent never works on a page hidden behind it. */
+function CloseDrawerForOtherTools() {
+  const { cartOpen, closeCart } = useUi();
+  useAgentEvents((e) => {
+    if (e.type === "start" && cartOpen && !drawerSafeTools.has(e.tool)) closeCart();
+  });
+  return null;
+}
 
 function Shell() {
   const cart = useCart();
@@ -47,6 +56,7 @@ function Shell() {
         <Footer />
       </div>
       <CartDrawer />
+      <CloseDrawerForOtherTools />
       {/* inside the provider: the assistant sees exactly the tools this page has on */}
       <AgentChat adapters={ADAPTERS} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>

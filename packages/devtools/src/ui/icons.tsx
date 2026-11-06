@@ -42,6 +42,21 @@ export const ChevronIcon = () => (
     <path d="M3.5 2 6.5 5 3.5 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+/** A ring with a gap; it spins via CSS (`.spinner`), and holds still under reduced motion. */
+export const SpinnerIcon = () => (
+  <svg
+    className="spinner"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="8" r="5.5" opacity="0.25" />
+    <path d="M13.5 8A5.5 5.5 0 0 0 8 2.5" />
+  </svg>
+);
 export const PlayIcon = () => (
   <Svg>
     <path d="M5 3.5v9l7-4.5Z" fill="currentColor" />

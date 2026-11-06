@@ -19,7 +19,7 @@ const Devtools = import.meta.env.DEV
   ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
-const VISUALS = { spotlight: true };
+const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
 

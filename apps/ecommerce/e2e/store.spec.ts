@@ -72,6 +72,25 @@ test("add_to_cart with a bad quantity: the agent and the page get the same error
   await expect(page.getByRole("alert")).toHaveText("Quantity must be a whole number from 1 to 3, got 9.");
 });
 
+test("close_cart closes the drawer; a tool for the page closes it first", async ({ page }) => {
+  await open(page, "/product/stoneware-mug");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  await run(page, "add_to_cart", { qty: 1 });
+  const drawer = page.getByRole("dialog", { name: /Your cart/ });
+  await expect(drawer).toBeVisible();
+  await expect.poll(() => list(page)).toContain("close_cart");
+  expect(await run(page, "close_cart")).toBe("Closed the cart.");
+  await expect(drawer).toBeHidden();
+  await expect.poll(() => list(page)).not.toContain("close_cart");
+
+  // drawer open again, then a tool about the page: the drawer gets out of the way
+  await run(page, "open_cart");
+  await expect(drawer).toBeVisible();
+  expect(await run(page, "browse_category", { category: "home" })).toMatch(/^Opened Home:/);
+  await expect(drawer).toBeHidden();
+  await expect(page).toHaveURL(/\/category\/home$/);
+});
+
 test("open_product with an unknown slug answers an error and stays put", async ({ page }) => {
   await open(page, "/");
   expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^Unknown product "nope"/);

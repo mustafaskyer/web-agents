@@ -18,6 +18,7 @@ export { ConfirmationUnavailableError } from "./confirm";
 export type {
   Register,
   RegisteredContext,
+  TargetFn,
   ToModelContextToolOptions,
   WebTool,
   WebToolAnnotations,

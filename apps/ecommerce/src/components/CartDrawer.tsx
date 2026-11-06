@@ -87,7 +87,7 @@ export function CartDrawer() {
               ({cart.count} item{cart.count === 1 ? "" : "s"})
             </span>
           </h2>
-          <button ref={closeRef} type="button" className="icon-btn" aria-label="Close cart" onClick={closeCart}>
+          <button ref={closeRef} type="button" className="icon-btn" aria-label="Close cart" toolname="close_cart" onClick={closeCart}>
             <CloseIcon />
           </button>
         </header>

@@ -76,8 +76,12 @@ export interface WebToolConfig<I = unknown, O = unknown> {
    * cursor parks on the element instead of clicking it. Default false.
    */
   requireConfirmation?: boolean;
-  /** CSS selector of the element the tool acts on: where the cursor goes. Default `[toolname="<id>"]`. */
-  target?: string;
+  /**
+   * CSS selector of the element the tool acts on: where the cursor goes. Default `[toolname="<id>"]`. A function
+   * gets the call's input and picks the element per call, e.g. a list row:
+   * `({ slug }) => \`[data-line="${slug}"] button\``. Returning undefined falls back to the default.
+   */
+  target?: string | TargetFn<I>;
   /** Do the work. Throw for bad input or failures: the agent gets the message as an error result. */
   execute(input: I, ctx: WebToolContext): O | Promise<O>;
 }
@@ -200,16 +204,34 @@ export interface ToModelContextToolOptions {
   calls?: CallTracker;
 }
 
+/**
+ * A per-call target. It gets the call's arguments as sent (the cursor moves before validation), so read them
+ * defensively; a throw falls back to the default. Declared as a method so a `WebTool<Input>` still fits where a
+ * `WebTool<unknown>` is expected (registries hold mixed tools).
+ */
+export type TargetFn<I> = { pick(input: I): string | undefined }["pick"];
+
 /** Adapt a WebTool to the shape `document.modelContext.registerTool` takes. Failures become `isError` results; cancellation rejects. */
 export function toModelContextTool(tool: WebTool, { context, calls }: ToModelContextToolOptions = {}): ModelContextTool {
   // Ids are [a-zA-Z0-9_.-]: safe inside a quoted attribute selector without CSS.escape (absent in Node).
-  const confirmOn = tool.requireConfirmation ? (tool.target ?? `[toolname="${tool.id}"]`) : undefined;
+  const fallback = `[toolname="${tool.id}"]`;
+  /** The selector for this call: a function target sees the input; a throwing one falls back. */
+  const targetFor = (input: unknown): string | undefined => {
+    if (typeof tool.target !== "function") return tool.target;
+    try {
+      const selector = tool.target(typeof input === "string" ? JSON.parse(input || "{}") : input);
+      if (selector && typeof document !== "undefined") document.querySelector(selector); // throws on invalid CSS
+      return selector;
+    } catch {
+      return undefined; // built from agent input: never let a bad selector break the run
+    }
+  };
   const call = async (args: unknown, signal: AbortSignal): Promise<ModelContextToolResult> => {
     try {
       // Chrome 150 passed the arguments as a JSON string.
       const input = await tool.parse(typeof args === "string" ? JSON.parse(args || "{}") : args);
       // Only a valid call asks the user: they must never approve something that then fails validation.
-      if (confirmOn) await waitForConfirmation(confirmOn, signal, tool.id);
+      if (tool.requireConfirmation) await waitForConfirmation(targetFor(input) ?? fallback, signal, tool.id);
       if (signal.aborted) throw abortError(signal); // cancelled while validating: don't start the work
       return toToolResult(await tool.execute(input, { signal, source: "webmcp", context: context?.() as RegisteredContext }));
     } catch (err) {
@@ -224,8 +246,9 @@ export function toModelContextTool(tool: WebTool, { context, calls }: ToModelCon
     inputSchema: tool.jsonSchema,
     annotations: tool.annotations,
     // Read by the visuals layer: park instead of click, and where to point.
-    [CONFIRM]: confirmOn,
-    [TARGET]: tool.target,
+    // where the cursor parks to wait (a per-call target is resolved by the visuals from the arguments)
+    [CONFIRM]: tool.requireConfirmation ? (typeof tool.target === "string" ? tool.target : fallback) : undefined,
+    [TARGET]: typeof tool.target === "function" ? targetFor : tool.target,
     execute(args: unknown, options?: ModelContextExecuteOptions) {
       const signal = options?.signal ?? new AbortController().signal;
       return calls ? calls.track(() => call(args, signal)) : call(args, signal);

@@ -75,7 +75,7 @@ describe("devtools panel", () => {
     await userEvent.fill(runner.querySelector('input[type="number"]') as HTMLElement, "4");
     await userEvent.click(byText(runner, "button", "Run") as HTMLElement);
     await until(() => !!byText(runner, ".result-text", "Added 4"), 8000, "form run");
-    await until(() => !($(`[aria-label="Run ${name}"]`) as HTMLButtonElement).disabled, 8000, "row button enabled");
+    await until(() => ($(`[aria-label="Run ${name}"]`) as HTMLButtonElement | null)?.disabled === false, 8000, "row button enabled");
     await userEvent.click($(`[aria-label="Run ${name}"]`) as HTMLElement);
     await until(() => byText(devtoolsRoot(), '[role="tab"]', "Timeline")?.querySelector(".count")?.textContent === "3", 8000, "third run");
     await until(() => !!byText(runner, ".result-text", "Added 4"), 8000, "repeated args");

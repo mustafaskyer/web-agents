@@ -49,6 +49,8 @@ export const browseCategory = defineWebTool({
   description: "Open a category page and list its products with slugs and prices.",
   inputSchema: z.object({ category: z.enum(categorySlugs).describe("The category to open") }),
   annotations: { readOnlyHint: true },
+  // the cursor clicks that category's link in the header
+  target: ({ category }) => `[toolname="browse_category"] a[href=${JSON.stringify(`/category/${category}`)}]`,
   execute: ({ category }, ctx) => {
     store(ctx).navigate(`/category/${category}`);
     const items = listByCategory(category).map(productLine);

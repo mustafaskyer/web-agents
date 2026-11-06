@@ -221,8 +221,11 @@ function start({
 
   const runs = new Map<string, Run>();
   /** Imperative tools that name their element with a selector (WebTool `target`) instead of `toolname`. */
-  const targets = new Map<string, string>();
-  const byTool = (name: string): Element | null => document.querySelector(targets.get(name) ?? `[toolname="${CSS.escape(name)}"]`);
+  const targets = new Map<string, string | ((args: unknown) => string | undefined)>();
+  const byTool = (name: string, args?: unknown): Element | null => {
+    const t = targets.get(name);
+    return document.querySelector((typeof t === "function" ? t(args) : t) ?? `[toolname="${CSS.escape(name)}"]`);
+  };
 
   // ---------- field bookkeeping ----------
   /** Last value seen while no agent was touching the field: what to restore. */
@@ -509,7 +512,7 @@ function start({
     const register = originalRegister.bind(mc);
     wrappedRegister = (tool, options) => {
       gated.add(tool.name);
-      const target = (tool as { [TARGET]?: string })[TARGET];
+      const target = (tool as { [TARGET]?: string | ((args: unknown) => string | undefined) })[TARGET];
       if (target) targets.set(tool.name, target);
       else targets.delete(tool.name);
       return register({ ...tool, execute: (args: unknown, ctx?: ModelContextExecuteOptions) => runGated(tool, args, ctx) }, options);
@@ -523,7 +526,7 @@ function start({
   // biome-ignore lint/suspicious/noExplicitAny: a tool may declare any argument type; registration must accept them all
   async function runGated(tool: ModelContextTool<any>, args: unknown, ctx?: ModelContextExecuteOptions): Promise<unknown> {
     if (!alive) return tool.execute(args, ctx as ModelContextExecuteOptions); // torn down: just run it
-    const el = byTool(tool.name);
+    const el = byTool(tool.name, args);
     if (el instanceof HTMLFormElement) return tool.execute(args, ctx as ModelContextExecuteOptions);
     if (!el) return runUnseen(tool, args, ctx);
 

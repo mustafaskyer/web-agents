@@ -158,7 +158,9 @@ export interface WebToolConfig<I = unknown, O = unknown> {
   annotations?: WebToolAnnotations;         // readOnlyHint, destructiveHint, idempotentHint, openWorldHint, untrustedContentHint, …
   requireConfirmation?: boolean;            // park the cursor and wait for a trusted user click on `target`; validates first;
                                             // fails closed (ConfirmationUnavailableError) when `target` is missing/disabled
-  target?: string;                          // CSS selector the cursor animates to; default `[toolname="<id>"]`
+  target?: string | TargetFn<I>;            // CSS selector the cursor animates to; default `[toolname="<id>"]`. A function gets
+                                            // the call's arguments as sent and picks per call (a list row); invalid CSS or a
+                                            // throw falls back to the default (bivariant method type: WebTool<I> fits WebTool)
   execute(input: I, ctx: WebToolContext): O | Promise<O>;
 }
 export interface WebToolContext {
@@ -368,11 +370,11 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   Decision (Phase 4): the example apps use non-modal panels (`role="dialog"` + `aria-modal`, the page behind
   made `inert`, Escape and focus return handled in the app); core is unchanged (the cursor budget has ~0.04 KB left).
   Revisit in core (`popover="manual"` overlay re-shown after a dialog opens) if a real app needs `showModal()`.
-- WebTool `target` is a fixed selector, so per-row tools (`update_cart_item`, `select_flight`) animate to the list,
-  not the row. Follow-up (Phase 2 contract): `target` may be `(input) => Element | null`.
-- The polyfill types radio groups as plain strings and `type=date` without a format, so the examples use `<select>`
-  for enums and say "YYYY-MM-DD" in `toolparamdescription`. Follow-up (polyfill): `enum` for radio groups,
-  `format: "date"` for date inputs.
+- Per-row tools animate to the exact row: `target` may be a function of the call's arguments (done; used by
+  `browse_category`, `update_cart_item`, `remove_from_cart`, `select_flight`).
+- The polyfill types radio groups as plain strings, so the examples use `<select>` for enums. It now adds `format`
+  (`email`, `date`, `uri`) for those input types, and devtools fills them with samples. Follow-up (polyfill): `enum`
+  for radio groups.
 - The polyfill dispatches an agent's submit without `checkValidity()`, so `required` fields aren't enforced for
   agents; the examples check in the submit handler (`CheckoutForm`). Follow-up (polyfill): validate before an agent
   submit and answer `Error: …`, after checking what native Chrome does.

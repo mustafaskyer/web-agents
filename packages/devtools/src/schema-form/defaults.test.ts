@@ -35,6 +35,20 @@ describe("defaultValueFor", () => {
   });
 });
 
+describe("ready-to-run samples", () => {
+  it("skips a select's empty placeholder option", () => {
+    expect(defaultValueFor({ type: "string", enum: ["", "S", "M"] })).toBe("S");
+  });
+  it("fills email, date and URL fields with a sample; a description example still wins", () => {
+    expect(defaultValueFor({ type: "string", format: "email" })).toBe("you@example.com");
+    expect(defaultValueFor({ type: "string", format: "email", description: "Email, e.g. mustafa@example.com" })).toBe(
+      "mustafa@example.com",
+    );
+    expect(defaultValueFor({ type: "string", format: "date" })).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(defaultValueFor({ type: "string", format: "uri" })).toBe("https://example.com");
+  });
+});
+
 describe("exampleFrom", () => {
   it.each([
     ["Optional promo code, e.g. 123", "123"],

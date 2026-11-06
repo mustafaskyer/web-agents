@@ -63,9 +63,10 @@ code, pre, .mono { font-family: var(--wa-mono); font-size: 11.5px; }
 .btn.ghost:hover:not(:disabled) { background: var(--wa-bg-hover); }
 .btn.icon { width: 26px; padding: 0; justify-content: center; }
 .run-quick { color: var(--wa-accent, currentColor); }
-.run-quick[data-running] { opacity: 0.5; animation: wa-pulse 1s ease-in-out infinite alternate; }
-@keyframes wa-pulse { to { opacity: 0.2; } }
-@media (prefers-reduced-motion: reduce) { .run-quick[data-running] { animation: none; } }
+.run-quick:disabled[aria-busy] { opacity: 1; cursor: progress; }
+.spinner { animation: wa-spin 0.8s linear infinite; }
+@keyframes wa-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 .btn svg { width: 14px; height: 14px; flex: none; }
 .kbd { color: var(--wa-muted); font-size: 11px; font-weight: 400; }
 .btn.primary .kbd { color: inherit; opacity: 0.7; }

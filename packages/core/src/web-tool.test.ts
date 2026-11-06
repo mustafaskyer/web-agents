@@ -147,4 +147,28 @@ describe("toModelContextTool", () => {
     const res = await toModelContextTool(tool, { context: () => "state" }).execute({}, ctx());
     expect(res).toEqual({ content: [{ type: "text", text: "state" }] });
   });
+
+  it("a function target picks the element per call, from the arguments (a JSON string too), and falls back on a throw", () => {
+    const tool = defineWebTool({
+      id: "pick_row",
+      description: "Pick a row",
+      target: (input: { id?: string }) => (input.id ? `[data-row="${input.id}"]` : undefined),
+      execute: () => "ok",
+    });
+    const pick = (toModelContextTool(tool) as unknown as Record<symbol, (a: unknown) => string | undefined>)[
+      Symbol.for("web-agents.target")
+    ]!;
+    expect(pick({ id: "a1" })).toBe('[data-row="a1"]');
+    expect(pick('{"id":"b2"}')).toBe('[data-row="b2"]');
+    expect(pick({})).toBeUndefined();
+    expect(pick("not json")).toBeUndefined();
+    vi.stubGlobal("document", {
+      querySelector: (s: string) => {
+        if (s.includes("]]")) throw new SyntaxError("bad");
+        return null;
+      },
+    });
+    expect(pick({ id: "x]]" })).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
 });
