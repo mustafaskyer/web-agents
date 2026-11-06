@@ -12,6 +12,12 @@ export type ProviderAvailability =
   | { state: "downloading"; progress: number }
   | { state: "unavailable"; reason: string };
 
+/**
+ * How a model writes a tool call: `<tool_call>{json}</tool_call>` (Qwen, Hermes) or
+ * `<|tool_call_start|>[name(arg="x")]<|tool_call_end|>` (Liquid LFM2).
+ */
+export type CallFormat = "tags" | "pythonic";
+
 /** A tool as small models see it: compact schema, short description. */
 export interface CompactTool {
   name: string;
@@ -49,12 +55,19 @@ export interface LocalProvider {
   readonly label: string;
   /** List the tools in the prompt text (no chat-template tools support). */
   readonly toolsInline?: boolean;
+  /** How the model writes tool calls (and so how its earlier calls go back into the history). Default "tags". */
+  readonly callFormat?: CallFormat;
   /** Set once the provider found it can't run here after all: the adapter moves on to the next provider. */
   readonly broken?: string;
   availability(): Promise<ProviderAvailability>;
   /** Download / load the model. `onProgress` gets 0–1. Aborting stops the download. */
   prepare(onProgress: (progress: number) => void, signal?: AbortSignal): Promise<void>;
   generate(req: GenerateRequest): Promise<GenerateResult>;
+  /**
+   * Whether a prompt fits the model's input window (with room left for the reply). The loop then offers fewer tools
+   * and less history until it does. Omitted: everything fits.
+   */
+  fits?(req: Pick<GenerateRequest, "system" | "messages" | "tools">): Promise<boolean>;
   /** Free the model (terminate the worker, destroy the session). */
   dispose?(): void;
 }

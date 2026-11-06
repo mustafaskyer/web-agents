@@ -3,7 +3,8 @@
  * worked example, and the recent conversation only.
  */
 import type { AgentMessage } from "@web-agents/chat";
-import type { ChatTurn, CompactTool } from "./types";
+import { toPythonic } from "./pythonic";
+import type { CallFormat, ChatTurn, CompactTool } from "./types";
 
 const MAX_TURNS = 12;
 const MAX_TOOL_TEXT = 1500;
@@ -12,6 +13,7 @@ const RULES = `You are an assistant inside the web page the user is looking at. 
 Rules:
 - Only use the tools listed. Never invent tool names or arguments; ask for missing values.
 - Some tools wait for the user to confirm on the page (orders, bookings, deletions). If a result says it was cancelled, tell the user; never claim it succeeded.
+- Never say you did something unless a tool result says it happened.
 - A tool result starting with "Error:" failed. Explain briefly and suggest a fix.
 - Do one step at a time. Keep replies short and plain.
 - Asked what you can do, say in plain words what the tools below let you do here.`;
@@ -20,19 +22,29 @@ const TAG_FORMAT = `To use a tool, reply ONLY with:
 <tool_call>{"name": "TOOL_NAME", "arguments": {...}}</tool_call>
 Otherwise reply in plain text.`;
 
+const PYTHONIC_FORMAT = `To use a tool, reply ONLY with:
+<|tool_call_start|>[TOOL_NAME(argument="value")]<|tool_call_end|>
+Otherwise reply in plain text.`;
+
 const JSON_FORMAT = `Reply with JSON only: {"type": "tool_call", "name": "TOOL_NAME", "arguments": {...}} to use a tool, or {"type": "message", "text": "..."} to answer.`;
 
 /** A plausible example call for the first tool: required args filled with their first enum value or a placeholder. */
-function example(tool: CompactTool, json: boolean): string {
+function example(tool: CompactTool, json: boolean, format: CallFormat): string {
   const s = tool.parameters as { properties?: Record<string, { type?: string; enum?: unknown[] }>; required?: string[] };
   const args: Record<string, unknown> = {};
   for (const key of s.required ?? Object.keys(s.properties ?? {}).slice(0, 1)) {
     const p = s.properties?.[key];
     args[key] = p?.enum?.[0] ?? (p?.type === "number" || p?.type === "integer" ? 1 : p?.type === "boolean" ? true : "…");
   }
-  return json
-    ? JSON.stringify({ type: "tool_call", name: tool.name, arguments: args })
-    : `<tool_call>${JSON.stringify({ name: tool.name, arguments: args })}</tool_call>`;
+  if (json) return JSON.stringify({ type: "tool_call", name: tool.name, arguments: args });
+  return callMarkup(tool.name, args, format);
+}
+
+/** A call as `format` writes it. */
+function callMarkup(name: string, args: Record<string, unknown>, format: CallFormat): string {
+  return format === "pythonic"
+    ? `<|tool_call_start|>[${toPythonic(name, args)}]<|tool_call_end|>`
+    : `<tool_call>${JSON.stringify({ name, arguments: args })}</tool_call>`;
 }
 
 /** What `buildLocalSystemPrompt` adds to the fixed rules. */
@@ -50,14 +62,16 @@ export interface LocalPromptOptions {
   toolsInline?: CompactTool[];
   /** For the worked example. */
   firstTool?: CompactTool;
+  /** The model's call format (chat-template path). Default "tags". */
+  format?: CallFormat;
 }
 
 /** The system prompt (well under ~600 tokens). */
-export function buildLocalSystemPrompt({ path, page, tools, toolsInline, firstTool }: LocalPromptOptions = {}): string {
+export function buildLocalSystemPrompt({ path, page, tools, toolsInline, firstTool, format = "tags" }: LocalPromptOptions = {}): string {
   const json = !!toolsInline;
-  const parts = [RULES, json ? JSON_FORMAT : TAG_FORMAT];
+  const parts = [RULES, json ? JSON_FORMAT : format === "pythonic" ? PYTHONIC_FORMAT : TAG_FORMAT];
   const first = firstTool ?? toolsInline?.[0] ?? tools?.[0];
-  if (first) parts.push(`Example:\n${example(first, json)}`);
+  if (first) parts.push(`Example:\n${example(first, json, format)}`);
   if (toolsInline?.length)
     parts.push(`Tools:\n${toolsInline.map((t) => `- ${t.name}: ${t.description} Arguments: ${JSON.stringify(t.parameters)}`).join("\n")}`);
   else if (tools?.length) parts.push(`Tools on this page:\n${tools.map((t) => `- ${t.name}: ${t.description}`).join("\n")}`);
@@ -78,7 +92,7 @@ export const textOf = (output: { content?: Array<{ type: string; text?: string }
   (output?.content ?? []).map((c) => c.text ?? "").join("\n");
 
 /** The conversation as chat-template turns: the model sees its own earlier calls and their results. Last 12 turns. */
-export function toChatTemplateMessages(history: readonly AgentMessage[]): ChatTurn[] {
+export function toChatTemplateMessages(history: readonly AgentMessage[], format: CallFormat = "tags"): ChatTurn[] {
   const turns: ChatTurn[] = [];
   for (const m of history) {
     if (m.role === "user") {
@@ -90,7 +104,7 @@ export function toChatTemplateMessages(history: readonly AgentMessage[]): ChatTu
     for (const p of m.parts) {
       if (p.type === "text") text += p.text;
       else if (p.type === "tool") {
-        text += `<tool_call>${JSON.stringify({ name: p.name, arguments: p.input ?? {} })}</tool_call>`;
+        text += callMarkup(p.name, (p.input ?? {}) as Record<string, unknown>, format);
         const result = p.state === "cancelled" ? "Cancelled by the user." : p.error || textOf(p.output) || "(no result)";
         results.push({ role: "tool", name: p.name, content: result.slice(0, MAX_TOOL_TEXT) });
       }

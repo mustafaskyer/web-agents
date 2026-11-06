@@ -26,16 +26,35 @@ export function actionSchema(toolNames: readonly string[]): Record<string, unkno
   };
 }
 
+type PromptInput = Array<{ role: string; content: string }>;
+
+/** Tokens kept free for the reply (a tool call or a short answer). */
+const REPLY_TOKENS = 200;
+
+/** The conversation as Prompt API turns: tool results read as user turns; the system prompt rides on the first turn. */
+function toInput(req: Pick<GenerateRequest, "system" | "messages">): PromptInput {
+  const turns = req.messages.map((t) =>
+    t.role === "tool"
+      ? { role: "user" as const, content: `Result of ${t.name ?? "the tool"}: ${t.content}` }
+      : { role: t.role, content: t.content },
+  );
+  // a clone keeps the base's (empty) system prompt
+  const [first, ...rest] = turns.length ? turns : [{ role: "user" as const, content: "" }];
+  return [{ role: first!.role, content: `${req.system}\n\n---\n\n${first!.content}` }, ...rest];
+}
+
 /**
  * The slice of the Prompt API this provider uses, declared here rather than through global types: the API is a
  * preview whose shape moves, and consumers shouldn't need its type package to compile.
  */
 interface PromptSession {
   clone(options?: { signal?: AbortSignal }): Promise<PromptSession>;
-  prompt(
-    input: Array<{ role: string; content: string }>,
-    options?: { responseConstraint?: Record<string, unknown>; signal?: AbortSignal },
-  ): Promise<string>;
+  /** The input window in tokens: `contextWindow` in newer Chrome, `inputQuota` before. */
+  contextWindow?: number;
+  inputQuota?: number;
+  measureContextUsage?(input: PromptInput): Promise<number>;
+  measureInputUsage?(input: PromptInput): Promise<number>;
+  prompt(input: PromptInput, options?: { responseConstraint?: Record<string, unknown>; signal?: AbortSignal }): Promise<string>;
   destroy(): void;
 }
 interface PromptApi {
@@ -101,15 +120,7 @@ export function createPromptApiProvider(): LocalProvider {
     async generate(req: GenerateRequest): Promise<GenerateResult> {
       const LM = api();
       if (!LM) throw new Error(UNAVAILABLE);
-      // The conversation as Prompt API turns: tool results read as user turns.
-      const turns = req.messages.map((t) =>
-        t.role === "tool"
-          ? { role: "user" as const, content: `Result of ${t.name ?? "the tool"}: ${t.content}` }
-          : { role: t.role, content: t.content },
-      );
-      // the system prompt rides on the first turn: a clone keeps the base's (empty) system prompt
-      const [first, ...rest] = turns.length ? turns : [{ role: "user" as const, content: "" }];
-      const input = [{ role: first!.role, content: `${req.system}\n\n---\n\n${first!.content}` }, ...rest];
+      const input = toInput(req);
       let session: PromptSession;
       try {
         base ??= await LM.create({ ...TEXT_IO, signal: req.signal });
@@ -127,6 +138,14 @@ export function createPromptApiProvider(): LocalProvider {
       } finally {
         session.destroy();
       }
+    },
+
+    // Some devices give the model a window of ~1000 tokens: the loop shrinks the prompt until this says it fits.
+    async fits(req) {
+      const window = base?.contextWindow ?? base?.inputQuota;
+      const measure = base?.measureContextUsage ?? base?.measureInputUsage;
+      if (!base || !window || !measure) return true;
+      return (await measure.call(base, toInput(req))) + REPLY_TOKENS <= window;
     },
 
     dispose() {

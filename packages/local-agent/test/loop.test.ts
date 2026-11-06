@@ -1,6 +1,6 @@
 import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@web-agents/chat";
 import { describe, expect, it, vi } from "vitest";
-import { runLocalAgent } from "../src/loop";
+import { continuePrompt, runLocalAgent } from "../src/loop";
 import type { GenerateRequest, LocalProvider } from "../src/types";
 
 const user: AgentMessage = { id: "u1", role: "user", parts: [{ type: "text", text: "add 2 mugs" }] };
@@ -65,7 +65,7 @@ describe("runLocalAgent", () => {
     expect(text).not.toContain("tool_call");
     expect(text).toContain("Done: 2 mugs.");
     // the model saw its call and the result on the second step
-    expect(provider.requests[1]!.messages.at(-1)).toEqual({ role: "tool", name: "add_to_cart", content: "Added 2 mugs." });
+    expect(provider.requests[1]!.messages.at(-2)).toEqual({ role: "tool", name: "add_to_cart", content: "Added 2 mugs." });
   });
 
   it("feeds an invalid call back once; a valid retry runs", async () => {
@@ -140,5 +140,52 @@ describe("runLocalAgent", () => {
     expect(provider.requests[0]!.system).toContain("- add_to_cart: Add mugs");
     expect(provider.requests[0]!.system).toContain('{"type":"tool_call","name":"add_to_cart"');
     expect(provider.requests[0]!.system).not.toContain("<tool_call>");
+  });
+
+  it("restates the user's request after a tool result, so a small model takes the next step", async () => {
+    const provider = fake(['<tool_call>{"name":"add_to_cart","arguments":{"qty":2}}</tool_call>', "Done."]);
+    await run(provider);
+    expect(provider.requests[1]!.messages.slice(-2)).toEqual([
+      { role: "tool", name: "add_to_cart", content: "Added 2 mugs." },
+      { role: "user", content: continuePrompt("add 2 mugs") },
+    ]);
+  });
+
+  it("offers fewer tools, then less history, until the prompt fits the model's window", async () => {
+    const many: ToolDescriptor[] = Array.from({ length: 10 }, (_, i) => ({
+      name: `tool_${i}`,
+      description: `Tool ${i}`,
+      inputSchema: { type: "object", properties: {} },
+    }));
+    const history: AgentMessage[] = [
+      { id: "u0", role: "user", parts: [{ type: "text", text: "earlier question" }] },
+      { id: "a0", role: "assistant", parts: [{ type: "text", text: "earlier answer" }] },
+      user,
+    ];
+    const provider = fake(["Hello."]);
+    const seen: Array<{ tools: number; turns: number }> = [];
+    provider.fits = async ({ system, messages }) => {
+      const tools = (system.match(/^- tool_/gm) ?? []).length;
+      seen.push({ tools, turns: messages.length });
+      return tools <= 1 && messages.length === 1;
+    };
+    await run(provider, { tools: many, messages: history });
+    expect(seen).toEqual([
+      { tools: 8, turns: 3 },
+      { tools: 4, turns: 3 },
+      { tools: 2, turns: 3 },
+      { tools: 1, turns: 3 },
+      { tools: 1, turns: 1 },
+    ]);
+    expect(provider.requests[0]!.tools).toHaveLength(1);
+    expect(provider.requests[0]!.messages).toEqual([{ role: "user", content: "add 2 mugs" }]);
+  });
+
+  it("says so when even the smallest prompt doesn't fit", async () => {
+    const provider = fake(["Hello."]);
+    provider.fits = async () => false;
+    const { parts } = await run(provider);
+    expect(parts.at(-1)).toEqual({ type: "error", error: expect.stringMatching(/too long for the on-device model/) });
+    expect(provider.requests).toHaveLength(0);
   });
 });

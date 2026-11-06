@@ -6,10 +6,13 @@
  * create a session in testing (`std::bad_alloc`: out of WASM memory while loading), so it's opt-in via `model`.
  */
 import type { GenerateRequest, GenerateResult, LocalProvider, ProviderAvailability } from "../../types";
+import { claimPage, estimateTokens, lockBrowser, releasePage, tooBigForDevice } from "./guard";
 import type { Device, Dtype, FromWorker, ToWorker } from "./protocol";
 
 /** Verified on the model cards (onnx-community, 2026-11): weights + tokenizer, in bytes. */
 export const MODELS = {
+  // LiquidAI (2026-11): q4f16 760 MB in one data file, q4 850 MB; + ~3.5 MB graph and tokenizer
+  "LiquidAI/LFM2.5-1.2B-Instruct-ONNX": { q4f16: 763_800_000, q4: 853_600_000 },
   "onnx-community/Qwen3-1.7B-ONNX": { q4f16: 1_440_000_000, q4: 2_160_000_000 },
   "onnx-community/Qwen3-0.6B-ONNX": { q4f16: 585_000_000, q4: 934_000_000 },
 } as const;
@@ -29,6 +32,11 @@ export interface TransformersProviderOptions {
    * your bundler can't follow that, e.g. `new (await import("@web-agents/local-agent/worker?worker")).default()`.
    */
   worker?: Worker | (() => Worker);
+  /**
+   * Most prompt tokens per generation (estimated). Default 1536. The loop offers fewer tools and less history to stay
+   * under it: on WebGPU the whole prompt is read in one GPU pass, and a long one can stall the display.
+   */
+  maxInputTokens?: number;
 }
 
 const READY_KEY = "web-agents:local-model";
@@ -76,10 +84,11 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
   const choice = async () => {
     detected ??= await detectDevice();
     const { device, f16 } = detected;
-    const model = opts.model ?? (device === "webgpu" ? DEFAULT_GPU_MODEL : DEFAULT_CPU_MODEL);
+    const chosen = opts.model ?? (device === "webgpu" ? DEFAULT_GPU_MODEL : DEFAULT_CPU_MODEL);
     // without shader-f16 an f16 model fails at its first token ("requires f16 but the device does not support it")
     const dtype: Dtype = opts.dtype ?? (device === "webgpu" && f16 ? "q4f16" : "q4");
-    return { device, model, dtype };
+    model = chosen;
+    return { device, model: chosen, dtype };
   };
 
   const spawn = (): Worker => {
@@ -90,7 +99,9 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
         : (opts.worker ?? new Worker(new URL("./worker.ts", import.meta.url), { type: "module", name: "web-agents-local-model" }));
     w.addEventListener("message", (e: MessageEvent<FromWorker>) => pending.get(e.data.id)?.(e.data));
     w.addEventListener("error", (e) => {
-      for (const handle of pending.values()) handle({ id: -1, type: "error", error: e.message || "The model worker crashed." });
+      const handles = [...pending.values()];
+      terminate(); // a crashed worker still holds the page's slot and the browser lock
+      for (const handle of handles) handle({ id: -1, type: "error", error: e.message || "The model worker crashed." });
     });
     worker = w;
     return w;
@@ -103,16 +114,33 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
     return id;
   };
 
+  let loaded = false;
+  let everLoaded = false;
+  let model = opts.model;
+  let unlock: (() => void) | null = null;
+  const self = {};
   const terminate = (): void => {
     worker?.terminate();
     worker = null;
     pending.clear();
+    loaded = false;
+    unlock?.();
+    unlock = null;
+    releasePage(self);
   };
+  // A page kept in the back/forward cache would keep its model in GPU memory: free it; it reloads from cache on return.
+  if (typeof addEventListener === "function") addEventListener("pagehide", () => worker && terminate());
+  const maxInputTokens = opts.maxInputTokens ?? 1536;
+  const sizeOf = (m: string, dtype: Dtype): number | undefined =>
+    (MODELS[m as keyof typeof MODELS] as Record<Dtype, number> | undefined)?.[dtype];
 
-  let loaded = false;
   return {
     id: "transformers",
     label: "On-device",
+    // Liquid's LFM2 models write pythonic calls; known once the device (and so the default model) is
+    get callFormat() {
+      return model && /\bLFM2/i.test(model) ? "pythonic" : "tags";
+    },
 
     async availability(): Promise<ProviderAvailability> {
       if (typeof Worker === "undefined" || typeof WebAssembly === "undefined") {
@@ -120,10 +148,11 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
       }
       if (loaded) return { state: "available" };
       const { device, model, dtype } = await choice();
-      const sizes = MODELS[model as keyof typeof MODELS] as Record<Dtype, number> | undefined;
+      const tooBig = tooBigForDevice(sizeOf(model, dtype));
+      if (tooBig) return { state: "unavailable", reason: tooBig };
       return {
         state: "needs-download",
-        bytes: sizes?.[dtype],
+        bytes: sizeOf(model, dtype),
         // the browser caches the files: a returning visitor "downloads" from disk in seconds
         note:
           [
@@ -138,20 +167,33 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
     async prepare(onProgress, signal) {
       if (loaded) return;
       const { device, model, dtype } = await choice();
+      const tooBig = tooBigForDevice(sizeOf(model, dtype));
+      if (tooBig) throw new Error(tooBig);
       if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
+      // one model per page (stops another provider's), then one per browser (another tab keeps it: refuse)
+      claimPage(self, terminate);
+      if (!unlock) {
+        try {
+          unlock = await lockBrowser();
+        } catch (err) {
+          releasePage(self);
+          throw err;
+        }
+      }
       await new Promise<void>((resolve, reject) => {
         const onAbort = (): void => {
           terminate(); // stops the download; a partial cache entry is re-fetched next time
           reject(new DOMException("Download cancelled", "AbortError"));
         };
         signal?.addEventListener("abort", onAbort, { once: true });
-        const bytes = (MODELS[model as keyof typeof MODELS] as Record<Dtype, number> | undefined)?.[dtype];
+        const bytes = sizeOf(model, dtype);
         const id = send({ type: "init", model, dtype, device, bytes }, (m) => {
           if (m.type === "progress") onProgress(m.progress);
           else if (m.type === "ready") {
             pending.delete(id);
             signal?.removeEventListener("abort", onAbort);
             loaded = true;
+            everLoaded = true;
             hint.set(model);
             void navigator.storage?.persist?.(); // keep the model when the browser clears storage
             resolve();
@@ -165,8 +207,10 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
       });
     },
 
-    generate(req: GenerateRequest): Promise<GenerateResult> {
-      if (!loaded) return Promise.reject(new Error("The model isn't loaded yet: download it first."));
+    async generate(req: GenerateRequest): Promise<GenerateResult> {
+      // freed on pagehide (back/forward cache): the person already chose it, and it reloads from the browser cache
+      if (!loaded && everLoaded) await this.prepare(() => {}, req.signal);
+      if (!loaded) throw new Error("The model isn't loaded yet: download it first.");
       const { signal, onToken, ...rest } = req;
       return new Promise((resolve, reject) => {
         const id = send({ type: "generate", req: rest }, (m) => {
@@ -185,9 +229,13 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
       });
     },
 
+    async fits({ system, messages, tools }) {
+      const text = system + messages.map((m) => m.content).join("\n") + JSON.stringify(tools);
+      return estimateTokens(text) <= maxInputTokens;
+    },
+
     dispose() {
       terminate();
-      loaded = false;
     },
   };
 }

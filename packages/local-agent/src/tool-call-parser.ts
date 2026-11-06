@@ -4,9 +4,11 @@
  * and never throws: anything it can't read stays prose.
  *
  *   <tool_call>{"name": "add_to_cart", "arguments": {"qty": 2}}</tool_call>   Qwen / Hermes
+ *   <|tool_call_start|>[add_to_cart(qty=2)]<|tool_call_end|>                  Liquid LFM2 (pythonic, or JSON)
  *   ```json {"name": …, "arguments": …} ```                                     fenced
  *   {"type": "tool_call", "name": …, "arguments": …}                           Prompt API (constrained)
  */
+import { parsePythonicCalls } from "./pythonic";
 
 /** A call the model made, by name, with object arguments. */
 export interface ParsedCall {
@@ -24,6 +26,7 @@ export interface ParseResult {
 const MAX_INPUT = 32 * 1024;
 // a small model may never close the tag (or end it with a stray character): the block then runs to the next call or the end
 const TOOL_CALL = /<tool_call>([\s\S]*?)(?:<\/tool_call>|(?=<tool_call>)|$)/g;
+const LFM_CALL = /<\|tool_call_start\|>([\s\S]*?)(?:<\|tool_call_end\|>|(?=<\|tool_call_start\|>)|$)/g;
 const FENCED = /```(?:json)?\s*([\s\S]*?)```/;
 
 /** Remove reasoning (`<think>…</think>`, or an unterminated `<think>` running to the end). */
@@ -79,7 +82,10 @@ function toCall(value: unknown, toolNames: ReadonlySet<string>): Outcome {
   if (!value || typeof value !== "object") return null;
   const v = value as { name?: unknown; arguments?: unknown; parameters?: unknown; type?: unknown };
   if (typeof v.name !== "string") return null;
-  if (!toolNames.has(v.name)) return { error: `Unknown tool "${v.name}". Available: ${[...toolNames].join(", ") || "none"}.` };
+  if (!toolNames.has(v.name))
+    return {
+      error: `Unknown tool "${v.name}". Available now: ${[...toolNames].join(", ") || "none"}. Tools change with the page: use one of these to get there first.`,
+    };
   let args = v.arguments ?? v.parameters ?? {};
   if (typeof args === "string") args = parseJson(args) ?? {};
   if (!args || typeof args !== "object" || Array.isArray(args)) return { error: `Arguments for "${v.name}" must be a JSON object.` };
@@ -100,6 +106,19 @@ export function parseToolCalls(raw: string, toolNames: ReadonlySet<string>): Par
     else calls.push(outcome.call);
     return true;
   };
+
+  // 0. LFM blocks: a pythonic call list, or JSON (one call or a list of them)
+  const lfm = [...text.matchAll(LFM_CALL)];
+  if (lfm.length) {
+    for (const [, raw] of lfm) {
+      const body = raw!.trim();
+      const json = body.startsWith("{") || body.startsWith("[{") ? parseJson(body) : undefined;
+      const values = json !== undefined ? (Array.isArray(json) ? json : [json]) : parsePythonicCalls(body);
+      if (!values?.length) take(null, body);
+      else for (const v of values) take(toCall(v, toolNames), body);
+    }
+    return { text: text.replace(LFM_CALL, "").trim(), calls, errors };
+  }
 
   // 1. <tool_call> blocks
   const blocks = [...text.matchAll(TOOL_CALL)];
@@ -132,20 +151,24 @@ export function parseToolCalls(raw: string, toolNames: ReadonlySet<string>): Par
  */
 export function createProseFilter(): { push(delta: string): string; flush(): string } {
   let buffer = "";
-  let inside: "tool" | "think" | null = null;
-  const OPEN = { "<tool_call>": "tool", "<think>": "think" } as const;
-  const CLOSE = { tool: "</tool_call>", think: "</think>" } as const;
+  // the closing tag of the markup we're inside
+  let inside: string | null = null;
+  const OPEN: Record<string, string> = {
+    "<tool_call>": "</tool_call>",
+    "<|tool_call_start|>": "<|tool_call_end|>",
+    "<think>": "</think>",
+  };
 
   const drain = (final: boolean): string => {
     let out = "";
     for (;;) {
       if (inside) {
-        const end = buffer.indexOf(CLOSE[inside]);
+        const end = buffer.indexOf(inside);
         if (end === -1) {
           if (final) buffer = "";
           return out;
         }
-        buffer = buffer.slice(end + CLOSE[inside].length);
+        buffer = buffer.slice(end + inside.length);
         inside = null;
         continue;
       }
@@ -157,7 +180,7 @@ export function createProseFilter(): { push(delta: string): string; flush(): str
       }
       out += buffer.slice(0, lt);
       buffer = buffer.slice(lt);
-      const tag = (Object.keys(OPEN) as (keyof typeof OPEN)[]).find((t) => buffer.startsWith(t));
+      const tag = Object.keys(OPEN).find((t) => buffer.startsWith(t));
       if (tag) {
         inside = OPEN[tag];
         buffer = buffer.slice(tag.length);

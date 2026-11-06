@@ -20,6 +20,9 @@ import {
 } from "../data/catalog";
 import { store } from "./context";
 
+/** Where to go from a list: add_to_cart only exists on a product's page. */
+export const TO_BUY = "\nTo buy one: open_product with its slug, then add_to_cart.";
+
 export const openProduct = defineWebTool({
   id: "open_product",
   title: "Open a product page",
@@ -54,6 +57,6 @@ export const browseCategory = defineWebTool({
   execute: ({ category }, ctx) => {
     store(ctx).navigate(`/category/${category}`);
     const items = listByCategory(category).map(productLine);
-    return `Opened ${getCategory(category)?.name}:\n${items.join("\n")}`;
+    return `Opened ${getCategory(category)?.name}:\n${items.join("\n")}${TO_BUY}`;
   },
 });

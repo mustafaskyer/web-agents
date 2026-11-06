@@ -38,7 +38,9 @@ describe("parseToolCalls", () => {
     expect(parseToolCalls('<tool_call>{"name":"add_to_cart","arguments":{"qty":1,},}</tool_call>', names).calls).toHaveLength(1);
     const unknown = parseToolCalls('<tool_call>{"name":"drop_tables","arguments":{}}</tool_call>', names);
     expect(unknown.calls).toEqual([]);
-    expect(unknown.errors[0]).toBe('Unknown tool "drop_tables". Available: add_to_cart, apply_promo.');
+    expect(unknown.errors[0]).toBe(
+      'Unknown tool "drop_tables". Available now: add_to_cart, apply_promo. Tools change with the page: use one of these to get there first.',
+    );
     expect(parseToolCalls("just {some} text", names)).toEqual({ text: "just {some} text", calls: [], errors: [] });
     expect(parseToolCalls("<tool_call>not json</tool_call>", names).errors[0]).toMatch(/Couldn't read a tool call/);
   });

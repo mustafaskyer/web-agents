@@ -8,11 +8,11 @@ import type { AgentMessage, AgentRunRequest, AgentStreamPart } from "@web-agents
 import { buildLocalSystemPrompt, textOf, toChatTemplateMessages } from "./prompt";
 import { createProseFilter, type ParsedCall, parseToolCalls } from "./tool-call-parser";
 import { rankTools, validateArgs } from "./tools";
-import type { ChatTurn, GenerateRequest, GenerateResult, LocalProvider } from "./types";
+import type { ChatTurn, CompactTool, GenerateRequest, GenerateResult, LocalProvider } from "./types";
 
 /** Options for `runLocalAgent` (and the matching `createLocalAdapter` options). */
 export interface LocalLoopOptions {
-  /** Model steps per user message. Default 4: small models plan poorly beyond a few steps. */
+  /** Model steps per user message. Default 6: enough to find, open and add; small models plan poorly beyond that. */
   maxSteps?: number;
   /** Per generation. Default 60 s. */
   stepTimeoutMs?: number;
@@ -22,6 +22,7 @@ export interface LocalLoopOptions {
   toolsInline?: boolean;
 }
 
+const TOO_LONG = "This request is too long for the on-device model. Start a new chat, or try the cloud assistant.";
 const TIMEOUT = "The on-device model took too long. Try a shorter request or the cloud assistant.";
 const APOLOGY = "Sorry, I couldn't work out how to do that on this page. Try rephrasing, or use the cloud assistant.";
 const REPEAT = "I stopped because I was repeating the same action. Tell me what to change, or try the cloud assistant.";
@@ -74,6 +75,10 @@ async function* streamProse(provider: LocalProvider, request: GenerateRequest): 
   return result;
 }
 
+/** The nudge after a step's tool calls. Not shown in the chat: it only lives in this run's prompt. */
+export const continuePrompt = (query: string): string =>
+  `My request was: "${query.slice(0, 200)}". If the results above show it's fully done, tell me in one sentence, with no tool call. Otherwise call the next tool; never repeat an action that already succeeded.`;
+
 const clip = (s: string | null | undefined, max = 80): string | undefined => {
   const t = s?.replace(/\s+/g, " ").trim();
   return t ? (t.length > max ? `${t.slice(0, max - 1)}…` : t) : undefined;
@@ -91,9 +96,10 @@ export async function* runLocalAgent(
   req: AgentRunRequest,
   opts: LocalLoopOptions = {},
 ): AsyncGenerator<AgentStreamPart> {
-  const { maxSteps = 4, stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false } = opts;
+  const { maxSteps = 6, stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false } = opts;
   const query = lastUserText(req.messages);
-  const turns: ChatTurn[] = toChatTemplateMessages(req.messages);
+  const format = provider.callFormat ?? "tags";
+  const turns: ChatTurn[] = toChatTemplateMessages(req.messages, format);
   const used: string[] = [];
   let lastCall = "";
   let repeats = 0;
@@ -102,7 +108,26 @@ export async function* runLocalAgent(
 
   for (let step = 1; step <= maxSteps; step++) {
     if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
-    const tools = rankTools(req.tools, query, { max: maxTools, recent: used.slice(-2) }); // fresh each step
+    // ---------- 0. the prompt: the page's tools fresh each step, as many as the model's window takes ----------
+    let tools: CompactTool[] = [];
+    let system = "";
+    let fitted = false;
+    for (const max of [...new Set([maxTools, 4, 2, 1])].filter((n) => n <= maxTools)) {
+      tools = rankTools(req.tools, query, { max, recent: used.slice(-2) });
+      system = buildLocalSystemPrompt({ path, page, tools, toolsInline: toolsInline ? tools : undefined, firstTool: tools[0], format });
+      if (!provider.fits || (await provider.fits({ system, messages: turns, tools }).catch(() => true))) {
+        fitted = true;
+        break;
+      }
+    }
+    // still too long: drop the oldest turns (the newest user turn always stays)
+    while (!fitted && provider.fits) {
+      const from = turns.findIndex((t, i) => i > 0 && t.role === "user");
+      if (from === -1) break;
+      turns.splice(0, from);
+      fitted = await provider.fits({ system, messages: turns, tools }).catch(() => true);
+    }
+    if (!fitted) return yield { type: "error", error: TOO_LONG };
     const names = new Set(tools.map((t) => t.name));
     const messageId = newId();
     yield { type: "message-start", messageId };
@@ -116,7 +141,7 @@ export async function* runLocalAgent(
       let streamed = "";
       try {
         const it = streamProse(provider, {
-          system: buildLocalSystemPrompt({ path, page, tools, toolsInline: toolsInline ? tools : undefined, firstTool: tools[0] }),
+          system,
           messages: turns,
           tools,
           signal,
@@ -178,6 +203,8 @@ export async function* runLocalAgent(
       yield output.isError ? { type: "tool-error", id, error: textOf(output) } : { type: "tool-result", id, output };
       if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
     }
+    // small models echo the last tool answer and stop: restate the request, as the user, so the next step continues it
+    turns.push({ role: "user", content: continuePrompt(query) });
     yield { type: "step-finish", step };
   }
   yield { type: "finish", reason: "max-steps" };
