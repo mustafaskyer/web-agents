@@ -43,6 +43,31 @@ describe("parseToolCalls", () => {
     expect(parseToolCalls("<tool_call>not json</tool_call>", names).errors[0]).toMatch(/Couldn't read a tool call/);
   });
 
+  it("closes a call the model didn't finish (no closing tag, a missing brace, a stray character)", () => {
+    const tools = new Set(["open_cart", "add_to_cart"]);
+    // seen from Qwen3 0.6B: the outer brace and </tool_call> never came
+    expect(parseToolCalls('<tool_call>{"name": "open_cart", "arguments": {}〉', tools)).toEqual({
+      text: "",
+      calls: [{ name: "open_cart", arguments: {} }],
+      errors: [],
+    });
+    expect(parseToolCalls('<tool_call>{"name": "open_cart", "arguments": {}}', tools).calls).toEqual([
+      { name: "open_cart", arguments: {} },
+    ]);
+    expect(parseToolCalls('<tool_call>{"name": "add_to_cart", "arguments": {"slug": "mug", "qty": 2', tools).calls).toEqual([
+      { name: "add_to_cart", arguments: { slug: "mug", qty: 2 } },
+    ]);
+    const two = parseToolCalls(
+      '<tool_call>{"name":"open_cart","arguments":{}}\n<tool_call>{"name":"open_cart","arguments":{}}</tool_call>',
+      tools,
+    );
+    expect(two.calls).toHaveLength(2);
+    // markup that can't be read never shows as the reply
+    const broken = parseToolCalls('OK <tool_call>{"name": ', tools);
+    expect(broken.text).toBe("OK");
+    expect(broken.errors).toHaveLength(1);
+  });
+
   it("caps huge input at 32 KB", () => {
     expect(parseToolCalls("x".repeat(40_000), names).text).toHaveLength(32 * 1024);
   });

@@ -22,23 +22,55 @@ export interface ParseResult {
 }
 
 const MAX_INPUT = 32 * 1024;
-const TOOL_CALL = /<tool_call>([\s\S]*?)<\/tool_call>/g;
+// a small model may never close the tag (or end it with a stray character): the block then runs to the next call or the end
+const TOOL_CALL = /<tool_call>([\s\S]*?)(?:<\/tool_call>|(?=<tool_call>)|$)/g;
 const FENCED = /```(?:json)?\s*([\s\S]*?)```/;
 
 /** Remove reasoning (`<think>…</think>`, or an unterminated `<think>` running to the end). */
 export const stripThinking = (text: string): string => text.replace(/<think>[\s\S]*?(<\/think>|$)/g, "");
 
-function parseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    // one lenient pass: trailing commas, single quotes
-    try {
-      return JSON.parse(raw.replace(/,\s*([}\]])/g, "$1").replace(/'/g, '"'));
-    } catch {
-      return undefined;
+/**
+ * The JSON object at the start of `raw`, closed if the model stopped early: text after the object goes, and missing
+ * closing braces/brackets are added. `{"name": "open_cart", "arguments": {}〉` → `{"name": "open_cart", "arguments": {}}`.
+ */
+function balance(raw: string): string {
+  const start = raw.indexOf("{");
+  if (start === -1) return raw;
+  const open: string[] = [];
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < raw.length; i++) {
+    const c = raw[i]!;
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
+    } else if (c === '"') inString = true;
+    else if (c === "{" || c === "[") open.push(c === "{" ? "}" : "]");
+    else if (c === "}" || c === "]") {
+      open.pop();
+      if (open.length === 0) return raw.slice(start, i + 1);
     }
   }
+  // ran out: keep what was written up to its last complete value, then close
+  const body = raw.slice(start).replace(/[^}\]"\d\w]+$/u, "");
+  return body + [...open].reverse().join("");
+}
+
+function parseJson(raw: string): unknown {
+  for (const text of [raw, balance(raw)]) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      // one lenient pass: trailing commas, single quotes
+      try {
+        return JSON.parse(text.replace(/,\s*([}\]])/g, "$1").replace(/'/g, '"'));
+      } catch {
+        // next candidate
+      }
+    }
+  }
+  return undefined;
 }
 
 type Outcome = { call: ParsedCall } | { error: string } | null;
