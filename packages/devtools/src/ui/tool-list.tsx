@@ -1,8 +1,8 @@
 /** Every registered tool, searchable, with what kind it is and a runner per row. */
 import { useId, useRef, useState } from "react";
 import { defaultValueFor } from "../schema-form/defaults";
-import type { DevtoolsStore, ToolView } from "../store";
-import { ChevronIcon, LocateIcon } from "./icons";
+import { type DevtoolsStore, isOpen, type ToolView } from "../store";
+import { ChevronIcon, LocateIcon, PlayIcon } from "./icons";
 import { ToolRunner } from "./tool-runner";
 import { useDevtools } from "./use-devtools";
 
@@ -43,6 +43,40 @@ function Badges({ tool }: { tool: ToolView }) {
   );
 }
 
+/**
+ * Run a tool straight from its row: with the arguments it last ran with from the panel, else the schema's defaults.
+ * Shows a running state; the result lands in the timeline (and in the runner, if open).
+ */
+function QuickRun({
+  store,
+  tool,
+  args,
+  disabled,
+}: {
+  store: DevtoolsStore;
+  tool: ToolView;
+  args(): Record<string, unknown>;
+  disabled: boolean;
+}) {
+  const running = useDevtools(store, (s) => {
+    const last = s.calls.find((c) => c.tool === tool.name && c.origin === "devtools");
+    return !!last && isOpen(last);
+  });
+  return (
+    <button
+      type="button"
+      className="btn icon ghost run-quick"
+      disabled={disabled || running}
+      aria-label={`Run ${tool.name}`}
+      title={running ? "Running…" : "Run with the last arguments (or the defaults)"}
+      data-running={running || undefined}
+      onClick={() => void store.runTool(tool.name, args())}
+    >
+      <PlayIcon />
+    </button>
+  );
+}
+
 /** The Tools tab. */
 export function ToolList({ store, runner, onRunner }: ToolListProps) {
   const tools = useDevtools(store, (s) => s.tools);
@@ -51,6 +85,10 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
   const baseId = useId();
   // The open tool, remembered so its runner can say it was unregistered rather than vanish.
   const lastOpen = useRef<ToolView | null>(null);
+  // Arguments each tool last ran with from the panel, for the rows' quick Run.
+  const lastArgs = useRef(new Map<string, Record<string, unknown>>());
+  const argsFor = (tool: ToolView) => (): Record<string, unknown> =>
+    lastArgs.current.get(tool.name) ?? ((defaultValueFor(tool.schema) ?? {}) as Record<string, unknown>);
 
   if (!supported) {
     return (
@@ -114,6 +152,7 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
                     </span>
                   </button>
                   <Badges tool={tool} />
+                  <QuickRun store={store} tool={tool} args={argsFor(tool)} disabled={tool === gone} />
                   <button
                     type="button"
                     className="btn icon ghost"
@@ -132,7 +171,8 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
                     store={store}
                     tool={tool}
                     gone={tool === gone}
-                    initial={runner.args ?? defaultValueFor(tool.schema)}
+                    initial={runner.args ?? lastArgs.current.get(tool.name) ?? defaultValueFor(tool.schema)}
+                    onRun={(args) => lastArgs.current.set(tool.name, args)}
                   />
                 )}
               </li>

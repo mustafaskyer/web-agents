@@ -62,6 +62,25 @@ describe("devtools panel", () => {
     expect(byText(devtoolsRoot(), '[role="tab"]', "Timeline")?.querySelector(".count")?.textContent).toBe("1");
   });
 
+  it("runs a tool from its row without opening it, repeating the last arguments", async () => {
+    await userEvent.click($(".launcher") as HTMLElement);
+    await until(() => !!devtoolsRoot().querySelector(`[aria-label="Run ${name}"]`), 3000, "row run button");
+    await userEvent.click($(`[aria-label="Run ${name}"]`) as HTMLElement); // defaults: qty 1
+    await until(() => byText(devtoolsRoot(), '[role="tab"]', "Timeline")?.querySelector(".count")?.textContent === "1", 8000, "first run");
+    expect($(".runner")).toBeNull();
+
+    // a run from the opened form becomes the row's arguments
+    await userEvent.click(byText(devtoolsRoot(), ".disclosure", name) as HTMLElement); // the panel is already open
+    const runner = $(".runner") as HTMLElement;
+    await userEvent.fill(runner.querySelector('input[type="number"]') as HTMLElement, "4");
+    await userEvent.click(byText(runner, "button", "Run") as HTMLElement);
+    await until(() => !!byText(runner, ".result-text", "Added 4"), 8000, "form run");
+    await until(() => !($(`[aria-label="Run ${name}"]`) as HTMLButtonElement).disabled, 8000, "row button enabled");
+    await userEvent.click($(`[aria-label="Run ${name}"]`) as HTMLElement);
+    await until(() => byText(devtoolsRoot(), '[role="tab"]', "Timeline")?.querySelector(".count")?.textContent === "3", 8000, "third run");
+    await until(() => !!byText(runner, ".result-text", "Added 4"), 8000, "repeated args");
+  });
+
   it("flags invalid JSON and runs once it is fixed", async () => {
     const runner = await openTool();
     await userEvent.click(byText(runner, "button", "JSON") as HTMLElement);

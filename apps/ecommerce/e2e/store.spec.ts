@@ -45,12 +45,31 @@ test("open_product → add_to_cart opens the drawer and its tools", async ({ pag
   await expect.poll(() => list(page)).not.toContain("update_cart_item");
 });
 
-test("add_to_cart without a variant: the agent and the page get the same error", async ({ page }) => {
+test("add_to_cart without a size asks the person on the page, then adds what they pick", async ({ page }) => {
   await open(page, "/product/linen-shirt");
   await expect.poll(() => list(page)).toContain("add_to_cart");
-  const answer = await run(page, "add_to_cart", { qty: 1 });
-  expect(answer).toBe("Error: Choose a Size for Linen Shirt: S, M, L, XL.");
-  await expect(page.getByRole("alert")).toHaveText("Choose a Size for Linen Shirt: S, M, L, XL.");
+  const pending = run(page, "add_to_cart", { qty: 2 });
+  const prompt = page.getByRole("status").filter({ hasText: "Choose a size to add 2 × Linen Shirt." });
+  await expect(prompt).toBeVisible();
+  await expect(page.getByLabel("Size")).toBeFocused();
+  await page.getByLabel("Size").selectOption("L");
+  expect(await pending).toMatch(/^Added 2 × Linen Shirt \(L\) to the cart\..* The user chose size L\.$/);
+  await expect(page.getByRole("dialog", { name: /Your cart/ })).toBeVisible();
+});
+
+test("add_to_cart without a size: 'Not now' tells the agent to ask", async ({ page }) => {
+  await open(page, "/product/linen-shirt");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  const pending = run(page, "add_to_cart", { qty: 1 });
+  await page.getByRole("button", { name: "Not now" }).click();
+  expect(await pending).toBe("Error: The user didn't choose a size. Ask them which one they want: S, M, L, XL.");
+});
+
+test("add_to_cart with a bad quantity: the agent and the page get the same error", async ({ page }) => {
+  await open(page, "/product/oak-tray");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  expect(await run(page, "add_to_cart", { qty: 9 })).toBe("Error: Quantity must be a whole number from 1 to 3, got 9.");
+  await expect(page.getByRole("alert")).toHaveText("Quantity must be a whole number from 1 to 3, got 9.");
 });
 
 test("open_product with an unknown slug answers an error and stays put", async ({ page }) => {

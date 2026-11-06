@@ -42,6 +42,11 @@ export const ChevronIcon = () => (
     <path d="M3.5 2 6.5 5 3.5 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+export const PlayIcon = () => (
+  <Svg>
+    <path d="M5 3.5v9l7-4.5Z" fill="currentColor" />
+  </Svg>
+);
 export const LocateIcon = () => (
   <Svg>
     <circle cx="8" cy="8" r="4.5" />

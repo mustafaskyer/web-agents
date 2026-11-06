@@ -43,3 +43,17 @@
     grid-template-columns: 1fr;
   }
 }
+.ask {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--tint);
+  font-size: 14px;
+}
+.stack :global(select[data-asking]) {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(10 10 10 / 0.12);
+}

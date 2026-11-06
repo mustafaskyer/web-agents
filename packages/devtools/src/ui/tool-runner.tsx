@@ -21,13 +21,15 @@ export interface ToolRunnerProps {
   initial: unknown;
   /** The tool was unregistered while open. */
   gone?: boolean;
+  /** Called with the arguments of each run, so the row's quick Run can repeat them. */
+  onRun?(args: Record<string, unknown>): void;
   id: string;
 }
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /** The runner under an expanded tool row. */
-export function ToolRunner({ store, tool, initial, gone = false, id }: ToolRunnerProps) {
+export function ToolRunner({ store, tool, initial, gone = false, id, onRun }: ToolRunnerProps) {
   const canCancel = useDevtools(store, (s) => s.canCancel);
   const hasVisuals = useDevtools(store, (s) => s.hasVisuals);
   const [value, setValue] = useState(initial);
@@ -42,6 +44,7 @@ export function ToolRunner({ store, tool, initial, gone = false, id }: ToolRunne
 
   const run = () => {
     if (gone || jsonError) return;
+    onRun?.(args);
     void store.runTool(tool.name, args);
   };
   const onKeyDown = (e: KeyboardEvent) => {
