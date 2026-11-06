@@ -95,4 +95,26 @@ describe("Prompt API provider", () => {
     expect(provider.broken).toBeTruthy();
     expect(await provider.availability()).toMatchObject({ state: "unavailable" });
   });
+
+  it("remembers a failed start for this browser version: the next page load skips it until Chrome updates", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    });
+    vi.stubGlobal("navigator", { userAgent: "Chrome/152" });
+    stubLanguageModel({
+      create: async () => {
+        throw new DOMException("The device is unable to create a session to run the model.", "NotSupportedError");
+      },
+    });
+    const req = { system: "s", messages: [{ role: "user" as const, content: "hi" }], tools: [], signal: new AbortController().signal };
+    await expect(createPromptApiProvider().generate(req)).rejects.toThrow();
+    // a new page load
+    expect(createPromptApiProvider().broken).toBeTruthy();
+    expect(await createPromptApiProvider().availability()).toMatchObject({ state: "unavailable" });
+    // Chrome updated: worth another try
+    vi.stubGlobal("navigator", { userAgent: "Chrome/153" });
+    expect(createPromptApiProvider().broken).toBeUndefined();
+  });
 });

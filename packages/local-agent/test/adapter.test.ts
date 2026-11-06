@@ -148,8 +148,56 @@ describe("createLocalAdapter", () => {
       callTool: vi.fn(),
     };
     for await (const p of adapter.run(req)) parts.push(p);
-    expect(parts.at(-1)).toMatchObject({ type: "error", error: expect.stringMatching(/Switching to the downloadable model/) });
+    // no error and no empty bubble: a plain note pointing at the download card
+    expect(parts.map((p) => p.type)).toEqual(["message-start", "text-delta", "finish"]);
+    expect(parts[1]).toMatchObject({ delta: expect.stringMatching(/can't run on this device. Download the on-device model below/) });
     expect(await settled(adapter)).toEqual({ state: "needs-download", bytes: 5, note: undefined });
+  });
+
+  it("when the next provider's model is cached, a broken one hands over and the same message is answered", async () => {
+    const flaky: LocalProvider = {
+      ...provider("chrome", { state: "available" }),
+      broken: undefined as string | undefined,
+      generate: async () => {
+        (flaky as { broken?: string }).broken = "no";
+        throw new Error("no");
+      },
+    };
+    const cached = provider("transformers", { state: "needs-download", bytes: 5, cached: true });
+    const adapter = createLocalAdapter({ providers: [flaky, cached] });
+    await settled(adapter);
+    const parts: AgentStreamPart[] = [];
+    for await (const p of adapter.run({
+      messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }],
+      tools: [],
+      signal: new AbortController().signal,
+      callTool: vi.fn(),
+    }))
+      parts.push(p);
+    expect(parts.filter((p) => p.type === "message-start")).toHaveLength(1);
+    expect(parts.find((p) => p.type === "text-delta")).toMatchObject({ delta: "Hi from the device." });
+    expect(parts.some((p) => p.type === "error")).toBe(false);
+  });
+
+  it("a model cached on an earlier visit is ready without a click, and loads on the first message", async () => {
+    const prepare = vi.fn(async (onProgress: (p: number) => void) => onProgress(1));
+    const adapter = createLocalAdapter({ providers: [provider("t", { state: "needs-download", bytes: 5, cached: true }, { prepare })] });
+    expect(await settled(adapter)).toEqual({ state: "ready" });
+    expect(prepare).not.toHaveBeenCalled(); // nothing loads until it's used
+    const seen: AdapterStatus[] = [];
+    adapter.subscribe!(() => seen.push(adapter.status!()));
+    const parts: AgentStreamPart[] = [];
+    for await (const p of adapter.run({
+      messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }],
+      tools: [],
+      signal: new AbortController().signal,
+      callTool: vi.fn(),
+    }))
+      parts.push(p);
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(seen.at(0)).toEqual({ state: "downloading", progress: 0 });
+    expect(seen.at(-1)).toEqual({ state: "ready" });
+    expect(parts.find((p) => p.type === "text-delta")).toMatchObject({ delta: "Hi from the device." });
   });
 
   it("run before ready is an error part, not a throw", async () => {

@@ -60,6 +60,19 @@ const hint = {
   },
 };
 
+/**
+ * Whether the model's files are still in transformers.js's browser cache: the hint alone could be stale (site data
+ * cleared), and a "cached" model loads without asking.
+ */
+async function inBrowserCache(model: string): Promise<boolean> {
+  try {
+    const cache = await caches.open("transformers-cache");
+    return (await cache.keys()).some((r) => r.url.includes(`/${model}/`) && /\.onnx_data|\.onnx$/.test(r.url));
+  } catch {
+    return false;
+  }
+}
+
 /** Omit over each member of a union. */
 type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
 
@@ -153,6 +166,7 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
       return {
         state: "needs-download",
         bytes: sizeOf(model, dtype),
+        cached: hint.get() === model && (await inBrowserCache(model)),
         // the browser caches the files: a returning visitor "downloads" from disk in seconds
         note:
           [

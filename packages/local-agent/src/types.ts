@@ -8,7 +8,13 @@ import type { JSONSchema } from "@web-agents/core";
 /** Whether a provider can run, and what it needs first. */
 export type ProviderAvailability =
   | { state: "available" }
-  | { state: "needs-download"; bytes?: number; note?: string }
+  | {
+      state: "needs-download";
+      bytes?: number;
+      note?: string;
+      /** Downloaded before: the person already agreed, so it loads from the browser cache on first use, no click. */
+      cached?: boolean;
+    }
   | { state: "downloading"; progress: number }
   | { state: "unavailable"; reason: string };
 

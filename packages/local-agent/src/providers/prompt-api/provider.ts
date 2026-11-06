@@ -68,6 +68,23 @@ interface PromptApi {
   }): Promise<PromptSession>;
 }
 
+/** Remembered per browser version: a Chrome that couldn't start its model is skipped until it updates. */
+const BROKEN_KEY = "web-agents:prompt-api-broken";
+const brokenHere = (): boolean => {
+  try {
+    return localStorage.getItem(BROKEN_KEY) === navigator.userAgent;
+  } catch {
+    return false;
+  }
+};
+const rememberBroken = (): void => {
+  try {
+    localStorage.setItem(BROKEN_KEY, navigator.userAgent);
+  } catch {
+    // only saves a failed start next time
+  }
+};
+
 const api = (): PromptApi | undefined => (globalThis as { LanguageModel?: PromptApi }).LanguageModel;
 
 /** A provider backed by Chrome's built-in model. */
@@ -76,7 +93,8 @@ export function createPromptApiProvider(): LocalProvider {
   // it. Some devices report "available" yet refuse a fresh create() ("unable to create a session"); a clone of a
   // session that did start avoids a second create.
   let base: PromptSession | null = null;
-  let broken: string | undefined;
+  const BROKEN = "Chrome's built-in model couldn't start on this device.";
+  let broken: string | undefined = typeof localStorage === "undefined" || !brokenHere() ? undefined : BROKEN;
   return {
     id: "prompt-api",
     label: "Chrome built-in",
@@ -128,7 +146,8 @@ export function createPromptApiProvider(): LocalProvider {
       } catch (err) {
         if (req.signal.aborted) throw err;
         // the device can't run it after all: say so once, and let the adapter move to the next provider
-        broken = "Chrome's built-in model couldn't start on this device.";
+        broken = BROKEN;
+        rememberBroken();
         throw new Error(`${broken} Switching to the downloadable model.`, { cause: err });
       }
       try {

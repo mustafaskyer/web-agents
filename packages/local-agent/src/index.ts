@@ -47,6 +47,8 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
   let provider: LocalProvider | null = null;
   let detecting: Promise<void> | null = null;
   let preparing: Promise<void> | null = null;
+  /** The provider's model is in the browser cache but not loaded: "ready", loaded by the first run. */
+  let lazy = false;
   const listeners = new Set<() => void>();
   const set = (next: AdapterStatus): void => {
     status = next;
@@ -54,7 +56,7 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
   };
 
   const fromAvailability = (a: ProviderAvailability): AdapterStatus =>
-    a.state === "available"
+    a.state === "available" || (a.state === "needs-download" && a.cached)
       ? { state: "ready" }
       : a.state === "needs-download"
         ? { state: "needs-download", bytes: a.bytes, note: a.note }
@@ -75,7 +77,9 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
         return set({ state: "unavailable", reason: reason ?? "No on-device model can run in this browser." });
       }
       provider = usable[index]!;
-      set(fromAvailability(found[index]!.availability));
+      const availability = found[index]!.availability;
+      lazy = availability.state === "needs-download" && !!availability.cached;
+      set(fromAvailability(availability));
     })());
 
   return {
@@ -96,11 +100,12 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
         try {
           await detect();
           const p = provider;
-          if (!p || status.state === "ready" || status.state === "unavailable" || signal?.aborted) return;
+          if (!p || (status.state === "ready" && !lazy) || status.state === "unavailable" || signal?.aborted) return;
           const before = status;
           set({ state: "downloading", progress: 0 });
           try {
             await p.prepare((progress) => set({ state: "downloading", progress }), signal);
+            lazy = false;
             set({ state: "ready" });
           } catch (err) {
             const cancelled = (err as { name?: string })?.name === "AbortError";
@@ -121,19 +126,51 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
       if (status.state !== "ready" || !provider) {
         return yield { type: "error", error: "The on-device model isn't ready: download it first." };
       }
+      // cached from an earlier visit: load it now (the chat shows the progress), no Download click again
+      if (lazy) {
+        try {
+          await this.prepare!(req.signal);
+        } catch {
+          return; // the status carries the error (or the cancel)
+        }
+        if (status.state !== "ready" || !provider) return;
+      }
       const current = provider;
-      yield* runLocalAgent(current, req, {
+      // a message-start waits for its first part: a provider that fails to start leaves no empty bubble behind
+      let held: AgentStreamPart | null = null;
+      for await (const part of runLocalAgent(current, req, {
         maxSteps: opts.maxSteps,
         stepTimeoutMs: opts.stepTimeoutMs,
         toolsInline: current.toolsInline,
-      });
-      if (current.broken) {
-        // e.g. Chrome's model reported "available" but can't start: pick the next provider (a download card follows)
-        provider = null;
-        detecting = null;
-        set(STATUS_LOADING);
-        void detect();
+      })) {
+        // Chrome's model reported "available" but can't start: drop it and answer with the next provider instead
+        if (part.type === "error" && current.broken) break;
+        if (part.type === "message-start") {
+          if (held) yield held;
+          held = part;
+          continue;
+        }
+        if (held) yield held;
+        held = null;
+        yield part;
       }
+      if (!current.broken) {
+        if (held) yield held;
+        return;
+      }
+      provider = null;
+      detecting = null;
+      set(STATUS_LOADING);
+      await detect();
+      if (status.state === "ready") return yield* this.run(req); // e.g. the downloadable model, cached: loads and answers
+      const messageId = `local-${Date.now()}`;
+      yield { type: "message-start", messageId };
+      yield {
+        type: "text-delta",
+        messageId,
+        delta: "Chrome's built-in model can't run on this device. Download the on-device model below, then send your message again.",
+      };
+      yield { type: "finish", reason: "stop" };
     },
   };
 }
