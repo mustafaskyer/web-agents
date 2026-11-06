@@ -15,7 +15,15 @@ test("tools by scope: global and page tools on the home page, no drawer or produ
   await expect
     .poll(() => list(page))
     .toEqual(
-      expect.arrayContaining(["search_products", "open_product", "browse_category", "get_cart", "open_cart", "subscribe_newsletter"]),
+      expect.arrayContaining([
+        "search_products",
+        "open_product",
+        "browse_category",
+        "go_to_page",
+        "get_cart",
+        "open_cart",
+        "subscribe_newsletter",
+      ]),
     );
   const names = await list(page);
   expect(names).not.toContain("update_cart_item");
@@ -95,6 +103,14 @@ test("open_product with a slug that matches nothing answers an error and stays p
   await open(page, "/");
   expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^No product matches "nope"/);
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("go_to_page goes home and to all products", async ({ page }) => {
+  await open(page, "/product/ocean-tee");
+  expect(await run(page, "go_to_page", { page: "home" })).toBe("Opened the home page.");
+  await expect(page).toHaveURL(/:\d+\/$/);
+  expect(await run(page, "go_to_page", { page: "all-products" })).toMatch(/^Opened all products \(\d+\)\./);
+  await expect(page).toHaveURL(/\/products$/);
 });
 
 test("open_product with a guessed slug opens the best match", async ({ page }) => {

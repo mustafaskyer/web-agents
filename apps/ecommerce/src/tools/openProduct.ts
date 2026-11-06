@@ -1,5 +1,5 @@
 /**
- * Imperative WebTools: open_product, browse_category (global)
+ * Imperative WebTools: open_product, browse_category, go_to_page (global)
  *
  * Navigation tools. They answer with what the agent needs next (the product's
  * options, the category's products) and then navigate. React Router navigates
@@ -68,5 +68,22 @@ export const browseCategory = defineWebTool({
     store(ctx).navigate(`/category/${category}`);
     const items = listByCategory(category).map(productLine);
     return `Opened ${getCategory(category)?.name}:\n${items.join("\n")}${TO_BUY}`;
+  },
+});
+
+const PAGES = { home: "/", "all-products": "/products" } as const;
+
+export const goToPage = defineWebTool({
+  id: "go_to_page",
+  title: "Go to a page",
+  description:
+    "Go to the store's home page or the page with every product. For a category use browse_category; for one product, open_product.",
+  inputSchema: z.object({ page: z.enum(["home", "all-products"]).describe("home: the front page; all-products: every product") }),
+  annotations: { readOnlyHint: true },
+  // the cursor clicks the logo (home) or "All products" in the header
+  target: ({ page }) => `header a[href=${JSON.stringify(PAGES[page])}]`,
+  execute: ({ page }, ctx) => {
+    store(ctx).navigate(PAGES[page]);
+    return page === "home" ? "Opened the home page." : `Opened all products (${searchProducts("").length}).${TO_BUY}`;
   },
 });

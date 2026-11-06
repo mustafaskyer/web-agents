@@ -82,6 +82,19 @@ async function* streamProse(provider: LocalProvider, request: GenerateRequest): 
 export const continuePrompt = (query: string): string =>
   `Next step for my request "${query.slice(0, 200)}": the next tool call, or one short sentence about the tool results if nothing is left. Don't repeat a call that worked.`;
 
+const normalize = (s: string): string => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Whether `prose` is mostly a copy of an earlier tool result or assistant reply in `turns`. */
+export function echoes(prose: string, turns: readonly ChatTurn[]): boolean {
+  const p = normalize(prose);
+  if (p.length < 12) return false;
+  const head = p.slice(0, 48);
+  return turns.some((t) => (t.role === "tool" || t.role === "assistant") && normalize(t.content).includes(head));
+}
+
+/** A tool result's first line, for a one-line answer. */
+const firstLine = (text: string): string => text.split("\n")[0]!.trim();
+
 /** After a failed call answered with prose: the failure, and what to do instead. */
 export const failedPrompt = (error: string): string =>
   `That tool call failed: ${error} Fix it with a different tool call (search first if you don't know the exact name), or tell me plainly that it failed. Don't say it worked.`;
@@ -112,6 +125,8 @@ export async function* runLocalAgent(
   let repeats = 0;
   /** The last tool call's error, until a later call succeeds: a reply that ignores it isn't accepted as the answer. */
   let failure: string | null = null;
+  /** This run's successful tool results, newest last: what a final answer has to be about. */
+  const results: string[] = [];
   const path = typeof location === "undefined" ? undefined : location.pathname;
   const page = pageSummary();
 
@@ -144,8 +159,9 @@ export async function* runLocalAgent(
     // ---------- 1. generate, with one retry for a malformed call ----------
     let calls: ParsedCall[] = [];
     let shown = ""; // the prose this step has shown so far
-    // after a failed call, hold the first attempt's prose: it may claim the failed action worked
-    const quiet = failure !== null;
+    // Once a tool has run, hold the first attempt's prose until it's read: after a failure it may claim the action
+    // worked, and after a success a small model often parrots an earlier result instead of saying what happened.
+    const quiet = failure !== null || results.length > 0;
     for (let attempt = 1; ; attempt++) {
       const signal = AbortSignal.any([req.signal, AbortSignal.timeout(stepTimeoutMs)]);
       let raw: GenerateResult;
@@ -184,7 +200,10 @@ export async function* runLocalAgent(
         continue;
       }
       // prose not streamed: a provider that doesn't stream, a held-back first attempt, or a retry that says something new
-      const prose = parsed.text.trim();
+      let prose = parsed.text.trim();
+      // a final answer that only repeats an earlier result or reply: say what the last call did instead
+      if (quiet && !failure && parsed.calls.length === 0 && parsed.errors.length === 0 && echoes(prose, turns))
+        prose = firstLine(results.at(-1)!);
       if (prose && (attempt === 1 ? quiet || !streamed : prose !== shown.trim()))
         yield { type: "text-delta", messageId, delta: (shown ? "\n\n" : "") + prose };
       if (attempt === 1) shown = (quiet ? "" : streamed) || prose;
@@ -218,6 +237,7 @@ export async function* runLocalAgent(
       used.push(call.name);
       turns.push({ role: "tool", name: call.name, content: textOf(output).slice(0, 1500) });
       failure = output.isError ? textOf(output).slice(0, 300) : null;
+      if (!output.isError) results.push(textOf(output));
       yield output.isError ? { type: "tool-error", id, error: textOf(output) } : { type: "tool-result", id, output };
       if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
     }

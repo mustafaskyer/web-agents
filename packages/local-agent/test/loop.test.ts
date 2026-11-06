@@ -223,4 +223,39 @@ describe("runLocalAgent", () => {
     expect(text).toBe("Sorry, that product wasn't found.");
     expect(parts.at(-1)).toEqual({ type: "finish", reason: "stop" });
   });
+
+  it("a final answer that parrots an earlier result is replaced by what the last call did", async () => {
+    const history: AgentMessage[] = [
+      { id: "u0", role: "user", parts: [{ type: "text", text: "find the tee" }] },
+      {
+        id: "a0",
+        role: "assistant",
+        parts: [{ type: "text", text: "Opened Ocean Tee ($48.00). Size: S, M, L. Use add_to_cart to buy it." }],
+      },
+      user,
+    ];
+    const provider = fake([
+      '<tool_call>{"name":"add_to_cart","arguments":{"qty":2}}</tool_call>',
+      "Opened Ocean Tee ($48.00). Size: S, M, L. Use add_to_cart to buy it.", // the parrot
+    ]);
+    const callTool = vi.fn(async () => ({ content: [{ type: "text", text: "Added 2 mugs to the cart.\nTotal: $10." }] }));
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, { messages: history, tools, signal: new AbortController().signal, callTool }))
+      parts.push(p);
+    const text = parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("");
+    expect(text).toBe("Added 2 mugs to the cart.");
+  });
+
+  it("a final answer of its own is kept", async () => {
+    const provider = fake(['<tool_call>{"name":"add_to_cart","arguments":{"qty":2}}</tool_call>', "Two mugs are in your cart."]);
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, {
+      messages: [user],
+      tools,
+      signal: new AbortController().signal,
+      callTool: vi.fn(async () => ({ content: [{ type: "text", text: "Added 2 mugs." }] })),
+    }))
+      parts.push(p);
+    expect(parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("")).toBe("Two mugs are in your cart.");
+  });
 });
