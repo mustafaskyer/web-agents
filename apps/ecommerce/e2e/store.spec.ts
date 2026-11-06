@@ -91,10 +91,16 @@ test("close_cart closes the drawer; a tool for the page closes it first", async 
   await expect(page).toHaveURL(/\/category\/home$/);
 });
 
-test("open_product with an unknown slug answers an error and stays put", async ({ page }) => {
+test("open_product with a slug that matches nothing answers an error and stays put", async ({ page }) => {
   await open(page, "/");
-  expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^Unknown product "nope"/);
+  expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^No product matches "nope"/);
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("open_product with a guessed slug opens the best match", async ({ page }) => {
+  await open(page, "/");
+  expect(await run(page, "open_product", { slug: "tee" })).toMatch(/^Opened Ocean Tee \(\$48\.00\)\./);
+  await expect(page).toHaveURL(/\/product\/ocean-tee$/);
 });
 
 test("search_products lists matches and shows the results page", async ({ page }) => {

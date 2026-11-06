@@ -12,8 +12,8 @@ import {
   categorySlugs,
   describeProduct,
   type Product,
+  findProduct,
   getCategory,
-  getProduct,
   listByCategory,
   productLine,
   searchProducts,
@@ -34,15 +34,25 @@ export const openProduct = defineWebTool({
   }),
   annotations: { readOnlyHint: true },
   execute: ({ slug, query }, ctx) => {
-    let product: Product | undefined;
-    if (slug) product = getProduct(slug);
-    else if (query) {
-      product = searchProducts(query)[0];
-      if (!product) throw new Error(`No product matches "${query}".`);
-    } else throw new Error("Pass a slug or a query.");
+    // An exact slug, else the best search match: agents guess slugs ("tee" for "ocean-tee"), and a near miss that
+    // opens the right page beats an error a small model won't recover from.
+    const words = query ?? slug?.replace(/-/g, " ");
+    if (!slug && !words) throw new Error("Pass a slug or a query.");
+    let product: Product | undefined = slug ? findProduct(slug) : undefined;
+    let others: Product[] = [];
+    if (!product) {
+      [product, ...others] = searchProducts(words!);
+      if (!product) throw new Error(`No product matches "${words}". Try search_products with other words.`);
+    }
     store(ctx).navigate(`/product/${product.slug}`);
     const next = product.stock === 0 ? "It can't be added to the cart." : "Use add_to_cart to buy it.";
-    return `Opened ${describeProduct(product)} ${next}`;
+    const alsoMatched = others.length
+      ? ` Best match for "${words}"; also matched: ${others
+          .slice(0, 4)
+          .map((p) => p.slug)
+          .join(", ")}.`
+      : "";
+    return `Opened ${describeProduct(product)} ${next}${alsoMatched}`;
   },
 });
 

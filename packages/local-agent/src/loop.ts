@@ -75,9 +75,16 @@ async function* streamProse(provider: LocalProvider, request: GenerateRequest): 
   return result;
 }
 
-/** The nudge after a step's tool calls. Not shown in the chat: it only lives in this run's prompt. */
+/**
+ * The nudge after a step's tool calls. Not shown in the chat: it only lives in this run's prompt. Small models copy
+ * phrases from it, so it names no outcome ("done", "opened") they could parrot as if it had happened.
+ */
 export const continuePrompt = (query: string): string =>
-  `My request was: "${query.slice(0, 200)}". If the results above show it's fully done, tell me in one sentence, with no tool call. Otherwise call the next tool; never repeat an action that already succeeded.`;
+  `Next step for my request "${query.slice(0, 200)}": the next tool call, or one short sentence about the tool results if nothing is left. Don't repeat a call that worked.`;
+
+/** After a failed call answered with prose: the failure, and what to do instead. */
+export const failedPrompt = (error: string): string =>
+  `That tool call failed: ${error} Fix it with a different tool call (search first if you don't know the exact name), or tell me plainly that it failed. Don't say it worked.`;
 
 const clip = (s: string | null | undefined, max = 80): string | undefined => {
   const t = s?.replace(/\s+/g, " ").trim();
@@ -103,6 +110,8 @@ export async function* runLocalAgent(
   const used: string[] = [];
   let lastCall = "";
   let repeats = 0;
+  /** The last tool call's error, until a later call succeeds: a reply that ignores it isn't accepted as the answer. */
+  let failure: string | null = null;
   const path = typeof location === "undefined" ? undefined : location.pathname;
   const page = pageSummary();
 
@@ -135,6 +144,8 @@ export async function* runLocalAgent(
     // ---------- 1. generate, with one retry for a malformed call ----------
     let calls: ParsedCall[] = [];
     let shown = ""; // the prose this step has shown so far
+    // after a failed call, hold the first attempt's prose: it may claim the failed action worked
+    const quiet = failure !== null;
     for (let attempt = 1; ; attempt++) {
       const signal = AbortSignal.any([req.signal, AbortSignal.timeout(stepTimeoutMs)]);
       let raw: GenerateResult;
@@ -154,7 +165,7 @@ export async function* runLocalAgent(
           }
           streamed += next.value;
           // a retry's prose usually repeats the first attempt's: hold it back (shown below only if it's new)
-          if (attempt === 1) yield { type: "text-delta", messageId, delta: next.value };
+          if (attempt === 1 && !quiet) yield { type: "text-delta", messageId, delta: next.value };
         }
       } catch (err) {
         if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
@@ -167,11 +178,17 @@ export async function* runLocalAgent(
         const problem = validateArgs(tools.find((t) => t.name === c.name)!.parameters, c.arguments);
         if (problem) parsed.errors.push(`${c.name}: ${problem}`);
       }
-      // prose not streamed: a provider that doesn't stream, or a retry that says something new
+      // a plain answer right after a failed call: send it back once with the failure, rather than show it
+      if (failure && attempt === 1 && parsed.calls.length === 0 && parsed.errors.length === 0) {
+        turns.push({ role: "assistant", content: raw.text }, { role: "user", content: failedPrompt(failure) });
+        continue;
+      }
+      // prose not streamed: a provider that doesn't stream, a held-back first attempt, or a retry that says something new
       const prose = parsed.text.trim();
-      if (prose && (attempt === 1 ? !streamed : prose !== shown.trim()))
+      if (prose && (attempt === 1 ? quiet || !streamed : prose !== shown.trim()))
         yield { type: "text-delta", messageId, delta: (shown ? "\n\n" : "") + prose };
-      if (attempt === 1) shown = streamed || prose;
+      if (attempt === 1) shown = (quiet ? "" : streamed) || prose;
+      else if (prose && !shown) shown = prose;
       turns.push({ role: "assistant", content: raw.text });
       if (parsed.errors.length === 0) {
         calls = parsed.calls;
@@ -200,6 +217,7 @@ export async function* runLocalAgent(
       const output = await req.callTool({ id, name: call.name, input: call.arguments });
       used.push(call.name);
       turns.push({ role: "tool", name: call.name, content: textOf(output).slice(0, 1500) });
+      failure = output.isError ? textOf(output).slice(0, 300) : null;
       yield output.isError ? { type: "tool-error", id, error: textOf(output) } : { type: "tool-result", id, output };
       if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
     }

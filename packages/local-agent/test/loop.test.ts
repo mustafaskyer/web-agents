@@ -1,6 +1,6 @@
 import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@web-agents/chat";
 import { describe, expect, it, vi } from "vitest";
-import { continuePrompt, runLocalAgent } from "../src/loop";
+import { continuePrompt, failedPrompt, runLocalAgent } from "../src/loop";
 import type { GenerateRequest, LocalProvider } from "../src/types";
 
 const user: AgentMessage = { id: "u1", role: "user", parts: [{ type: "text", text: "add 2 mugs" }] };
@@ -187,5 +187,40 @@ describe("runLocalAgent", () => {
     const { parts } = await run(provider);
     expect(parts.at(-1)).toEqual({ type: "error", error: expect.stringMatching(/too long for the on-device model/) });
     expect(provider.requests).toHaveLength(0);
+  });
+
+  it("never shows a 'done' reply right after a failed call: it goes back with the error, and the retry is what shows", async () => {
+    const failing = vi.fn(async () => ({ isError: true, content: [{ type: "text", text: 'Unknown product "tee".' }] }));
+    const provider = fake([
+      '<tool_call>{"name":"add_to_cart","arguments":{"qty":1}}</tool_call>',
+      "Opened the cart. All done.", // the hallucination: held back, never shown
+      '<tool_call>{"name":"add_to_cart","arguments":{"qty":2}}</tool_call>', // the retry fixes it
+      "Added.",
+    ]);
+    const parts: AgentStreamPart[] = [];
+    let n = 0;
+    const callTool = vi.fn(async () => (n++ === 0 ? failing() : { content: [{ type: "text", text: "Added 2 mugs." }] }));
+    for await (const p of runLocalAgent(provider, { messages: [user], tools, signal: new AbortController().signal, callTool }))
+      parts.push(p);
+    const text = parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("");
+    expect(text).not.toContain("All done");
+    expect(text).toContain("Added.");
+    expect(callTool).toHaveBeenCalledTimes(2);
+    expect(provider.requests[2]!.messages.at(-1)).toEqual({ role: "user", content: failedPrompt('Unknown product "tee".') });
+  });
+
+  it("after a failed call, a second plain reply is shown (it may say it failed)", async () => {
+    const provider = fake([
+      '<tool_call>{"name":"add_to_cart","arguments":{"qty":1}}</tool_call>',
+      "It worked!",
+      "Sorry, that product wasn't found.",
+    ]);
+    const callTool = vi.fn(async () => ({ isError: true, content: [{ type: "text", text: "Error: no such product." }] }));
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, { messages: [user], tools, signal: new AbortController().signal, callTool }))
+      parts.push(p);
+    const text = parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("");
+    expect(text).toBe("Sorry, that product wasn't found.");
+    expect(parts.at(-1)).toEqual({ type: "finish", reason: "stop" });
   });
 });
