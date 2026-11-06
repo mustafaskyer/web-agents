@@ -60,6 +60,10 @@ from disk. WASM runs single-threaded unless the page is cross-origin isolated (C
   against the schema, and fed back once if wrong; after each step's tool calls, the request is restated so a small
   model continues it (or says it's done) instead of echoing the last result; at most 6 steps, 60 s per step, and a stop after the same call
   twice in a row.
+- **Replies are read before they're shown** (no token streaming; the typing indicator covers it). A reply that
+  claims a failed call worked, hands the user a job a tool here does ("click Add to cart"), or parrots an earlier
+  result is corrected once (sent back with why) or replaced by what the last call did. A call that returns the same
+  answer as before is a loop: flagged once, then stopped.
 - **Prompt API:** tool calls come from JSON-constrained output (`responseConstraint`). The API's native tools run
   their `execute` inside `prompt()`, which would bypass the loop's validation and the cursor's pacing.
 

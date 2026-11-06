@@ -1,6 +1,6 @@
 import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@web-agents/chat";
 import { describe, expect, it, vi } from "vitest";
-import { continuePrompt, failedPrompt, runLocalAgent } from "../src/loop";
+import { continuePrompt, delegatedTool, doItPrompt, failedPrompt, runLocalAgent } from "../src/loop";
 import type { GenerateRequest, LocalProvider } from "../src/types";
 
 const user: AgentMessage = { id: "u1", role: "user", parts: [{ type: "text", text: "add 2 mugs" }] };
@@ -304,5 +304,36 @@ describe("runLocalAgent", () => {
     expect(parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("")).toBe(
       "Opened Apparel:\n- Ocean Tee [ocean-tee]: $48.00\n- Linen Shirt [linen-shirt]: $92.00\n- Field Hoodie: $118.00\n…and 1 more.",
     );
+  });
+
+  it("tells which tool a reply hands to the user, and not a list of what's possible", () => {
+    const names = new Set(["add_to_cart", "open_cart", "search_products", "go_to_page"]);
+    const act = "add it to cart";
+    expect(delegatedTool('To add the mug, go to the product page and click "Add to Cart".', names, act)).toBe("add_to_cart");
+    expect(delegatedTool("To buy a mug, open the product page and use add_to_cart to purchase it.", names, "wanna buy a mug")).toBe(
+      "add_to_cart",
+    );
+    // questions are answered in words
+    expect(delegatedTool("You can search products, open the cart, or go to a page.", names, "What can you do on this page?")).toBeNull();
+    expect(delegatedTool("Open the cart, then use remove_from_cart.", names, "how do I remove a mug")).toBeNull();
+    expect(delegatedTool("Which size would you like: S, M or L?", names, act)).toBeNull(); // no tool named
+    expect(delegatedTool("The add_to_cart call worked: 1 mug is in the cart.", names, act)).toBeNull(); // no instruction
+  });
+
+  it("a reply telling the user to do it goes back once ('you do it'), and the retry acts", async () => {
+    const provider = fake([
+      'Please go to the product page and click "Add to cart".', // the hand-off: never shown
+      '<tool_call>{"name":"add_to_cart","arguments":{"qty":1}}</tool_call>',
+      "One mug is in your cart.",
+    ]);
+    const parts: AgentStreamPart[] = [];
+    const callTool = vi.fn(async () => ({ content: [{ type: "text", text: "Added 1 mug." }] }));
+    for await (const p of runLocalAgent(provider, { messages: [user], tools, signal: new AbortController().signal, callTool }))
+      parts.push(p);
+    expect(provider.requests[1]!.messages.at(-1)).toEqual({ role: "user", content: doItPrompt("add_to_cart") });
+    expect(callTool).toHaveBeenCalledOnce();
+    const text = parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("");
+    expect(text).not.toContain("click");
+    expect(text).toBe("One mug is in your cart.");
   });
 });

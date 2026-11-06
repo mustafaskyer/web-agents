@@ -21,7 +21,7 @@ import {
 import { store } from "./context";
 
 /** Where to go from a list: add_to_cart only exists on a product's page. */
-export const TO_BUY = "\nTo buy one: open_product with its slug, then add_to_cart.";
+export const TO_BUY = "\nNext (for you, the assistant): call open_product with a slug, then add_to_cart.";
 
 export const openProduct = defineWebTool({
   id: "open_product",
@@ -45,7 +45,10 @@ export const openProduct = defineWebTool({
       if (!product) throw new Error(`No product matches "${words}". Try search_products with other words.`);
     }
     store(ctx).navigate(`/product/${product.slug}`);
-    const next = product.stock === 0 ? "It can't be added to the cart." : "Use add_to_cart to buy it.";
+    const next =
+      product.stock === 0
+        ? "It's sold out: it can't be added to the cart."
+        : "Next (for you, the assistant): call add_to_cart, now on this page.";
     const alsoMatched = others.length
       ? ` Best match for "${words}"; also matched: ${others
           .slice(0, 4)

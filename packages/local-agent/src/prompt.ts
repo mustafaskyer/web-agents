@@ -10,6 +10,7 @@ const MAX_TURNS = 12;
 const MAX_TOOL_TEXT = 1500;
 
 const RULES = `You are an assistant inside the web page the user is looking at. You act on the page with tools; the user watches each step.
+You do the work yourself: when the user asks for something a tool here can do, call it. Never tell the user to click, open or use something you can do.
 How to work:
 1. Work out what the user wants: something to find, a page to open, or an action (add, remove, book, buy).
 2. Take one step with the best tool. To find something, search with the key word only ("bag", not "I want a beautiful bag").

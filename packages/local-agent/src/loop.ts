@@ -6,7 +6,7 @@
  */
 import type { AgentMessage, AgentRunRequest, AgentStreamPart } from "@web-agents/chat";
 import { buildLocalSystemPrompt, textOf, toChatTemplateMessages } from "./prompt";
-import { createProseFilter, type ParsedCall, parseToolCalls } from "./tool-call-parser";
+import { type ParsedCall, parseToolCalls } from "./tool-call-parser";
 import { rankTools, validateArgs } from "./tools";
 import type { ChatTurn, CompactTool, GenerateRequest, GenerateResult, LocalProvider } from "./types";
 
@@ -40,46 +40,17 @@ const lastUserText = (messages: readonly AgentMessage[]): string => {
 };
 const newId = (): string => (typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `l-${Date.now()}-${Math.random()}`);
 
-/**
- * Generate, yielding the prose (tool-call and thinking markup filtered out) as the tokens arrive; returns the raw
- * result. A queue bridges the provider's callback to the generator.
- */
-async function* streamProse(provider: LocalProvider, request: GenerateRequest): AsyncGenerator<string, GenerateResult> {
-  const filter = createProseFilter();
-  const queue: string[] = [];
-  let wake: (() => void) | null = null;
-  let settled = false;
-  // Race the provider against the signal: a provider (or a browser API) that ignores it must not hang the loop.
+/** Generate, racing the signal: a provider (or a browser API) that ignores it must not hang the loop. */
+function generate(provider: LocalProvider, request: GenerateRequest): Promise<GenerateResult> {
   const aborted = new Promise<never>((_, reject) => {
     const fail = (): void => reject(request.signal.reason ?? new DOMException("Aborted", "AbortError"));
     if (request.signal.aborted) fail();
     else request.signal.addEventListener("abort", fail, { once: true });
   });
-  const generated = provider.generate({
-    ...request,
-    onToken: (d) => {
-      const prose = filter.push(d);
-      if (prose) queue.push(prose);
-      wake?.();
-    },
-  });
-  const result = Promise.race([generated, aborted]).finally(() => {
-    settled = true;
-    wake?.();
-  });
-  // rethrown below; the losers of the race may settle later (a timeout after success, a late provider error)
-  for (const p of [result, generated, aborted]) p.catch(() => {});
-  while (!settled || queue.length) {
-    if (queue.length) {
-      yield queue.splice(0).join("");
-      continue;
-    }
-    await new Promise<void>((r) => (wake = r));
-    wake = null;
-  }
-  const rest = filter.flush();
-  if (rest) yield rest;
-  return result;
+  const generated = provider.generate(request);
+  // the loser of the race may settle later (a timeout after success, a late provider error)
+  for (const p of [generated, aborted]) p.catch(() => {});
+  return Promise.race([generated, aborted]);
 }
 
 /**
@@ -107,6 +78,23 @@ function brief(text: string): string {
   const more = rest.filter((l) => l.trim().startsWith("-")).length - items.length;
   return [first.trim(), ...items, ...(more > 0 ? [`…and ${more} more.`] : [])].join("\n");
 }
+
+/**
+ * The tool a reply tells the user to use themselves ("open the product page and click Add to cart" when add_to_cart
+ * is right here), or null. Only when the user asked for an action, not a question ("What can you do?", "How do I…?"
+ * are answered in words), and the reply names one or two tools (by name or in words) with an instruction.
+ */
+export function delegatedTool(prose: string, names: ReadonlySet<string>, query: string): string | null {
+  if (/\?\s*$|^\s*(what|how|why|which|who|where|when|can you|could you tell|do you|is|are)\b/i.test(query)) return null;
+  const text = prose.toLowerCase();
+  const mentioned = [...names].filter((n) => text.includes(n) || text.includes(n.replace(/_/g, " ")));
+  if (mentioned.length === 0 || mentioned.length > 2) return null;
+  return /\b(click|tap|press|use|go to|open|select|choose|please|you can|you need to)\b/.test(text) ? mentioned[0]! : null;
+}
+
+/** The correction for a reply that handed the user a tool's job. */
+export const doItPrompt = (tool: string): string =>
+  `Don't tell me how to do it: you do it. Call ${tool} now. If you need something from me first (a size, an address), ask for just that.`;
 
 /** After a failed call answered with prose: the failure, and what to do instead. */
 export const failedPrompt = (error: string): string =>
@@ -178,33 +166,19 @@ export async function* runLocalAgent(
     const messageId = newId();
     yield { type: "message-start", messageId };
 
-    // ---------- 1. generate, with one retry for a malformed call ----------
+    // ---------- 1. generate; read the reply before showing it ----------
+    // A small model's reply is checked before anyone sees it: it may claim a failed action worked, parrot an earlier
+    // result, or tell the user to do what a tool here does. Each gets one corrective retry per step (a malformed call
+    // gets its own); the typing indicator covers the wait.
     let calls: ParsedCall[] = [];
     let shown = ""; // the prose this step has shown so far
-    // Once a tool has run, hold the first attempt's prose until it's read: after a failure it may claim the action
-    // worked, and after a success a small model often parrots an earlier result instead of saying what happened.
-    const quiet = failure !== null || results.length > 0;
-    for (let attempt = 1; ; attempt++) {
+    let corrected = false;
+    let repaired = false;
+    for (;;) {
       const signal = AbortSignal.any([req.signal, AbortSignal.timeout(stepTimeoutMs)]);
       let raw: GenerateResult;
-      let streamed = "";
       try {
-        const it = streamProse(provider, {
-          system,
-          messages: turns,
-          tools,
-          signal,
-        });
-        for (;;) {
-          const next = await it.next();
-          if (next.done) {
-            raw = next.value;
-            break;
-          }
-          streamed += next.value;
-          // a retry's prose usually repeats the first attempt's: hold it back (shown below only if it's new)
-          if (attempt === 1 && !quiet) yield { type: "text-delta", messageId, delta: next.value };
-        }
+        raw = await generate(provider, { system, messages: turns, tools, signal });
       } catch (err) {
         if (req.signal.aborted) return yield { type: "finish", reason: "aborted" };
         if (signal.aborted) return yield { type: "error", error: TIMEOUT };
@@ -216,30 +190,33 @@ export async function* runLocalAgent(
         const problem = validateArgs(tools.find((t) => t.name === c.name)!.parameters, c.arguments);
         if (problem) parsed.errors.push(`${c.name}: ${problem}`);
       }
-      // a plain answer right after a failed call: send it back once with the failure, rather than show it
-      if (failure && attempt === 1 && parsed.calls.length === 0 && parsed.errors.length === 0) {
-        turns.push({ role: "assistant", content: raw.text }, { role: "user", content: failedPrompt(failure) });
+      const plain = parsed.calls.length === 0 && parsed.errors.length === 0;
+      // a plain answer that ignores a failed call, or hands the user a job a tool here does: back once, with why
+      const delegated = plain ? delegatedTool(parsed.text, names, query) : null;
+      const correction = !plain || corrected ? null : failure ? failedPrompt(failure) : delegated ? doItPrompt(delegated) : null;
+      if (correction) {
+        corrected = true;
+        turns.push({ role: "assistant", content: raw.text }, { role: "user", content: correction });
         continue;
       }
-      // prose not streamed: a provider that doesn't stream, a held-back first attempt, or a retry that says something new
       let prose = parsed.text.trim();
       // a final answer that only repeats an earlier result or reply: say what the last call did instead
-      if (quiet && !failure && parsed.calls.length === 0 && parsed.errors.length === 0 && echoes(prose, turns))
-        prose = brief(results.at(-1)!);
-      if (prose && (attempt === 1 ? quiet || !streamed : prose !== shown.trim()))
+      if (plain && !failure && results.length && echoes(prose, turns)) prose = brief(results.at(-1)!);
+      if (prose && prose !== shown) {
         yield { type: "text-delta", messageId, delta: (shown ? "\n\n" : "") + prose };
-      if (attempt === 1) shown = (quiet ? "" : streamed) || prose;
-      else if (prose && !shown) shown = prose;
+        shown = prose;
+      }
       turns.push({ role: "assistant", content: raw.text });
       if (parsed.errors.length === 0) {
         calls = parsed.calls;
         break;
       }
-      if (attempt === 2) {
+      if (repaired) {
         yield { type: "text-delta", messageId, delta: (shown ? "\n\n" : "") + APOLOGY };
         return yield { type: "finish", reason: "stop" };
       }
       // feed the problem back once, as the tool's error
+      repaired = true;
       turns.push({ role: "tool", name: parsed.calls[0]?.name ?? "tool", content: `Error: ${parsed.errors.join(" ")} Try again.` });
     }
     if (calls.length === 0) return yield { type: "finish", reason: "stop" };
