@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "@web-agents/core/cursor.css";
+import "@web-agents/chat/chat.css";
 import "./app.css";
 
 // 1. (dev only) give browsers without native WebMCP a document.modelContext

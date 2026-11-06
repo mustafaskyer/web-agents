@@ -271,21 +271,30 @@ export function installAgentConsole(o?): () => void;   // deprecated alias
 export interface AgentAdapter {
   readonly id: string;
   readonly label: string;
-  status?(): AdapterStatus;                               // e.g. { state: "downloading", progress: 0.42 }
-  subscribe?(listener: () => void): () => void;           // status changes (Phase 6)
+  status?(): AdapterStatus;                               // e.g. { state: "downloading", progress: 0.42 }; may return a new object per call
+  subscribe?(listener: () => void): () => void;           // status changes
   prepare?(): Promise<void>;                              // opt-in heavy setup, e.g. model download (Phase 6)
   run(req: AgentRunRequest): AsyncIterable<AgentStreamPart>;
 }
 export interface AgentRunRequest {
   messages: AgentMessage[];
-  tools: ToolDescriptor[];                                // { name, description, inputSchema: JSONSchema }
+  readonly tools: ToolDescriptor[];                       // a getter: read it fresh before every model call (tools change with the page)
   signal: AbortSignal;
-  callTool(call: { id: string; name: string; input: unknown }): Promise<ToolOutput>;  // runs via modelContext + visuals
+  callTool(call: { id: string; name: string; input: unknown }): Promise<ToolOutput>;  // never rejects; failures are isError results
 }
-// <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher), createCloudAdapter({ api: "/api/chat" })
-// "@web-agents/chat/server": createChatHandler({ model, system?, maxSteps?, guard? }): (req: Request) => Promise<Response>
-//    guard(req) may return a Response (e.g. 429) to short-circuit; GET returns capabilities (chat enabled?)
-// "@web-agents/chat/vite":   webAgentsChatDev({ handler }) — mounts /api/chat in `vite dev`
+// AgentPart = text | reasoning (signed thinking, sent back to the model, not rendered) | tool { id, name, input, state, output?, error?, prompt? }
+// AgentStreamPart = message-start | text-delta | reasoning | tool-call | tool-result | tool-error | step-finish
+//                 | finish { reason: "stop" | "max-steps" | "aborted" } | error { code?: chat_disabled | rate_limited | bad_request | network }
+// <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher); title, defaultOpen, position, suggestions, storageKey
+// createCloudAdapter({ api: "/api/chat", maxSteps: 8, headers, fetch }); useAgentSession(adapter); listToolDescriptors(); callModelContextTool()
+// "@web-agents/chat/server": createChatHandler({ model, system?, effort?, maxOutputTokens?, maxSteps?, guard?, env? }): (req: Request) => Promise<Response>
+//    GET → { enabled, model }; POST → one model step as an AI SDK UI message stream; 503 chat_disabled without a key;
+//    guard(req) may return a Response (e.g. 429) to short-circuit; cross-site browser requests are refused (403), POST must be
+//    application/json. Defaults: claude-opus-5-5, effort "low", 8192 output tokens (thinking counts), fallbacks: "default".
+//    Caps in LIMITS (1 MB body, 160 messages, 48 tools, 8 KB schemas). maxSteps tool steps, then one tool-less request.
+//    Only the page's same-origin path reaches the system prompt. NOT abuse protection: public deploys need a rate-limiting guard (Phase 7).
+// "@web-agents/chat/vite":   webAgentsChatDev({ path?, handler? }) — mounts /api/chat in `vite dev`, key from .env files
+// "@web-agents/chat/chat.css": the widget's styles (unlayered, every rule scoped by a .wa-chat* class)
 // "@web-agents/local-agent": createLocalAdapter({ model?: string, worker?: Worker })
 ```
 
@@ -353,5 +362,7 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 - "Answer, then navigate / close after the grace" is duplicated in both examples (`apps/*/src/lib/afterAnswer.ts`).
   Follow-up (react, additive): `useToolAnswer().answer(event, result, { then })` or an exported `afterAnswer`.
 - The examples load the polyfill in dev only; deployed demos show no tools without native WebMCP. Phase 7 decides
-  whether to ship it (`VITE_WEBMCP_POLYFILL`). Phase 5 mounts `<AgentChat />` where the apps' `Root` has a placeholder.
+  whether to ship it (`VITE_WEBMCP_POLYFILL`). Phase 5 mounted `<AgentChat />` in all three apps (bottom-left in dev, opposite the devtools; bottom-right in prod).
+- The open chat panel sits in a corner and can cover the control a confirm-gated tool waits on ("Show me" scrolls it
+  into view but doesn't move the panel). Follow-up: collapse or shift the panel while a card is awaiting confirmation.
 - In-browser models: 1–2 GB downloads; ship as opt-in, cache with the Cache API, show progress.

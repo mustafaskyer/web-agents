@@ -1,4 +1,5 @@
 import "@web-agents/core/cursor.css";
+import "@web-agents/chat/chat.css";
 import "./styles/tokens.css";
 import "@fontsource/poppins/400.css";
 import "@fontsource/poppins/500.css";

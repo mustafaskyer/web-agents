@@ -10,3 +10,5 @@ __screenshots__/
 playwright-report/
 test-results/
 blob-report/
+.env
+.env*.local

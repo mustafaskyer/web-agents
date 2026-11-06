@@ -1,19 +1,72 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": ["**", "!**/dist", "!**/.turbo", "!.agents", "!.claude", "!pnpm-lock.yaml", "!**/*.md"]
   },
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 140 },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140
+  },
   "javascript": {
-    "formatter": { "quoteStyle": "double", "semicolons": "always", "trailingCommas": "all" }
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "style": { "noNonNullAssertion": "off" }
+      "style": {
+        "noNonNullAssertion": "off"
+      }
     }
   },
-  "assist": { "actions": { "source": { "organizeImports": "off" } } }
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/chat/src/components/**",
+        "packages/chat/src/adapter/**",
+        "packages/chat/src/session/**",
+        "packages/chat/src/index.ts",
+        "packages/chat/src/tools.ts",
+        "packages/chat/src/types.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@ai-sdk/anthropic": "The provider SDK is server-only: import it from src/server/** only."
+                },
+                "patterns": [
+                  {
+                    "group": ["node:*"],
+                    "message": "Client code runs in the browser: no Node built-ins."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

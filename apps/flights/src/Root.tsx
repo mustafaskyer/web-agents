@@ -3,6 +3,7 @@
  * (with the router's pathname: React Router's pushState is invisible without
  * the Navigation API), header, footer and (dev only) the devtools.
  */
+import { AgentChat, createCloudAdapter } from "@web-agents/chat";
 import { WebAgentsProvider } from "@web-agents/react";
 import { lazy, Suspense, useMemo } from "react";
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
@@ -18,6 +19,8 @@ const Devtools = import.meta.env.DEV
   : () => null;
 
 const VISUALS = { spotlight: true };
+// Once per page: it checks /api/chat on first use.
+const cloud = createCloudAdapter();
 
 function Shell() {
   const booking = useBooking();
@@ -37,7 +40,8 @@ function Shell() {
         </main>
         <Footer />
       </div>
-      {/* Phase 5: <AgentChat /> */}
+      {/* inside the provider: the assistant sees exactly the tools this page has on */}
+      <AgentChat adapter={cloud} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
         <Devtools initialSettings={{ spotlight: VISUALS.spotlight }} />
       </Suspense>

@@ -55,6 +55,9 @@ packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals
                         web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
 packages/react/         @web-agents/react: <WebAgentsProvider>, useWebTool, useEnableTools, useToolAnswer, JSX attr types
 packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
+packages/chat/          @web-agents/chat: <AgentChat> (components/), AgentAdapter types, createCloudAdapter (adapter/cloud.ts:
+                        the model ↔ tool loop, adapter/wire.ts: AI SDK UI message stream), session/ (reducer + useAgentSession),
+                        /server (createChatHandler), /vite (webAgentsChatDev), chat.css
 packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
@@ -153,6 +156,12 @@ mid-run (the cursor must vanish and the tool still complete).
   augmentation in `src/tools/context.ts`). Store actions read/write a ref, so back-to-back agent calls see each other.
 - Forms that navigate away answer first and navigate after the grace (`apps/*/src/lib/afterAnswer.ts`); a page whose
   own tool empties it (checkout, booking) keeps rendering until then.
+- `@web-agents/chat` runs one model step per request; tools run in the browser between steps. After each tool call (and
+  before a run) the session waits for the page's tools to settle (`toolchange` quiet for ~150 ms), or a navigation's new
+  tools miss the next request. Claude Opus 5.5 can't disable thinking: signed reasoning is kept in the history
+  (`AgentPart` "reasoning") and sent back; `maxOutputTokens` must leave room for it.
+- Library CSS is unlayered on purpose: an app's plain `button { color: inherit }` beats any `@layer` rule.
+- Only `packages/chat/src/server/**` may import `@ai-sdk/anthropic` (Biome `noRestrictedImports` override).
 - Example drawers/sheets are non-modal (`role="dialog"` + `inert` page), never `showModal()`: the top layer would hide
   the agent cursor and make the devtools inert.
 - Devtools browser tests pre-bundle React in `optimizeDeps.include`; a dependency discovered mid-run reloads Vite and

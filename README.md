@@ -9,6 +9,7 @@ pnpm install
 pnpm dev         # every app: playground :5173, ecommerce :5174, flights :5175. Open the devtools (bottom right, Alt+Shift+A) and run a tool
 pnpm check       # biome ci + typecheck + tests + build, everything CI runs
 pnpm e2e         # Playwright end-to-end tests of the example apps (desktop + mobile)
+# chat: put ANTHROPIC_API_KEY in apps/<app>/.env.local (see .env.example), then open the Assistant bottom-left
 ```
 
 Works in any browser thanks to a dev-only polyfill of `document.modelContext`. In a Chrome
@@ -21,6 +22,7 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 | [`@web-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
 | [`@web-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
 | [`@web-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
+| [`@web-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (Claude on your server, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `/api/chat` handler and a Vite dev plugin. |
 | [`@web-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
 
 | App | |

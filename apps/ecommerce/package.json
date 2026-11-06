@@ -12,6 +12,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@web-agents/chat": "workspace:*",
     "@web-agents/core": "workspace:*",
     "@web-agents/react": "workspace:*",
     "react": "^19.3.1",

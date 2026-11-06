@@ -1,4 +1,5 @@
 import "@web-agents/core/cursor.css";
+import "@web-agents/chat/chat.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import { StrictMode } from "react";
