@@ -46,7 +46,9 @@ pnpm exec playwright install chromium      # once, for browser-mode tests
 ```
 apps/playground/        demo storefront; every action is a WebMCP tool (declarative forms + imperative)
 packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
-                        webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css)
+                        webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css),
+                        web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
+packages/react/         @web-agents/react: <WebAgentsProvider>, useWebTool, useEnableTools, useToolAnswer, JSX attr types
 packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
 packages/devtools/      @web-agents/devtools: floating "agent console" (window.agent.run); rebuilt in Phase 3
 .agents/plans/          roadmap + phase plans (execute with /execute <plan>)
@@ -68,6 +70,9 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
   `registerTool`. A detached `GhostCursor` never rebuilds DOM and fast-forwards (behaves like "yielded").
 - **Events.** `onAgentEvent` delivers `start | fill | park | result | error | cancel | yield | resume`; the `log` option
   gets the same payloads. Devtools and the chat widget (later phases) build on this, not on internals.
+- **Never unregister a tool synchronously from UI code.** Chrome cancels a call whose tool changes; React remounts on
+  purpose. Release through `deferRelease` + a `CallTracker` (the registry and `useWebTool` do), so StrictMode and route
+  swaps cause no `toolchange` churn and in-flight calls finish first.
 - **Only core, polyfill, devtools and chat touch `document.modelContext`.** WebMCP is an origin-trial API whose shapes
   move; keep feature detection in those packages.
 
@@ -128,4 +133,6 @@ mid-run (the cursor must vanish and the tool still complete).
   Chrome's native WebMCP states; the rules are kept in the output. Keep native and `[data-tool-…]` rules separate.
 - Chrome cancels a call whose tool definition changes mid-flight; a form that hides itself after its own action must
   stay until the agent has its answer (`apps/playground/src/tools/useAnswerGrace.ts`).
+- The agent-browser CLI's Chrome may produce no frames (rAF never fires, screenshots time out), which freezes the cursor
+  and every gated tool. If so, drive the playground with Playwright's Chromium (`node_modules/playwright`) instead.
 - `executeTool` arg shapes differ by Chrome version (object vs JSON string); see `packages/devtools/src/console.ts`.

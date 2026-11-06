@@ -32,7 +32,7 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 | npm scope | **`@web-agents/*`** (user decision) | — |
 | Monorepo | pnpm 11 workspaces + **Turborepo 2.11** | user request; pnpm already in use (`pnpm-lock.yaml`, `pnpm-workspace.yaml` exist) |
 | Package split | scoped multi-package (user decision) | isolation; heavy deps (AI SDK, transformers.js) never leak into core |
-| Library build | **tsdown 0.23** (Rolldown) | tsup is unmaintained ("consider tsdown instead"); emits `.mjs` + `.d.mts` |
+| Library build | **tsdown 0.23** (Rolldown) | tsup is unmaintained ("consider tsdown instead"); with `"type": "module"` it emits `dist/*.js` + `*.d.ts` |
 | Dev resolution | custom export condition **`"@web-agents/source"`** → `src/*.ts` | apps & typecheck hit source (no `^build` in dev), published package stays compiled |
 | Runtime | React **19.3** + Vite **8** + `@vitejs/plugin-react` 6 in apps; packages peer `react >=18` | upgrade while restructuring; Vite 8 = Rolldown, ESM-only |
 | TypeScript | **~6.0.3** (NOT 7) | TS 7 has no stable programmatic API until 7.1; breaks tooling |
@@ -149,8 +149,9 @@ export interface WebToolConfig<I = unknown, O = unknown> {
   description: string;
   inputSchema?: StandardSchemaV1<unknown, I> | JSONSchema;   // Standard Schema (zod/valibot/arktype) or plain JSON Schema
   outputSchema?: StandardSchemaV1<unknown, O>;
-  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; untrustedContentHint?: boolean };
-  requireConfirmation?: boolean;            // park the cursor and wait for a user click on `target`
+  annotations?: WebToolAnnotations;         // readOnlyHint, destructiveHint, idempotentHint, openWorldHint, untrustedContentHint, …
+  requireConfirmation?: boolean;            // park the cursor and wait for a trusted user click on `target`; validates first;
+                                            // fails closed (ConfirmationUnavailableError) when `target` is missing/disabled
   target?: string;                          // CSS selector the cursor animates to; default `[toolname="<id>"]`
   execute(input: I, ctx: WebToolContext): O | Promise<O>;
 }
@@ -162,14 +163,35 @@ export interface WebToolContext {
 }
 export interface Register {}                // augment: declare module "@web-agents/core" { interface Register { context: CartApi } }
 type RegisteredContext = Register extends { context: infer C } ? C : unknown;
-export interface WebTool<I = unknown, O = unknown> extends Readonly<WebToolConfig<I, O>> {
+export interface WebTool<I = unknown, O = unknown> extends Readonly<Omit<WebToolConfig<I, O>, "execute">> {
   readonly kind: "web-tool";
-  readonly jsonSchema: JSONSchema;          // input schema as JSON Schema draft-07, `$schema` stripped
-  run(input: unknown, ctx: WebToolContext): Promise<O>;   // validates via ~standard.validate, then execute
+  readonly jsonSchema: JSONSchema;          // input schema as JSON Schema draft-07, `$schema` stripped; lazy, memoised
+  execute(input: I, ctx: WebToolContext): Promise<O>;     // always async (Mastra's execute returns a Promise)
+  parse(input: unknown): Promise<I>;                      // ~standard.validate (throws WebToolInputError); JSON Schema input passes through
+  run(input: unknown, ctx: WebToolContext): Promise<O>;   // parse, then execute
 }
+// With a Standard Schema input the result also has `inputSchema: StandardSchemaV1<unknown, I>` (assignable to Mastra's config).
 export function defineWebTool<I, O>(config: WebToolConfig<I, O>): WebTool<I, O>;
-export function toModelContextTool(tool: WebTool): ModelContextTool;        // for document.modelContext.registerTool
-export function registerWebTool(tool: WebTool, opts?: { signal?: AbortSignal }): () => void;
+export class WebToolInputError extends Error { toolId: string; issues: StandardSchemaV1.Issue[] }
+export function isWebMCPAvailable(): boolean;            // feature detection for packages that may not touch document.modelContext
+export function webToolSignature(tool: WebTool): string;  // what WebMCP sees; re-register iff it changes
+export interface ToModelContextToolOptions {
+  context?: () => unknown;                  // read per call → ctx.context
+  calls?: CallTracker;                      // counts calls (confirmation wait included) so release can wait
+}
+export function toModelContextTool(tool: WebTool, opts?: ToModelContextToolOptions): ModelContextTool;  // errors → isError results; AbortError rethrown
+export function registerWebTool(tool: WebTool, opts?: ToModelContextToolOptions & { signal?: AbortSignal }): () => void;
+  // no document.modelContext → warns once, returns a no-op; re-registering an id replaces the old registration,
+  // whose unregister then becomes a no-op (a stale deferred release can't remove the newer tool)
+
+// deferred release — Phase 2 (shared by the registry and @web-agents/react)
+export const RESPONSE_GRACE_MS = 500;
+export function deferRelease(release: () => void, opts?: { isBusy?: () => boolean; graceMs?: number }): { cancel(): void };
+export interface CallTracker { track<T>(call: () => T | Promise<T>): Promise<T>; busy(): boolean }  // busy: running or < grace since settle
+export function createCallTracker(): CallTracker;
+export function matchPath(pattern: string, pathname: string): boolean;   // literal, :param, trailing *, "*"
+export function toToolResult(value: unknown): ModelContextToolResult;    // same rules as the polyfill
+export function errorResult(err: unknown): ModelContextToolResult;
 
 // registry — Phase 2 (framework-agnostic, ref-counted)
 export function createToolRegistry(
@@ -179,7 +201,7 @@ export function createToolRegistry(
 export interface ToolRegistry {
   enable(names: readonly string[]): () => void;   // ref-counted; disposer defers unregister until in-flight calls settle + 500 ms
   update(catalog: readonly WebTool[]): void;      // re-registers only tools whose signature changed
-  enabled(): readonly string[];
+  enabled(): readonly string[];                   // sorted, stable identity until it changes (useSyncExternalStore)
   subscribe(listener: () => void): () => void;
   destroy(): void;
 }
@@ -188,7 +210,7 @@ export interface ToolRegistry {
 ### `@web-agents/polyfill` (Phase 1)
 
 ```ts
-export function installWebMCPPolyfill(): ModelContext;   // no-op returning the native one if present
+export function installWebMCPPolyfill(): ModelContext | undefined;   // no-op returning the native one if present; undefined on the server
 // side-effect entry: import "@web-agents/polyfill/auto";
 ```
 
@@ -199,13 +221,16 @@ export function installWebMCPPolyfill(): ModelContext;   // no-op returning the 
   tools={catalog}                         // WebTool[] — every tool the app may expose; memoise or define at module level
   context={cart}                          // reaches execute as ctx.context (typed via Register)
   global={["search_products"]}            // always enabled
-  routes={{ "/product/:slug": ["add_to_cart"], "/checkout": ["place_order"] }}  // URLPattern pathname patterns
+  routes={{ "/product/:slug": ["add_to_cart"], "/checkout": ["place_order"] }}  // matchPath patterns: literal, :param, trailing *, "*"
   pathname={location.pathname}            // optional; defaults to window.location + Navigation API/popstate
   visuals={{ spotlight: true }}           // AgentVisualsOptions | false
 >
 useEnableTools(["apply_promo"]);           // enable while mounted (ref-counted)
 <EnableTools names={["apply_promo"]} />    // component form
-useWebTool(tool, { enabled?: boolean });   // inline tool, registered while mounted
+useWebTool(tool, { enabled?: boolean });   // inline tool, registered while mounted → { registered, supported }; works without a provider
+useEnabledTools();                         // catalog ids registered right now
+useWebAgents();                            // { registry, visuals: { setSpotlight, setYieldToUser } | null, pathname, … }
+usePathname();                             // location.pathname via Navigation API / popstate
 useToolAnswer();                           // today's useAnswerGrace, for declarative forms
 useAgentEvents(listener);                  // subscribe to core events
 // + JSX attribute augmentation (toolname, tooldescription, toolautosubmit, toolparamdescription)
@@ -252,7 +277,10 @@ devtools or typing in the chat would hide the agent cursor the user just asked f
 
 ## Quality bar (TODO "priorities": performance, animation, UI/UX, DX) — applies to every phase
 
-- **Performance budgets**: `@web-agents/core` ≤ 9 KB min+gz (check with `pnpm --filter @web-agents/core size`);
+- **Performance budgets**: `@web-agents/core` ≤ 9 KB min+gz (check with `pnpm --filter @web-agents/core size`;
+  no `size` script exists yet). After Phase 2 the whole package is ~10.7 KB min+gz; the visuals-only import
+  (`installAgentVisuals`, `onAgentEvent`) tree-shakes to ~8 KB. Decide in Phase 3 whether to raise the budget or
+  split WebTool/registry into a `@web-agents/core/tools` entry;
   no work when idle (rAF loop stops, no polling while the tab is hidden); per-frame DOM reads happen before writes;
   INP unaffected (all listeners `passive`, capture-phase work O(1)).
 - **Animation**: transforms/opacity only; spring/minimum-jerk motion stays in `motion.ts`; every new animation has a

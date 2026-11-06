@@ -24,6 +24,7 @@
  * Install once, before tools register (before your app renders). Every call
  * returns a handle; the layer tears down when the last handle is destroyed.
  */
+import { CONFIRM, TARGET, confirmPrompt } from "./confirm";
 import { agentCursor, reduced, wait, type SpotlightOptions } from "./cursor";
 import { type AgentEvent, emit } from "./events";
 import { type YieldOptions, watchUserInput } from "./user-yield";
@@ -120,8 +121,6 @@ const DUPLICATE_WINDOW_MS = 1000;
 let generation = 0;
 let active: Instance | null = null;
 
-const byTool = (name: string): Element | null => document.querySelector(`[toolname="${CSS.escape(name)}"]`);
-
 type LifecycleEvent = "toolactivated" | "toolcancel";
 
 /** Chrome ≥156 dispatches on document.modelContext; earlier builds (and some polyfills) on window. */
@@ -214,6 +213,9 @@ function start({
   };
 
   const runs = new Map<string, Run>();
+  /** Imperative tools that name their element with a selector (WebTool `target`) instead of `toolname`. */
+  const targets = new Map<string, string>();
+  const byTool = (name: string): Element | null => document.querySelector(targets.get(name) ?? `[toolname="${CSS.escape(name)}"]`);
 
   // ---------- field bookkeeping ----------
   /** Last value seen while no agent was touching the field: what to restore. */
@@ -500,6 +502,9 @@ function start({
     const register = originalRegister.bind(mc);
     wrappedRegister = (tool, options) => {
       gated.add(tool.name);
+      const target = (tool as { [TARGET]?: string })[TARGET];
+      if (target) targets.set(tool.name, target);
+      else targets.delete(tool.name);
       return register({ ...tool, execute: (args: unknown, ctx?: ModelContextExecuteOptions) => runGated(tool, args, ctx) }, options);
     };
     mc.registerTool = wrappedRegister;
@@ -516,6 +521,7 @@ function start({
     report({ type: "start", tool: tool.name, at: performance.now() });
     agentCursor.say(`${tool.name} started`);
     const run = startRun(tool.name, el);
+    if ((tool as { [CONFIRM]?: string })[CONFIRM]) return runConfirmed(tool, args, ctx, el, run);
 
     let release!: () => void;
     const pressed = new Promise<void>((resolve) => (release = resolve));
@@ -547,6 +553,52 @@ function start({
       throw err;
     } finally {
       clearTimeout(timeout);
+      setTimeout(() => finish(tool.name, run.generation), linger);
+    }
+  }
+
+  /**
+   * A WebTool with `requireConfirmation`: its execute already waits for the
+   * user's click, so run it at once (no gate timeout) and park the cursor on
+   * the element meanwhile. The cursor clicks only after the user confirmed.
+   */
+  async function runConfirmed(
+    // biome-ignore lint/suspicious/noExplicitAny: see runGated
+    tool: ModelContextTool<any>,
+    args: unknown,
+    ctx: ModelContextExecuteOptions | undefined,
+    el: Element,
+    run: Run,
+  ): Promise<unknown> {
+    const current = (): boolean => runs.get(tool.name) === run;
+    let settled = false;
+    void (async () => {
+      await agentCursor.moveTo(el);
+      if (settled || !current()) return;
+      el.setAttribute("data-agent-active", "");
+      const prompt = confirmPrompt(el, tool.name);
+      agentCursor.park(prompt, el);
+      run.parked = true;
+      log({ type: "park", tool: tool.name, prompt }); // the gate itself emits it to onAgentEvent
+    })();
+    try {
+      const result = await tool.execute(args, ctx as ModelContextExecuteOptions);
+      settled = true;
+      if (current()) {
+        if (run.parked) agentCursor.unpark();
+        agentCursor.highlight(el);
+        void agentCursor.click();
+      }
+      report({ type: "result", tool: tool.name, result, ms: performance.now() - run.startedAt });
+      agentCursor.say(`${tool.name} done`);
+      return result;
+    } catch (err) {
+      settled = true;
+      if (run.parked && current()) agentCursor.unpark(); // the shared cursor may be parked for another tool by now
+      report({ type: "error", tool: tool.name, error: String(err), ms: performance.now() - run.startedAt });
+      throw err;
+    } finally {
+      run.parked = false;
       setTimeout(() => finish(tool.name, run.generation), linger);
     }
   }

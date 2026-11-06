@@ -61,6 +61,45 @@ timers, restores `document.modelContext.registerTool`, and lets any in-flight to
 without animation. Importing the package never touches the DOM, and on the server
 `installAgentVisuals()` returns a no-op handle.
 
+## Tools: `defineWebTool` and the registry
+
+A `WebTool` is one tool definition for every place a tool runs: the browser
+(`document.modelContext`), devtools, and a server agent (the config is a structural superset of
+Mastra's `createTool` config and the AI SDK's `tool()` input).
+
+```ts
+import { createToolRegistry, defineWebTool, registerWebTool } from "@web-agents/core";
+import { z } from "zod";
+
+const addToCart = defineWebTool({
+  id: "add_to_cart",                                   // the WebMCP name: /^[a-zA-Z0-9_.-]{1,128}$/
+  description: "Add a product to the cart",
+  inputSchema: z.object({ sku: z.string(), qty: z.number().int().min(1) }),   // or a JSON Schema object
+  annotations: { destructiveHint: false },
+  target: "#add-button",                               // where the cursor goes; default [toolname="add_to_cart"]
+  execute: ({ sku, qty }, ctx) => cart.add(sku, qty),  // ctx: { signal, source, context? }
+});
+
+addToCart.jsonSchema;            // draft-07, no $schema: what the agent sees
+const off = registerWebTool(addToCart);
+```
+
+- Input is validated with the schema's `~standard.validate`; bad input and thrown errors reach the
+  agent as `isError` results it can act on (`Invalid input for add_to_cart: qty: …`). Cancellation
+  rejects with an `AbortError`.
+- `requireConfirmation: true` makes the call wait for the person's (trusted) click on the tool's
+  element, which runs the tool instead of the element's own click handler. With the visuals
+  installed, the cursor parks there with "Click "…" to confirm". Input is validated before asking,
+  and with nothing clickable to confirm on, the call fails (`ConfirmationUnavailableError`) rather
+  than run unconfirmed.
+- Type `ctx.context` once for the app: `declare module "@web-agents/core" { interface Register { context: CartApi } }`.
+
+`createToolRegistry(catalog, { beforeRegister?, context? })` decides which catalog tools are
+registered: `enable(ids)` is ref-counted and returns a disposer. Releases are deferred a macrotask
+(a release plus a re-enable in the same tick never touches WebMCP) and wait until the tool's calls
+have settled plus `RESPONSE_GRACE_MS` (Chrome cancels a call whose tool is unregistered).
+`update(catalog)` re-registers only tools whose definition changed. `@web-agents/react` builds on it.
+
 ## How it works: driven by events only
 
 `installAgentVisuals()` subscribes to the WebMCP lifecycle and derives everything from

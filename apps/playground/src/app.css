@@ -284,3 +284,31 @@ button.primary:disabled {
   color: #d1d5db;
   white-space: pre-wrap;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+}
+.tabs a {
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #3730a3;
+  text-decoration: none;
+}
+.tabs a[aria-current="page"] {
+  background: #eef2ff;
+  font-weight: 600;
+}
+.orders {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.orders p {
+  margin: 0;
+}

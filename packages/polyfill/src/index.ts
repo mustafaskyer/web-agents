@@ -66,7 +66,14 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
   registerTool(tool: ModelContextTool<any>, { signal }: { signal?: AbortSignal } = {}): void {
     if (!tool?.name) throw new TypeError("tool.name is required");
     this.#tools.set(tool.name, tool);
-    signal?.addEventListener("abort", () => this.unregisterTool(tool.name), { once: true });
+    // Only this registration: the name may belong to a newer one by the time the signal aborts.
+    signal?.addEventListener(
+      "abort",
+      () => {
+        if (this.#tools.get(tool.name) === tool) this.unregisterTool(tool.name);
+      },
+      { once: true },
+    );
     this.#emit("toolchange");
   }
 

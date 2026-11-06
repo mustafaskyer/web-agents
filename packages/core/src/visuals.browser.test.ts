@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanupFixtures, cursorVisible, fixture, modelContext, recordEvents, resultText, toolForm, uniqueName, until } from "./test-utils";
 import { onAgentEvent } from "./events";
 import { type AgentVisuals, installAgentVisuals } from "./visuals";
+import { CONFIRM, TARGET } from "./confirm";
+import { defineWebTool, registerWebTool, toModelContextTool } from "./web-tool";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const overlay = () => document.querySelectorAll(".agent-cursor, .agent-ring, .agent-spotlight, .agent-tag, .agent-sr-only").length;
@@ -145,4 +147,66 @@ describe("installAgentVisuals", () => {
     expect(rec.types()).toContain("cancel");
     await until(() => !cursorVisible(), 1000, "cursor hidden");
   });
+
+  it("never lets a replaced registration's unregister remove the newer one", async () => {
+    const name = uniqueName("t_owner");
+    const first = registerWebTool(defineWebTool({ id: name, description: "first", execute: () => "first" }));
+    const second = registerWebTool(defineWebTool({ id: name, description: "second", execute: () => "second" }));
+    first(); // stale: a no-op
+    const tools = await modelContext().getTools();
+    expect(tools.find((t) => t.name === name)?.description).toBe("second");
+    second();
+    expect((await modelContext().getTools()).some((t) => t.name === name)).toBe(false);
+  });
+
+  it("keeps the WebTool markers through the registerTool wrapper's spread", () => {
+    const mc = toModelContextTool(
+      defineWebTool({ id: "t_marks", description: "d", requireConfirmation: true, target: "#x", execute: () => {} }),
+    );
+    const spread = { ...mc, execute: () => {} };
+    expect((spread as Record<symbol, unknown>)[CONFIRM]).toBe("#x");
+    expect((spread as Record<symbol, unknown>)[TARGET]).toBe("#x");
+  });
+
+  it("animates a WebTool to its `target` selector", async () => {
+    const name = uniqueName("t_target");
+    fixture('<button type="button" class="t-target">Go</button>');
+    const off = registerWebTool(defineWebTool({ id: name, description: "d", target: ".t-target", execute: () => "went" }));
+    const res = await modelContext().executeTool(name, {});
+    off();
+    expect(resultText(res)).toBe("went");
+    expect(rec.types()).toEqual(["start", "result"]); // gated: it found the element
+  });
+
+  it("parks on a requireConfirmation WebTool until the user clicks, and runs it once", async () => {
+    const name = uniqueName("t_destroy");
+    const button = fixture(`<button type="button" toolname="${name}">Clear cart</button>`).querySelector("button") as HTMLButtonElement;
+    let pageHandler = 0;
+    let executed = 0;
+    button.addEventListener("click", () => pageHandler++);
+    const off = registerWebTool(
+      defineWebTool({
+        id: name,
+        description: "d",
+        requireConfirmation: true,
+        execute: () => {
+          executed++;
+          return "cleared";
+        },
+      }),
+    );
+    const pending = modelContext().executeTool(name, {});
+    await until(() => rec.types().includes("park"), 4000, "park");
+    await new Promise((r) => setTimeout(r, 2600)); // past the 2.5 s gate timeout: still waiting for the user
+    expect(executed).toBe(0);
+    expect(document.querySelector(".agent-cursor.is-waiting")).not.toBeNull();
+    expect(document.querySelector(".agent-tag")?.textContent).toBe('Click "Clear cart" to confirm');
+    await userEvent.click(button);
+    expect(resultText(await pending)).toBe("cleared");
+    off();
+    expect(executed).toBe(1);
+    expect(pageHandler).toBe(0);
+    expect(rec.types().filter((t) => t === "park")).toHaveLength(1);
+    expect(rec.types()).toContain("result");
+  }, 10_000);
 });

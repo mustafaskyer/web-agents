@@ -1,24 +1,32 @@
 /**
- * Imperative WebMCP tool: clear_cart  (via GoogleChromeLabs/use-webmcp-tool)
+ * Imperative WebTool: clear_cart
  *
- * Pure as well: `execute` only touches the store. The only thing that links
- * it to the visual layer is the `toolname` attribute on the button, which
- * lets the cursor find the element by the tool's unique name.
+ * Destructive, so `requireConfirmation`: the agent's call waits until the
+ * person clicks this button (the cursor parks on it meanwhile), and that
+ * click runs the tool instead of the button's own handler. `useWebTool`
+ * keeps calls on the latest `cart`, and only shows the tool to the agent
+ * while there is something to clear. The `toolname` attribute is what the
+ * cursor and the confirmation look for.
  */
-import { useWebMCP } from "use-webmcp-tool";
+import { defineWebTool, useWebTool } from "@web-agents/react";
+import { useMemo } from "react";
 import { useCart } from "../store";
 
 export function ClearCartButton() {
   const cart = useCart();
 
-  const { registered } = useWebMCP<Record<string, never>, string>({
-    name: "clear_cart",
-    description: "Remove every item from the shopping cart",
-    inputSchema: { type: "object", properties: {} },
-    annotations: { readOnlyHint: false },
-    enabled: cart.items.length > 0, // agent only sees it when there is something to clear
-    execute: () => cart.clear(),
-  });
+  const tool = useMemo(
+    () =>
+      defineWebTool({
+        id: "clear_cart",
+        description: "Remove every item from the shopping cart. The user confirms on the page.",
+        annotations: { destructiveHint: true },
+        requireConfirmation: true,
+        execute: () => cart.clear(),
+      }),
+    [cart],
+  );
+  const { registered } = useWebTool(tool, { enabled: cart.items.length > 0 });
 
   return (
     <button

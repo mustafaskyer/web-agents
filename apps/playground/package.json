@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "@web-agents/core": "workspace:*",
+    "@web-agents/react": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "use-webmcp-tool": "^0.2.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

@@ -8,16 +8,16 @@
  *
  * Shown (and registered) only while no code is applied; the totals show the
  * applied code with a Remove link that brings this form back. Applying a code
- * hides the form, so it stays for a moment after answering (see useAnswerGrace)
+ * hides the form, so it stays for a moment after answering (see useToolAnswer)
  * instead of vanishing under the agent's pending call.
  */
 import { useId, useState, type FormEvent } from "react";
 import { errorMessage, useCart } from "../store";
-import { useAnswerGrace } from "./useAnswerGrace";
+import { useToolAnswer } from "@web-agents/react";
 
 export function ApplyPromoForm() {
   const cart = useCart();
-  const { answering, answer } = useAnswerGrace();
+  const { answering, answer } = useToolAnswer();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const errorId = useId();

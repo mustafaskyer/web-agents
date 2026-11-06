@@ -12,6 +12,7 @@ declare global {
   /** A tool as returned by `getTools()`. Chrome serialises `inputSchema` to a JSON string. */
   interface ModelContextToolInfo {
     name: string;
+    title?: string;
     description?: string;
     inputSchema?: JSONSchema | string;
     annotations?: Record<string, unknown>;
@@ -24,6 +25,8 @@ declare global {
   /** A tool as passed to `registerTool()`. */
   interface ModelContextTool<Args = Record<string, unknown>> {
     name: string;
+    /** Human-readable name (Chrome ≥156). */
+    title?: string;
     description?: string;
     inputSchema?: JSONSchema;
     annotations?: Record<string, unknown>;

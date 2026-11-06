@@ -12,6 +12,25 @@ export { onAgentEvent } from "./events";
 export type { AgentEvent } from "./events";
 export { UI_HOST_ATTR } from "./user-yield";
 
+// tools
+export { defineWebTool, isWebMCPAvailable, registerWebTool, toModelContextTool, WebToolInputError, webToolSignature } from "./web-tool";
+export { ConfirmationUnavailableError } from "./confirm";
+export type {
+  Register,
+  RegisteredContext,
+  ToModelContextToolOptions,
+  WebTool,
+  WebToolAnnotations,
+  WebToolConfig,
+  WebToolContext,
+} from "./web-tool";
+export { createToolRegistry } from "./registry";
+export type { ToolRegistry, ToolRegistryOptions } from "./registry";
+export { createCallTracker, deferRelease, RESPONSE_GRACE_MS } from "./deferred";
+export type { CallTracker, DeferReleaseOptions } from "./deferred";
+export { matchPath } from "./path-match";
+export { errorResult, toToolResult } from "./result";
+
 // The WebMCP types are global (see ./webmcp). These named aliases let other packages import
 // them explicitly, which also pulls the global declarations into their emitted .d.ts.
 export type ModelContext = globalThis.ModelContext;
@@ -20,3 +39,4 @@ export type ModelContextToolInfo = globalThis.ModelContextToolInfo;
 export type ModelContextToolResult = globalThis.ModelContextToolResult;
 export type ModelContextExecuteOptions = globalThis.ModelContextExecuteOptions;
 export type ToolEvent = globalThis.ToolEvent;
+export type JSONSchema = globalThis.JSONSchema;

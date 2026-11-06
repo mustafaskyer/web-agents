@@ -9,15 +9,15 @@
  * Shown (and registered) only while the cart has items: with an empty cart
  * there is nothing to order, and Chrome would reject the call anyway. Placing
  * the order empties the cart, so the form stays for a moment after answering
- * (see useAnswerGrace) instead of vanishing under the agent's pending call.
+ * (see useToolAnswer) instead of vanishing under the agent's pending call.
  */
 import type { FormEvent } from "react";
 import { money, settle, useCart } from "../store";
-import { useAnswerGrace } from "./useAnswerGrace";
+import { useToolAnswer } from "@web-agents/react";
 
 export function CheckoutForm() {
   const cart = useCart();
-  const { answering, answer } = useAnswerGrace();
+  const { answering, answer } = useToolAnswer();
   const hasItems = cart.items.length > 0;
 
   if (!hasItems && !answering) return null;

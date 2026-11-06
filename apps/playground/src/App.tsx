@@ -1,8 +1,19 @@
+import { EnableTools, usePathname, WebAgentsProvider } from "@web-agents/react";
+import type { MouseEvent, ReactNode } from "react";
+import { Orders } from "./Orders";
 import { CartProvider, PRODUCTS, money, useCart } from "./store";
 import { AddToCartForm } from "./tools/AddToCartForm";
 import { ApplyPromoForm } from "./tools/ApplyPromoForm";
 import { CheckoutForm } from "./tools/CheckoutForm";
+import { catalog } from "./tools/catalog";
 import { ClearCartButton } from "./tools/ClearCartButton";
+
+const GLOBAL_TOOLS = ["get_cart"];
+const ROUTE_TOOLS = { "/orders": ["list_orders"] };
+const VISUALS = {
+  log: (entry: unknown) => console.debug("[agent-visuals]", entry),
+  spotlight: true, // blur the page except the tool the agent is working in
+};
 
 function Totals() {
   const cart = useCart();
@@ -19,9 +30,17 @@ function Totals() {
         <div className="discount">
           <dt>
             Promo <code>{cart.promo}</code>{" "}
-            <button type="button" className="link" onClick={() => cart.removePromo()} aria-label={`Remove promo ${cart.promo}`}>
+            <button
+              type="button"
+              className="link"
+              toolname="remove_promo"
+              onClick={() => cart.removePromo()}
+              aria-label={`Remove promo ${cart.promo}`}
+            >
               Remove
             </button>
+            {/* The agent can remove the code only while it's shown. */}
+            <EnableTools names={["remove_promo"]} />
           </dt>
           <dd>−{money(discount)}</dd>
         </div>
@@ -70,25 +89,66 @@ function Cart() {
   );
 }
 
+function Shop() {
+  return (
+    <section className="catalog">
+      <h1>Storefront</h1>
+      <p className="muted">Each card is a declarative WebMCP tool. Use the agent console on the right to call one.</p>
+      <div className="grid">
+        {PRODUCTS.map((p) => (
+          <article key={p.sku} className="card">
+            <h3>{p.name}</h3>
+            <p>{money(p.price)}</p>
+            <AddToCartForm product={p} />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NavLink({ to, path, children }: { to: string; path: string; children: ReactNode }) {
+  function onClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let the browser open a new tab
+    e.preventDefault();
+    if (to === path) return;
+    history.pushState(null, "", to);
+    // pushState fires no event; the Navigation API reports it, but browsers without it need this.
+    dispatchEvent(new PopStateEvent("popstate"));
+  }
+  return (
+    <a href={to} onClick={onClick} aria-current={to === path ? "page" : undefined}>
+      {children}
+    </a>
+  );
+}
+
+/** Inside CartProvider, so the tools' `ctx.context` can be the cart. */
+function Shell() {
+  const cart = useCart();
+  const path = usePathname();
+  return (
+    <WebAgentsProvider tools={catalog} global={GLOBAL_TOOLS} routes={ROUTE_TOOLS} pathname={path} context={cart} visuals={VISUALS}>
+      <nav className="tabs" aria-label="Sections">
+        <NavLink to="/" path={path}>
+          Shop
+        </NavLink>
+        <NavLink to="/orders" path={path}>
+          Orders
+        </NavLink>
+      </nav>
+      <main className="layout">
+        {path === "/orders" ? <Orders /> : <Shop />}
+        <Cart />
+      </main>
+    </WebAgentsProvider>
+  );
+}
+
 export default function App() {
   return (
     <CartProvider>
-      <main className="layout">
-        <section className="catalog">
-          <h1>Storefront</h1>
-          <p className="muted">Each card is a declarative WebMCP tool. Use the agent console on the right to call one.</p>
-          <div className="grid">
-            {PRODUCTS.map((p) => (
-              <article key={p.sku} className="card">
-                <h3>{p.name}</h3>
-                <p>{money(p.price)}</p>
-                <AddToCartForm product={p} />
-              </article>
-            ))}
-          </div>
-        </section>
-        <Cart />
-      </main>
+      <Shell />
     </CartProvider>
   );
 }

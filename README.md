@@ -17,13 +17,14 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 
 | Package | |
 |---|---|
-| [`@web-agents/core`](packages/core) | The visual layer: ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`. Framework-agnostic. |
+| [`@web-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
+| [`@web-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
 | [`@web-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
 | [`@web-agents/devtools`](packages/devtools) | Floating panel that lists the page's tools and runs them with JSON args (`window.agent.run`). |
 
 | App | |
 |---|---|
-| [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: declarative forms, an imperative tool, a confirm-gated checkout. |
+| [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: declarative forms, global / route / component-scoped WebTools, confirm-gated checkout and clear-cart. |
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
@@ -35,10 +36,13 @@ apps/playground/src/
     AddToCartForm.tsx    declarative <form toolname="add_to_cart_<sku>" toolautosubmit>
     ApplyPromoForm.tsx   declarative <form toolname="apply_promo" toolautosubmit>   (only "123" is valid)
     CheckoutForm.tsx     declarative <form toolname="place_order">   (no fields, no autosubmit → browser pauses)
-    ClearCartButton.tsx  imperative useWebMCP({ name: "clear_cart" }) + <button toolname="clear_cart">
+    ClearCartButton.tsx  useWebTool(clear_cart, requireConfirmation) + <button toolname="clear_cart">
+    catalog.ts           defineWebTool: get_cart (global), list_orders (/orders), remove_promo (while shown)
+  App.tsx             ← <WebAgentsProvider tools={catalog} global routes context={cart}> (installs the cursor)
   store.tsx           ← app state (cart)
-  main.tsx            ← polyfill (dev) → installAgentVisuals() → render → agent console (dev)
+  main.tsx            ← polyfill (dev) → render → agent console (dev)
 packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool.
+packages/react        ← provider + hooks: which tools are on, registered without churn
 packages/polyfill     ← dev only: document.modelContext + declarative forms + lifecycle events
 packages/devtools     ← dev only: the panel that plays the agent
 ```
@@ -59,13 +63,36 @@ function onSubmit(e) {
 }
 ```
 
-An imperative tool (via `use-webmcp-tool`) is just a hook; the only link to the visual layer
-is the `toolname` attribute on the element it acts on:
+An imperative tool is a `WebTool`: one definition, typed by its schema (zod, valibot, arktype or
+plain JSON Schema), shaped like a Mastra / AI SDK tool so a server agent can reuse it. The
+provider decides when the agent sees it; the only link to the visual layer is still the
+`toolname` attribute (or the tool's `target` selector) on the element it acts on:
 
-```jsx
-useWebMCP({ name: "clear_cart", description: "…", execute: () => cart.clear() });
+```tsx
+const listOrders = defineWebTool({
+  id: "list_orders",
+  description: "List past orders",
+  inputSchema: z.object({ limit: z.number().int().optional() }),
+  execute: ({ limit }, ctx) => ctx.context!.orders.slice(0, limit),
+});
+
+<WebAgentsProvider tools={[getCart, listOrders, removePromo]} global={["get_cart"]} routes={{ "/orders": ["list_orders"] }} context={cart}>
+  …
+  <EnableTools names={["remove_promo"]} />   {/* on while this component is mounted */}
+</WebAgentsProvider>
+```
+
+A tool bound to component state uses `useWebTool`; `requireConfirmation` makes the agent wait for
+the person's click on the element (the cursor parks there):
+
+```tsx
+const tool = useMemo(() => defineWebTool({ id: "clear_cart", description: "…", requireConfirmation: true, execute: () => cart.clear() }), [cart]);
+useWebTool(tool, { enabled: cart.items.length > 0 });
 <button toolname="clear_cart" onClick={cart.clear}>Clear cart</button>
 ```
+
+Tools registered by other libraries (e.g. `use-webmcp-tool`) still animate: the visual layer
+wraps `registerTool` whoever calls it. See [packages/react/README.md](packages/react/README.md).
 
 How the visual layer works, its options, yield-to-user and the WebMCP quirks it handles:
 [packages/core/README.md](packages/core/README.md).
