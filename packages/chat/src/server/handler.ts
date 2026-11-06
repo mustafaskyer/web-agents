@@ -58,6 +58,11 @@ export interface ChatHandlerOptions {
    * token budget. Cross-site browser requests are already refused.
    */
   guard?: (req: Request) => Promise<Response | undefined> | Response | undefined;
+  /**
+   * Runs after the request is validated and chat is known to be enabled, right before the model call: count budgets
+   * here, so malformed or refused requests never use them up. Return a Response to refuse.
+   */
+  beforeModel?: (req: Request) => Promise<Response | undefined> | Response | undefined;
   /** Where ANTHROPIC_API_KEY and WEB_AGENTS_MODEL come from. Default `process.env`. */
   env?: Record<string, string | undefined>;
 }
@@ -121,6 +126,8 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
     const parsed = chatRequestSchema.safeParse(body.value);
     if (!parsed.success) return json({ error: "bad_request", issues: parsed.error.issues.slice(0, 10) }, 400);
     const { messages, tools: pageTools, page } = parsed.data;
+    const refused = await opts.beforeModel?.(req);
+    if (refused) return refused;
 
     const budgetSpent = stepsThisTurn(messages) >= maxSteps;
     const tools: ToolSet = budgetSpent

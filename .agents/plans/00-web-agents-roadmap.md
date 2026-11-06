@@ -353,7 +353,16 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   polyfill and the feature detection in `core` absorb it; never call `document.modelContext` outside core/polyfill/devtools/chat.
 - tsdown CSS handling is experimental → core ships `cursor.css` as a copied asset, not a bundled import.
 - TanStack Devtools is 0.x → plugin lives in a separate entry; the standalone panel is the primary surface.
-- A public demo with an Anthropic key needs rate limiting, token caps and an origin check (Phase 7).
+- A public demo with an Anthropic key needs rate limiting, token caps and an origin check. Done in Phase 7:
+  `@web-agents/vercel-api` (private) — `createVercelChatRoute({ app, env?, model? })` → `{ GET, POST, OPTIONS }`;
+  `guard`: `originGuard()` (POST needs the request's own Origin) + `rateLimitGuard` (per IP, 30/min + 300/day, 429 with
+  retry-after); `beforeModel`: `budgetGuard` (3000 model calls/day → 503 `{error:"unavailable",reason:"daily_budget"}`,
+  storage down → `reason:"busy"`). Upstash Redis when `KV_REST_API_*` / `UPSTASH_REDIS_REST_*` exist (errors and
+  timeouts: per-IP fails open, budget fails closed), else in-memory. Public demos: claude-sonnet-5-5, 4096 output tokens,
+  6 steps. Chat contract additions: `ChatHandlerOptions.beforeModel` (after validation, before the model); the cloud
+  adapter only disables itself on `chat_disabled`, other 503s/429s are passing errors. Deploy steps and env table: docs/deploy.md. CI: .github/workflows/ci.yml; releases:
+  Changesets (six public packages `fixed`) + release.yml (npm provenance). Not done without the maintainer: Vercel
+  link/deploy/env, Upstash, NPM_TOKEN / npm scope, pushing.
 - Top layer: elements opened with `showModal()` / popover render above any z-index, so the cursor overlay
   (`--agent-z` on `body`) would disappear under a modal drawer, and the devtools panel would be inert behind it.
   Decision (Phase 4): the example apps use non-modal panels (`role="dialog"` + `aria-modal`, the page behind

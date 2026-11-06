@@ -8,7 +8,8 @@
     "**/*.css"
   ],
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "exports": {
     ".": {
@@ -27,7 +28,8 @@
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "size": "node scripts/size.mjs"
+    "size": "node scripts/size.mjs",
+    "check-exports": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./cursor.css"
   },
   "devDependencies": {
     "tsdown": "^0.23.7",
@@ -36,5 +38,14 @@
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaskyer/web-agents.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

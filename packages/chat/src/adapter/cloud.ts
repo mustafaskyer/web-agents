@@ -44,6 +44,25 @@ const MESSAGES: Record<string, string> = {
   network: "Couldn't reach the assistant. Check your connection and try again.",
 };
 
+/** What a refused or failed request means to the person: only "not configured" disables the chat. */
+async function failure(res: Response): Promise<Extract<AgentStreamPart, { type: "error" }>> {
+  const body = (await res.json().catch(() => null)) as { error?: string; reason?: string } | null;
+  if (res.status === 503 && body?.reason === "daily_budget") {
+    return {
+      type: "error",
+      error: "This demo has reached its daily limit. Try again tomorrow, or try the on-device assistant.",
+      code: "rate_limited",
+    };
+  }
+  if (res.status === 503 && body?.error !== "chat_disabled")
+    return { type: "error", error: "The assistant is busy. Try again in a moment." };
+  if (res.status === 429 && Number(res.headers.get("retry-after")) > 3600) {
+    return { type: "error", error: "You've reached today's limit for this demo. Try again tomorrow.", code: "rate_limited" };
+  }
+  const code = ERROR_CODES[res.status];
+  return { type: "error", error: (code && MESSAGES[code]) || "Something went wrong. Try again.", ...(code && { code }) };
+}
+
 /** After a failed availability check, try again on the next status() call this many ms later. */
 const RECHECK_MS = 10_000;
 
@@ -108,6 +127,10 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
     },
 
     async *run(req: AgentRunRequest): AsyncGenerator<AgentStreamPart> {
+      const disable = (part: AgentStreamPart): AgentStreamPart => {
+        if (part.type === "error" && part.code === "chat_disabled") setStatus({ state: "unavailable", reason: MESSAGES.chat_disabled! });
+        return part;
+      };
       const { signal } = req;
       const history: AgentMessage[] = structuredClone(req.messages);
       const aborted = { type: "finish", reason: "aborted" } as const;
@@ -133,11 +156,7 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
           if (signal.aborted) return yield aborted;
           return yield { type: "error", error: MESSAGES.network!, code: "network" };
         }
-        if (!res.ok || !res.body) {
-          const code = ERROR_CODES[res.status];
-          if (code === "chat_disabled") setStatus({ state: "unavailable", reason: MESSAGES.chat_disabled! });
-          return yield { type: "error", error: (code && MESSAGES[code]) || "Something went wrong. Try again.", ...(code && { code }) };
-        }
+        if (!res.ok || !res.body) return yield disable(await failure(res));
         setStatus({ state: "ready" });
 
         // ---------- 2. stream the reply into history ----------

@@ -48,6 +48,7 @@ export const POST = handler;
 | `maxSteps` | `8` | Tool steps per user turn; the request after the last one gets no tools, so the model sums up |
 | `system` | `DEFAULT_SYSTEM_PROMPT` | Acting on a live page, confirmations, `Error:` results, short replies |
 | `guard` | none | `(req) => Response \| undefined`: rate limits, origin checks (runs first) |
+| `beforeModel` | none | Same shape, after validation and right before the model call: count budgets here |
 | `env` | `process.env` | Where `ANTHROPIC_API_KEY` / `WEB_AGENTS_MODEL` are read |
 
 `GET` returns `{ enabled, model }` (the widget shows "Chat isn't configured" without a key); `POST` without a key is

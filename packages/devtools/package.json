@@ -6,7 +6,8 @@
   "license": "MIT",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "exports": {
     ".": {
@@ -25,7 +26,8 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check-exports": "publint && attw --pack . --profile esm-only"
   },
   "peerDependencies": {
     "@tanstack/react-devtools": ">=0.10",
@@ -56,5 +58,14 @@
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.7",
     "vitest-browser-react": "^2.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaskyer/web-agents.git",
+    "directory": "packages/devtools"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

@@ -115,9 +115,18 @@ wraps `registerTool` whoever calls it. See [packages/react/README.md](packages/r
 How the visual layer works, its options, yield-to-user and the WebMCP quirks it handles:
 [packages/core/README.md](packages/core/README.md).
 
+## Deploy your own
+
+Each example app deploys as its own Vercel project with a guarded `/api/chat` (origin allow-list, per-IP rate limits,
+a daily budget). Steps and the env var table: [docs/deploy.md](docs/deploy.md). Live demos: _coming with the first
+deploy_.
+
 ## Repository
 
 - pnpm workspaces + Turborepo (`turbo run build|typecheck|test|dev`), Biome for lint and format.
+- CI (`.github/workflows/ci.yml`): Biome, typecheck, unit + browser tests, build, size budgets, publint +
+  are-the-types-wrong (`check-exports`), then Playwright e2e. Releases: Changesets (`pnpm changeset`), published by
+  `.github/workflows/release.yml`.
 - Packages build with tsdown. In this repo, apps and type-checking resolve packages to their
   TypeScript source through the `"@web-agents/source"` export condition, so edits hot-reload
   without a build; published packages use `dist/`.

@@ -116,7 +116,8 @@ describe("createCloudAdapter", () => {
       [503, "chat_disabled"],
       [400, "bad_request"],
     ] as const) {
-      const adapter = createCloudAdapter({ fetch: async () => new Response("{}", { status }) });
+      const body = status === 503 ? '{"error":"chat_disabled"}' : "{}";
+      const adapter = createCloudAdapter({ fetch: async () => new Response(body, { status }) });
       const { parts } = await collect(adapter);
       expect(parts).toEqual([expect.objectContaining({ type: "error", code })]);
     }
@@ -126,6 +127,25 @@ describe("createCloudAdapter", () => {
       },
     });
     expect((await collect(offline)).parts).toEqual([expect.objectContaining({ type: "error", code: "network" })]);
+  });
+
+  it("a budget or a busy store is a passing error; only chat_disabled turns the chat off", async () => {
+    const respond = (status: number, body: unknown, headers: Record<string, string> = {}) =>
+      createCloudAdapter({ fetch: async () => new Response(JSON.stringify(body), { status, headers }) });
+    const budget = respond(503, { error: "unavailable", reason: "daily_budget" });
+    expect((await collect(budget)).parts[0]).toMatchObject({
+      type: "error",
+      code: "rate_limited",
+      error: expect.stringMatching(/daily limit/),
+    });
+    expect(budget.status!()).toEqual({ state: "loading" });
+    const busy = respond(503, { error: "unavailable", reason: "busy" });
+    expect((await collect(busy)).parts[0]).toMatchObject({ error: expect.stringMatching(/busy/) });
+    const off = respond(503, { error: "chat_disabled" });
+    expect((await collect(off)).parts[0]).toMatchObject({ code: "chat_disabled" });
+    expect(off.status!()).toMatchObject({ state: "unavailable" });
+    const daily = respond(429, { error: "rate_limited" }, { "retry-after": "40000" });
+    expect((await collect(daily)).parts[0]).toMatchObject({ error: expect.stringMatching(/today's limit/) });
   });
 
   it("status comes from one GET", async () => {

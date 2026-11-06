@@ -16,6 +16,7 @@
     "@web-agents/core": "workspace:*",
     "@web-agents/local-agent": "workspace:*",
     "@web-agents/react": "workspace:*",
+    "@web-agents/vercel-api": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router": "^7.18.5",
@@ -31,5 +32,8 @@
     "@web-agents/polyfill": "workspace:*",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

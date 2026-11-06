@@ -1,12 +1,22 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalDependencies": ["tsconfig.base.json"],
+  "globalPassThroughEnv": [
+    "ANTHROPIC_API_KEY",
+    "WEB_AGENTS_*",
+    "RATE_LIMIT_*",
+    "ALLOWED_ORIGINS",
+    "KV_REST_API_*",
+    "UPSTASH_REDIS_REST_*",
+    "VERCEL_*"
+  ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"], "env": ["VITE_*"] },
     "dev": { "cache": false, "persistent": true },
     "typecheck": {},
     "test": { "outputs": ["coverage/**"] },
     "size": {},
+    "check-exports": { "dependsOn": ["build"], "outputs": [] },
     "e2e": { "cache": false, "passThroughEnv": ["CI", "PLAYWRIGHT_*"] }
   }
 }

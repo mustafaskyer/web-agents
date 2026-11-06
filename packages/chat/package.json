@@ -8,7 +8,8 @@
     "**/*.css"
   ],
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "exports": {
     ".": {
@@ -36,7 +37,8 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check-exports": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./chat.css"
   },
   "peerDependencies": {
     "@ai-sdk/anthropic": ">=4",
@@ -70,5 +72,14 @@
     "tsdown": "^0.23.7",
     "vite": "^8.3.6",
     "vitest-browser-react": "^2.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaskyer/web-agents.git",
+    "directory": "packages/chat"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

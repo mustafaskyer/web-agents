@@ -6,24 +6,29 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
     "@web-agents/chat": "workspace:*",
     "@web-agents/core": "workspace:*",
     "@web-agents/local-agent": "workspace:*",
     "@web-agents/react": "workspace:*",
+    "@web-agents/vercel-api": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tanstack/react-devtools": "^0.10.14",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "@web-agents/devtools": "workspace:*",
     "@web-agents/polyfill": "workspace:*",
     "vite": "^8.3.6"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

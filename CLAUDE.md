@@ -34,6 +34,8 @@ pnpm check                                 # biome ci + typecheck + test + build
 pnpm --filter @web-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9 KB, whole package ≤ 13 KB
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
+pnpm turbo run check-exports               # publint + are-the-types-wrong on every package (CI runs it)
+pnpm changeset                             # describe a change to a published package (release.yml publishes)
 pnpm e2e                                   # Playwright e2e of apps/ecommerce + apps/flights (not part of pnpm check)
 pnpm --filter @web-agents/core test        # one package
 pnpm --filter @web-agents/core exec vitest run --project core:unit      # node tests only
@@ -61,6 +63,8 @@ packages/chat/          @web-agents/chat: <AgentChat> (components/), AgentAdapte
 packages/local-agent/   @web-agents/local-agent: createLocalAdapter (index.ts), loop.ts (shared on-device agent loop),
                         tool-call-parser.ts, tools.ts (rank/compact/validate), providers/transformers (worker + engine +
                         main-thread provider), providers/prompt-api (Chrome LanguageModel)
+packages/vercel-api/    @web-agents/vercel-api (private): createVercelChatRoute for apps/*/api/chat.ts — origin, per-IP
+                        rate limit (Upstash or in-memory) and daily budget guards around the chat handler
 packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
@@ -167,6 +171,10 @@ mid-run (the cursor must vanish and the tool still complete).
   source; a tsdown plugin rewrites it to `./worker.js` in dist). Apps need `optimizeDeps.exclude` for the package and
   transformers, and `worker: { format: "es" }`. pnpm denies the install scripts of transformers' Node-only deps
   (`allowBuilds` in pnpm-workspace.yaml). Unit tests never download a model.
+- Node-environment Vitest tests that import *another* workspace package at runtime need
+  `ssr: { resolve: { conditions: ["@web-agents/source", ...defaultServerConditions] } }`, else they load its stale `dist`.
+- Vercel's function bundler resolves `api/chat.ts` imports with default conditions (`dist`, not `src`): a package used
+  there must build what its `exports` name (tsdown `platform: "node"` emits `.mjs`; publint in the build catches it).
 - Library CSS is unlayered on purpose: an app's plain `button { color: inherit }` beats any `@layer` rule.
 - Only `packages/chat/src/server/**` may import `@ai-sdk/anthropic` (Biome `noRestrictedImports` override).
 - Example drawers/sheets are non-modal (`role="dialog"` + `inert` page), never `showModal()`: the top layer would hide

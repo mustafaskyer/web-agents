@@ -133,4 +133,19 @@ describe("createChatHandler", () => {
     await (await createChatHandler({ model, maxSteps: 2 })(post({ messages: [user, step(1), step(2)], tools: [tool] }))).text();
     expect(model.doStreamCalls[0]!.tools ?? []).toHaveLength(0);
   });
+
+  it("beforeModel runs only for valid requests, and can refuse", async () => {
+    const seen: string[] = [];
+    const handler = createChatHandler({
+      model: scriptedModel([{ text: "ok" }]),
+      beforeModel: () => {
+        seen.push("called");
+        return seen.length > 1 ? new Response(null, { status: 503 }) : undefined;
+      },
+    });
+    expect((await handler(post({ messages: [] }))).status).toBe(400);
+    expect(seen).toEqual([]);
+    expect((await handler(post({ messages: [user], tools: [] }))).status).toBe(200);
+    expect((await handler(post({ messages: [user], tools: [] }))).status).toBe(503);
+  });
 });
