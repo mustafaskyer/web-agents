@@ -27,7 +27,10 @@ export function Footer() {
           </nav>
         ))}
       </div>
-      <p className={styles.small}>Demo store. Nothing here ships.</p>
+      <p className={styles.small}>
+        Demo store. Nothing here ships. Product photos from{" "}
+        <a href="https://unsplash.com/?utm_source=web-agents&utm_medium=referral">Unsplash</a>.
+      </p>
     </footer>
   );
 }

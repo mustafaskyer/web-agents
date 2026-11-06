@@ -29,7 +29,7 @@ export function Gallery({ images, name }: { images: readonly Art[]; name: string
       <div ref={thumbs} className={styles.thumbs} role="group" aria-label="Images" onKeyDown={onKeyDown}>
         {images.map((art, i) => (
           <button
-            key={`${art.hue}-${art.angle}`}
+            key={art.photo ?? `${art.hue}-${art.angle}`}
             type="button"
             aria-label={`Show image ${i + 1}`}
             aria-pressed={i === index}

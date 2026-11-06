@@ -12,10 +12,15 @@ export interface Category {
   blurb: string;
 }
 
-/** A generated art tile (no image files: no network, no licences). */
+/**
+ * A product image: an Unsplash photo (free under the Unsplash License, loaded straight from images.unsplash.com),
+ * over a generated gradient tile that shows while it loads and stays if it fails (offline, blocked).
+ */
 export interface Art {
   hue: number;
   angle: number;
+  /** Unsplash photo id, e.g. "photo-1514228742587-6b1558fcca3d". */
+  photo?: string;
 }
 
 export interface Product {

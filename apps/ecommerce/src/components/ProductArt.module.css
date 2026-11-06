@@ -26,3 +26,15 @@
 .art[data-size="lg"] span {
   font-size: clamp(96px, 16vw, 200px);
 }
+.art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out);
+}
+.art img[data-loaded] {
+  opacity: 1;
+}

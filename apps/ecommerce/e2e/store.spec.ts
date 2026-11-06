@@ -66,7 +66,7 @@ test("add_to_cart without a size: 'Not now' tells the agent to ask", async ({ pa
 });
 
 test("add_to_cart with a bad quantity: the agent and the page get the same error", async ({ page }) => {
-  await open(page, "/product/oak-tray");
+  await open(page, "/product/nesting-bowls");
   await expect.poll(() => list(page)).toContain("add_to_cart");
   expect(await run(page, "add_to_cart", { qty: 9 })).toBe("Error: Quantity must be a whole number from 1 to 3, got 9.");
   await expect(page.getByRole("alert")).toHaveText("Quantity must be a whole number from 1 to 3, got 9.");

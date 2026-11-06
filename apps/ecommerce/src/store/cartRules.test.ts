@@ -30,7 +30,7 @@ describe("cart rules", () => {
   });
 
   it("bounds the quantity by stock, counting the cart", () => {
-    const tray = getProduct("oak-tray"); // stock 3
+    const tray = getProduct("nesting-bowls"); // stock 3
     expect(() => checkQty(tray, 0)).toThrow(/from 1 to 3/);
     expect(() => checkQty(tray, 1.5)).toThrow(/whole number/);
     expect(() => checkQty(tray, 2, 2)).toThrow(/from 1 to 1 \(2 already in the cart\)/);
