@@ -1,0 +1,111 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: clamp(64px, 12vw, 144px) var(--page-pad) var(--space-16);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-6);
+  text-align: center;
+}
+.glow {
+  position: absolute;
+  inset: 10% 20% auto;
+  height: 60%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(236 72 153 / 0.14), rgb(139 92 246 / 0.1) 60%, transparent);
+  filter: blur(40px);
+}
+.hero h1 {
+  max-width: 14ch;
+  font-size: clamp(40px, 7vw, 80px);
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+}
+.accent {
+  background: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.lede {
+  max-width: 52ch;
+  font-size: 17px;
+  color: var(--ink-2);
+}
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.sectionHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+}
+.sectionHead h2 {
+  margin-top: var(--space-3);
+  font-size: clamp(28px, 4vw, 40px);
+  letter-spacing: -0.03em;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+.tile {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.tile > div:first-child {
+  aspect-ratio: 16 / 10;
+  transition: transform 0.5s var(--ease-out);
+}
+@media (hover: hover) {
+  .tile:hover > div:first-child {
+    transform: scale(1.03);
+  }
+}
+.tileText {
+  position: absolute;
+  left: var(--space-6);
+  bottom: var(--space-6);
+  display: grid;
+  gap: var(--space-1);
+}
+.tileText h2 {
+  font-size: 24px;
+}
+.tileText p {
+  color: var(--ink-2);
+}
+.newsletter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  align-items: center;
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.newsletter h2 {
+  font-size: 28px;
+  margin-bottom: var(--space-2);
+}
+@media (max-width: 767px) {
+  .newsletter {
+    grid-template-columns: 1fr;
+    padding: var(--space-6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover > div:first-child {
+    transform: none;
+  }
+}

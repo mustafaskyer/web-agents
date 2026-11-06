@@ -1,0 +1,47 @@
+/* Field Store design tokens. Imported after @web-agents/core/cursor.css, so the --agent* values below win. */
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --ink: #0a0a0a;
+  --ink-2: #525252;
+  --ink-3: #6b6b6b; /* 5.0:1 on --bg */
+  --line: #e5e5e5;
+  --line-strong: #d4d4d4;
+  --tint: #f2f2f2;
+  --accent-from: #ec4899;
+  --accent-to: #8b5cf6;
+  --danger: #dc2626;
+  --success: #15803d;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(0 0 0 / 0.03);
+  --shadow-drawer: -24px 0 48px rgb(0 0 0 / 0.08);
+
+  --font-sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --page-max: 1280px;
+  --page-pad: clamp(16px, 4vw, 32px);
+  --header-h: 64px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* agent cursor theme: ink black, like the rest of the store */
+  --agent: #0a0a0a;
+  --agent-ink: #ffffff;
+  --agent-strong: #0a0a0a;
+  --agent-soft: rgb(10 10 10 / 0.14);
+  --agent-wait: #0a0a0a;
+  --agent-wait-soft: rgb(10 10 10 / 0.18);
+}

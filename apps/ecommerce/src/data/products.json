@@ -1,0 +1,170 @@
+[
+  {
+    "slug": "ocean-tee",
+    "name": "Ocean Tee",
+    "category": "apparel",
+    "price": 4800,
+    "description": "A heavyweight cotton tee dyed in small batches, so every one is a slightly different blue.",
+    "details": { "fit": "Relaxed, true to size", "fabric": "240 gsm organic cotton", "care": "Wash cold, hang dry" },
+    "variants": { "name": "Size", "options": ["S", "M", "L"] },
+    "stock": 12,
+    "images": [{ "hue": 205, "angle": 135 }, { "hue": 190, "angle": 45 }]
+  },
+  {
+    "slug": "linen-shirt",
+    "name": "Linen Shirt",
+    "category": "apparel",
+    "price": 9200,
+    "description": "Washed European linen with a soft collar. Gets better every summer.",
+    "details": { "fit": "Boxy, size down for a closer fit", "fabric": "100% washed linen", "care": "Machine wash, tumble low" },
+    "variants": { "name": "Size", "options": ["S", "M", "L", "XL"] },
+    "stock": 7,
+    "images": [{ "hue": 40, "angle": 160 }, { "hue": 32, "angle": 20 }]
+  },
+  {
+    "slug": "field-hoodie",
+    "name": "Field Hoodie",
+    "category": "apparel",
+    "price": 11800,
+    "description": "Loopback fleece, a double-layer hood and no logo anywhere.",
+    "details": { "fit": "Regular", "fabric": "420 gsm loopback cotton", "care": "Wash cold inside out" },
+    "variants": { "name": "Color", "options": ["Black", "Oat", "Moss"] },
+    "stock": 9,
+    "images": [{ "hue": 95, "angle": 120 }, { "hue": 80, "angle": 210 }]
+  },
+  {
+    "slug": "wool-beanie",
+    "name": "Wool Beanie",
+    "category": "accessories",
+    "price": 3200,
+    "description": "Rib-knit merino that keeps its shape and never itches.",
+    "details": { "fit": "One size", "fabric": "100% merino wool", "care": "Hand wash" },
+    "variants": { "name": "Color", "options": ["Black", "Rust", "Sky"] },
+    "stock": 20,
+    "images": [{ "hue": 15, "angle": 100 }, { "hue": 5, "angle": 300 }]
+  },
+  {
+    "slug": "canvas-tote",
+    "name": "Canvas Tote",
+    "category": "accessories",
+    "price": 3800,
+    "description": "Waxed canvas with an inside pocket, big enough for a laptop and lunch.",
+    "details": { "fit": "40 × 38 × 12 cm", "fabric": "18 oz waxed canvas", "care": "Spot clean" },
+    "stock": 15,
+    "images": [{ "hue": 30, "angle": 145 }, { "hue": 25, "angle": 65 }]
+  },
+  {
+    "slug": "leather-cardholder",
+    "name": "Leather Cardholder",
+    "category": "accessories",
+    "price": 5400,
+    "description": "Four slots and a centre pocket, stitched by hand from vegetable-tanned leather.",
+    "details": { "fit": "10 × 7 cm", "fabric": "Vegetable-tanned leather", "care": "Condition twice a year" },
+    "variants": { "name": "Color", "options": ["Tan", "Black"] },
+    "stock": 0,
+    "images": [{ "hue": 22, "angle": 200 }, { "hue": 18, "angle": 30 }]
+  },
+  {
+    "slug": "trail-cap",
+    "name": "Trail Cap",
+    "category": "accessories",
+    "price": 2900,
+    "description": "Six-panel nylon cap that packs flat and dries in minutes.",
+    "details": { "fit": "Adjustable strap", "fabric": "Ripstop nylon", "care": "Rinse and air dry" },
+    "stock": 18,
+    "images": [{ "hue": 150, "angle": 90 }, { "hue": 165, "angle": 270 }]
+  },
+  {
+    "slug": "stoneware-mug",
+    "name": "Stoneware Mug",
+    "category": "home",
+    "price": 2400,
+    "description": "Hand-thrown, with a speckled glaze and a thumb rest that fits.",
+    "details": { "fit": "350 ml", "fabric": "Stoneware", "care": "Dishwasher safe" },
+    "stock": 30,
+    "images": [{ "hue": 260, "angle": 135 }, { "hue": 245, "angle": 315 }]
+  },
+  {
+    "slug": "pour-over-set",
+    "name": "Pour-over Set",
+    "category": "home",
+    "price": 6800,
+    "description": "A glass carafe and ceramic dripper for two slow cups.",
+    "details": { "fit": "600 ml carafe", "fabric": "Borosilicate glass, ceramic", "care": "Hand wash" },
+    "stock": 6,
+    "images": [{ "hue": 330, "angle": 150 }, { "hue": 315, "angle": 40 }]
+  },
+  {
+    "slug": "linen-throw",
+    "name": "Linen Throw",
+    "category": "home",
+    "price": 8900,
+    "description": "A stonewashed linen blanket for the sofa, the beach and everything in between.",
+    "details": { "fit": "130 × 170 cm", "fabric": "Stonewashed linen", "care": "Machine wash warm" },
+    "variants": { "name": "Color", "options": ["Sand", "Slate"] },
+    "stock": 5,
+    "images": [{ "hue": 45, "angle": 110 }, { "hue": 210, "angle": 250 }]
+  },
+  {
+    "slug": "beeswax-candle",
+    "name": "Beeswax Candle",
+    "category": "home",
+    "price": 2200,
+    "description": "Pure beeswax, cotton wick, forty hours of honey-scented light.",
+    "details": { "fit": "8 × 10 cm", "fabric": "Beeswax, cotton", "care": "Trim the wick to 5 mm" },
+    "stock": 24,
+    "images": [{ "hue": 48, "angle": 180 }, { "hue": 38, "angle": 0 }]
+  },
+  {
+    "slug": "oak-tray",
+    "name": "Oak Tray",
+    "category": "home",
+    "price": 5600,
+    "description": "Solid oak, oiled not lacquered, for keys, coffee or breakfast in bed.",
+    "details": { "fit": "40 × 28 cm", "fabric": "European oak", "care": "Re-oil when it looks dry" },
+    "stock": 3,
+    "images": [{ "hue": 28, "angle": 95 }, { "hue": 35, "angle": 275 }]
+  },
+  {
+    "slug": "dusk-wallpapers",
+    "name": "Dusk Wallpapers",
+    "category": "digital",
+    "price": 900,
+    "description": "Twelve gradient wallpapers for phone and desktop, in 6K.",
+    "details": { "fit": "Phone, tablet and desktop sizes", "fabric": "PNG, 6K", "care": "Instant download" },
+    "stock": 999,
+    "images": [{ "hue": 280, "angle": 160 }, { "hue": 320, "angle": 20 }]
+  },
+  {
+    "slug": "film-presets",
+    "name": "Film Presets",
+    "category": "digital",
+    "price": 2900,
+    "description": "Eight photo presets modelled on expired 35 mm stock.",
+    "details": { "fit": "Lightroom and Capture One", "fabric": ".xmp, .costyle", "care": "Instant download" },
+    "variants": { "name": "Format", "options": ["Lightroom", "Capture One"] },
+    "stock": 999,
+    "images": [{ "hue": 12, "angle": 130 }, { "hue": 190, "angle": 310 }]
+  },
+  {
+    "slug": "field-sans",
+    "name": "Field Sans",
+    "category": "digital",
+    "price": 4900,
+    "description": "The typeface this store is named after: six weights, desktop and web licence.",
+    "details": { "fit": "6 weights, variable", "fabric": "OTF, WOFF2", "care": "Instant download" },
+    "stock": 999,
+    "images": [{ "hue": 0, "angle": 180 }, { "hue": 220, "angle": 90 }]
+  },
+  {
+    "slug": "ocean-socks",
+    "name": "Ocean Socks",
+    "category": "apparel",
+    "price": 1600,
+    "description": "Cushioned crew socks in the same blue as the tee.",
+    "details": { "fit": "EU 39–46", "fabric": "Combed cotton, nylon", "care": "Wash warm" },
+    "variants": { "name": "Size", "options": ["S", "M", "L"] },
+    "stock": 40,
+    "images": [{ "hue": 200, "angle": 60 }, { "hue": 210, "angle": 240 }]
+  }
+]

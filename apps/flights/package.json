@@ -1,0 +1,34 @@
+{
+  "name": "@web-agents/example-flights",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/poppins": "^5.3.0",
+    "@web-agents/core": "workspace:*",
+    "@web-agents/react": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^7.18.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "@web-agents/devtools": "workspace:*",
+    "@web-agents/polyfill": "workspace:*",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}

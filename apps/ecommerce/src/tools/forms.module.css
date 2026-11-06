@@ -1,0 +1,45 @@
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+.inline {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+.inline > :global(.field) {
+  flex: 1;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+.full {
+  grid-column: 1 / -1;
+}
+.fieldset {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.fieldset legend {
+  margin-bottom: var(--space-4);
+  font-size: 17px;
+  font-weight: 600;
+}
+.success {
+  color: var(--success);
+  font-size: 14px;
+}
+@media (max-width: 599px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

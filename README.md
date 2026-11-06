@@ -6,8 +6,9 @@ confirmation" state) without the tools knowing it exists, plus the tooling aroun
 
 ```
 pnpm install
-pnpm dev         # apps/playground on http://localhost:5173: open the devtools (bottom right, Alt+Shift+A) and run a tool
+pnpm dev         # every app: playground :5173, ecommerce :5174, flights :5175. Open the devtools (bottom right, Alt+Shift+A) and run a tool
 pnpm check       # biome ci + typecheck + tests + build, everything CI runs
+pnpm e2e         # Playwright end-to-end tests of the example apps (desktop + mobile)
 ```
 
 Works in any browser thanks to a dev-only polyfill of `document.modelContext`. In a Chrome
@@ -25,6 +26,19 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 | App | |
 |---|---|
 | [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: declarative forms, global / route / component-scoped WebTools, confirm-gated checkout and clear-cart. |
+
+## Examples
+
+Two realistic sites on mock data, with React Router 7. Each shows global, route-scoped and
+component-scoped tools, declarative forms and `defineWebTool` tools, and a confirm gate on the
+consequential step. Each app's README has its tool table.
+
+| App | Port | |
+|---|---|---|
+| [`apps/ecommerce`](apps/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
+| [`apps/flights`](apps/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
+
+`pnpm --filter @web-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
@@ -105,4 +119,5 @@ How the visual layer works, its options, yield-to-user and the WebMCP quirks it 
   TypeScript source through the `"@web-agents/source"` export condition, so edits hot-reload
   without a build; published packages use `dist/`.
 - Tests: Vitest. `*.test.ts` run in Node; `*.browser.test.ts` run in real Chromium (Vitest
-  browser mode + Playwright). First run: `pnpm exec playwright install chromium`.
+  browser mode + Playwright). First run: `pnpm exec playwright install chromium`. The example apps
+  add Playwright e2e tests in `apps/*/e2e` (`pnpm e2e`), which drive tools through `window.agent`.

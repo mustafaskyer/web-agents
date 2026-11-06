@@ -29,11 +29,12 @@ compete with the user (the cursor yields the moment they interact). Roadmap and 
 
 ```bash
 pnpm install
-pnpm dev                                   # apps/playground (Vite) with HMR into package source
+pnpm dev                                   # every app with HMR into package source: playground :5173, ecommerce :5174, flights :5175
 pnpm check                                 # biome ci + typecheck + test + build + size (what CI runs)
 pnpm --filter @web-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9 KB, whole package ≤ 13 KB
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
+pnpm e2e                                   # Playwright e2e of apps/ecommerce + apps/flights (not part of pnpm check)
 pnpm --filter @web-agents/core test        # one package
 pnpm --filter @web-agents/core exec vitest run --project core:unit      # node tests only
 pnpm --filter @web-agents/core exec vitest run --project core:browser   # Chromium tests only
@@ -46,6 +47,9 @@ pnpm exec playwright install chromium      # once, for browser-mode tests
 
 ```
 apps/playground/        demo storefront; every action is a WebMCP tool (declarative forms + imperative)
+apps/ecommerce/         "Field Store" example (React Router 7): global / route / drawer-scoped tools, confirm-gated checkout;
+                        data/ (mock JSON + pure queries), store/ (cart, cartRules), tools/, e2e/ (Playwright)
+apps/flights/           "Skyline" example: search in the URL, results tools on the results route, confirm-gated booking
 packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
                         webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css),
                         web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
@@ -119,6 +123,9 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 - Helpers in `packages/core/src/test-utils.ts`: `fixture`, `toolForm`, `uniqueName` (the polyfill registry lives for
   the whole page, so tool names must be unique per test), `recordEvents`, `until`.
 - Always `destroy()` visuals and remove fixtures in `afterEach`.
+- Example apps: `apps/*/e2e/*.spec.ts` (Playwright, desktop + Pixel 7, reduced motion so the cursor snaps) drive
+  tools through `window.agent` (`e2e/agent.ts`); a confirm gate is asserted via `[data-tool-submit-active]` + a
+  real click. Apps typecheck twice: `tsconfig.json` (src, `vite/client`) and `tsconfig.node.json` (configs + e2e).
 
 ---
 
@@ -142,5 +149,11 @@ mid-run (the cursor must vanish and the tool still complete).
   never `document.modelContext.executeTool` directly from library UI.
 - The devtools hotkey (Alt+Shift+A) is a trusted keydown on the page, so pressing it makes the cursor yield like any
   other key; drive tools ~1 s later in scripted checks (input inside the panel itself never yields).
+- Example apps pass the cart / booking store and `navigate` to catalog tools as `ctx.context` (typed by a `Register`
+  augmentation in `src/tools/context.ts`). Store actions read/write a ref, so back-to-back agent calls see each other.
+- Forms that navigate away answer first and navigate after the grace (`apps/*/src/lib/afterAnswer.ts`); a page whose
+  own tool empties it (checkout, booking) keeps rendering until then.
+- Example drawers/sheets are non-modal (`role="dialog"` + `inert` page), never `showModal()`: the top layer would hide
+  the agent cursor and make the devtools inert.
 - Devtools browser tests pre-bundle React in `optimizeDeps.include`; a dependency discovered mid-run reloads Vite and
   leaves two copies of React ("Cannot read properties of null (reading 'useState')").

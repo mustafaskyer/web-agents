@@ -7,3 +7,6 @@ __screenshots__/
 *.tsbuildinfo
 .vitest-attachments/
 .vitest/
+playwright-report/
+test-results/
+blob-report/

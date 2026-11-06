@@ -1,0 +1,12 @@
+[
+  { "code": "NW", "name": "Northwind Air", "color": "#1c6bd2" },
+  { "code": "MR", "name": "Meridian", "color": "#b45309" },
+  { "code": "AA", "name": "Altair Airways", "color": "#7c3aed" },
+  { "code": "CP", "name": "Coral Pacific", "color": "#e11d48" },
+  { "code": "SL", "name": "Solstice", "color": "#d97706" },
+  { "code": "BL", "name": "Bluefin", "color": "#0e7490" },
+  { "code": "AU", "name": "Aurora Lines", "color": "#15803d" },
+  { "code": "HZ", "name": "Horizon Jet", "color": "#334155" },
+  { "code": "KE", "name": "Kestrel", "color": "#9333ea" },
+  { "code": "SF", "name": "Saffron", "color": "#c2410c" }
+]

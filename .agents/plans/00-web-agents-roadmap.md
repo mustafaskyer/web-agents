@@ -44,7 +44,7 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 | In-browser agent | **transformers.js v4** (WebGPU, Qwen3 1.7B/4B ONNX) in a Worker; Chrome Prompt API provider when available | WebLLM tool calling still "WIP" |
 | Devtools host | standalone panel **and** optional TanStack Devtools plugin (`@tanstack/devtools` 0.16, still 0.x) | don't force TanStack on users |
 | Schema form | hand-rolled ~200-line JSON-schema renderer | WebMCP schemas are shallow; RJSF ≥100 KB with ajv |
-| Router (examples) | React Router 7 (data mode, `createBrowserRouter`) | small; provider is router-agnostic via `pathname` |
+| Router (examples) | React Router 7 (data mode, `createBrowserRouter`), pinned `^7.18.5` | small; provider is router-agnostic via `pathname` (apps pass `useLocation().pathname`). 8.x exists (8.5 on 2026-11-06); not adopted in Phase 4 |
 | Designs | hand-built, mirroring demo.yournextstore.com and react-flights-ui.vercel.app (no opendesign MCP connected) | user decision |
 | Deploy | one Vercel project per app, Root Directory `apps/<name>`, `api/chat.ts` web-standard function | Vercel Turborepo docs |
 
@@ -338,6 +338,20 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 - TanStack Devtools is 0.x → plugin lives in a separate entry; the standalone panel is the primary surface.
 - A public demo with an Anthropic key needs rate limiting, token caps and an origin check (Phase 7).
 - Top layer: elements opened with `showModal()` / popover render above any z-index, so the cursor overlay
-  (`--agent-z` on `body`) disappears under a modal cart drawer. Fix in core when it shows up (Phase 4): render the
-  overlay as a `popover="manual"` element and re-`showPopover()` it after a dialog opens, or use non-modal drawers.
+  (`--agent-z` on `body`) would disappear under a modal drawer, and the devtools panel would be inert behind it.
+  Decision (Phase 4): the example apps use non-modal panels (`role="dialog"` + `aria-modal`, the page behind
+  made `inert`, Escape and focus return handled in the app); core is unchanged (the cursor budget has ~0.04 KB left).
+  Revisit in core (`popover="manual"` overlay re-shown after a dialog opens) if a real app needs `showModal()`.
+- WebTool `target` is a fixed selector, so per-row tools (`update_cart_item`, `select_flight`) animate to the list,
+  not the row. Follow-up (Phase 2 contract): `target` may be `(input) => Element | null`.
+- The polyfill types radio groups as plain strings and `type=date` without a format, so the examples use `<select>`
+  for enums and say "YYYY-MM-DD" in `toolparamdescription`. Follow-up (polyfill): `enum` for radio groups,
+  `format: "date"` for date inputs.
+- The polyfill dispatches an agent's submit without `checkValidity()`, so `required` fields aren't enforced for
+  agents; the examples check in the submit handler (`CheckoutForm`). Follow-up (polyfill): validate before an agent
+  submit and answer `Error: …`, after checking what native Chrome does.
+- "Answer, then navigate / close after the grace" is duplicated in both examples (`apps/*/src/lib/afterAnswer.ts`).
+  Follow-up (react, additive): `useToolAnswer().answer(event, result, { then })` or an exported `afterAnswer`.
+- The examples load the polyfill in dev only; deployed demos show no tools without native WebMCP. Phase 7 decides
+  whether to ship it (`VITE_WEBMCP_POLYFILL`). Phase 5 mounts `<AgentChat />` where the apps' `Root` has a placeholder.
 - In-browser models: 1–2 GB downloads; ship as opt-in, cache with the Cache API, show progress.

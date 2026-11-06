@@ -1,0 +1,49 @@
+/* Skyline design tokens. Imported after @web-agents/core/cursor.css, so the --agent* values below win. */
+:root {
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --ink-3: #6b7280; /* 4.8:1 on --bg */
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --brand: #1c6bd2;
+  --brand-strong: #1557ad;
+  --brand-ink: #ffffff;
+  --brand-soft: rgb(28 107 210 / 0.08);
+  --brand-soft-2: rgb(28 107 210 / 0.12);
+  --danger: #d32f2f;
+  --danger-soft: rgb(211 47 47 / 0.08);
+  --success: #15803d;
+  --warn: #b45309;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
+  --shadow-pop: 0 12px 32px rgb(16 24 40 / 0.14);
+
+  --font-sans: "Poppins", system-ui, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --page-max: 1240px;
+  --page-pad: clamp(16px, 3vw, 24px);
+  --header-h: 72px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* agent cursor theme: brand blue */
+  --agent: #1c6bd2;
+  --agent-ink: #ffffff;
+  --agent-strong: #1c6bd2;
+  --agent-soft: rgb(28 107 210 / 0.16);
+  --agent-wait: #1c6bd2;
+  --agent-wait-soft: rgb(28 107 210 / 0.2);
+}

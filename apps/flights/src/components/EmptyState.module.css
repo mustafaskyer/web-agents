@@ -1,0 +1,18 @@
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-4);
+  text-align: center;
+}
+.empty h1,
+.empty h2 {
+  font-size: 22px;
+  font-weight: 600;
+}
+.empty p {
+  max-width: 44ch;
+}
+.empty > :last-child:not(p, h1, h2) {
+  margin-top: var(--space-3);
+}

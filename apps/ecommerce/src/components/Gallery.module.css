@@ -1,0 +1,32 @@
+.gallery {
+  display: grid;
+  gap: var(--space-3);
+}
+.main {
+  position: relative;
+  border-radius: var(--radius-lg);
+}
+.counter {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.8);
+  font: 500 12px / 1.4 var(--font-mono);
+}
+.thumbs {
+  display: flex;
+  gap: var(--space-2);
+}
+.thumbs button {
+  width: 64px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: calc(var(--radius-sm) + 2px);
+  background: none;
+  cursor: pointer;
+}
+.thumbs button[aria-pressed="true"] {
+  border-color: var(--ink);
+}

@@ -1,0 +1,14 @@
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 14px;
+}
+.inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-pad) calc(var(--space-8) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-8);
+}

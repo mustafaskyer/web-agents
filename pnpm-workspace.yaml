@@ -19,3 +19,4 @@ minimumReleaseAgeExclude:
   - playwright@1.65.0
   - rolldown-plugin-dts@0.30.0
   - tsdown@0.23.7
+  - "@playwright/test@1.65.0"

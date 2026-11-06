@@ -6,6 +6,7 @@
     "dev": { "cache": false, "persistent": true },
     "typecheck": {},
     "test": { "outputs": ["coverage/**"] },
-    "size": {}
+    "size": {},
+    "e2e": { "cache": false, "passThroughEnv": ["CI", "PLAYWRIGHT_*"] }
   }
 }
