@@ -1,0 +1,31 @@
+{
+  "name": "@web-agents/devtools",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Devtools for WebMCP pages: list tools, run them with JSON args, watch the agent.",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "@web-agents/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@web-agents/core": "workspace:^"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@web-agents/core": "workspace:*",
+    "tsdown": "^0.23.7"
+  }
+}

@@ -1,4 +1,9 @@
 dist/
 node_modules/
-pnpm-lock.yaml
-pnpm-workspace.yaml
+.turbo/
+coverage/
+__screenshots__/
+.vercel/
+*.tsbuildinfo
+.vitest-attachments/
+.vitest/

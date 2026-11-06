@@ -1,0 +1,45 @@
+{
+  "name": "@web-agents/polyfill",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A document.modelContext (WebMCP) polyfill with declarative form tools, for development and browsers without native support.",
+  "license": "MIT",
+  "sideEffects": [
+    "./src/auto.ts",
+    "./dist/auto.js"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "@web-agents/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auto": {
+      "@web-agents/source": "./src/auto.ts",
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@web-agents/core": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@web-agents/core": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@web-agents/core": "workspace:*",
+    "tsdown": "^0.23.7"
+  }
+}

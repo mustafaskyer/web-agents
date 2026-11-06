@@ -1,0 +1,131 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+`web-agents` is a pnpm + Turborepo monorepo of `@web-agents/*` packages for [WebMCP](https://developer.chrome.com/docs/ai/webmcp)
+pages (`document.modelContext`). The core idea: make an agent's tool calls **visible** to the person using the page
+(ghost cursor, field replay, a parked "confirm" state) without the tools knowing the visual layer exists, and never
+compete with the user (the cursor yields the moment they interact). Roadmap and per-phase implementation plans live in
+`.agents/plans/` (`00-web-agents-roadmap.md` is the source of truth for package names, public contracts and versions).
+
+---
+
+## Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| TypeScript ~6.0 (not 7: tooling) | everything, `strict`, `verbatimModuleSyntax` |
+| pnpm 11 workspaces + Turborepo 2 | monorepo, task graph (`build`, `dev`, `typecheck`, `test`) |
+| tsdown | library builds (`dist/*.js` + `.d.ts`, ESM only), runs publint |
+| Vite 8 + React 19 | apps (`apps/*`); packages declare React as a peer when they need it |
+| Vitest 5 (node + browser mode via Playwright/Chromium) | tests |
+| Biome 2 | lint + format (Markdown excluded) |
+
+---
+
+## Commands
+
+```bash
+pnpm install
+pnpm dev                                   # apps/playground (Vite) with HMR into package source
+pnpm check                                 # biome ci + typecheck + test + build (what CI runs)
+pnpm typecheck | pnpm test | pnpm build    # via turbo
+pnpm lint / pnpm format                    # biome
+pnpm --filter @web-agents/core test        # one package
+pnpm --filter @web-agents/core exec vitest run --project core:unit      # node tests only
+pnpm --filter @web-agents/core exec vitest run --project core:browser   # Chromium tests only
+pnpm exec playwright install chromium      # once, for browser-mode tests
+```
+
+---
+
+## Project Structure
+
+```
+apps/playground/        demo storefront; every action is a WebMCP tool (declarative forms + imperative)
+packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
+                        webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css)
+packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
+packages/devtools/      @web-agents/devtools: floating "agent console" (window.agent.run); rebuilt in Phase 3
+.agents/plans/          roadmap + phase plans (execute with /execute <plan>)
+tsconfig.base.json      shared compiler options (incl. customConditions)
+```
+
+---
+
+## Architecture
+
+- **Tools are pure.** Tool components (`apps/*/src/tools`) never import visuals. The only contract with the visual layer
+  is the `toolname="<tool name>"` attribute on the element a tool acts on.
+- **The visual layer is event-driven.** `installAgentVisuals()` (packages/core/src/visuals.ts) listens to `input`
+  (capture), `submit` with `agentInvoked` (capture), `toolactivated`/`toolcancel` (on `document.modelContext`, or
+  `window` before Chrome 156) and trusted user input. In `sync` mode it holds agent fills/submits and wraps
+  `registerTool` so the page reacts at the cursor's click. Native Chrome and the polyfill fire events in different
+  orders; runs start on whichever signal arrives first.
+- **Lifecycle.** Installs are ref-counted; `destroy()` on the last handle removes all DOM, listeners, timers and restores
+  `registerTool`. A detached `GhostCursor` never rebuilds DOM and fast-forwards (behaves like "yielded").
+- **Events.** `onAgentEvent` delivers `start | fill | park | result | error | cancel | yield | resume`; the `log` option
+  gets the same payloads. Devtools and the chat widget (later phases) build on this, not on internals.
+- **Only core, polyfill, devtools and chat touch `document.modelContext`.** WebMCP is an origin-trial API whose shapes
+  move; keep feature detection in those packages.
+
+---
+
+## Code Patterns
+
+### Naming & files
+- kebab-case files, camelCase functions, PascalCase types/classes, `XxxOptions` for option bags.
+- TSDoc `/** … */` on every export and every option (explain *why*, and defaults).
+- Section banners inside long functions: `// ---------- n. title ----------`.
+- Short "why" comments; don't narrate what the code does.
+
+### Packages
+- `exports` use the custom condition `"@web-agents/source": "./src/….ts"` first, then `types`/`import` → `dist`.
+  Apps set `resolve.conditions: ["@web-agents/source", ...defaultClientConditions]`; `tsconfig.base.json` sets
+  `customConditions`. So dev and typecheck use source; never import from another package's `src/` by path
+  (exception: core's tests import the polyfill source, because a dependency would be a cycle).
+- Packages that need WebMCP types import them by name from `@web-agents/core` (`import type { ModelContext } …`), which
+  also pulls the global declarations into their emitted `.d.ts`.
+- No DOM access at import time (SSR-safe); `typeof document === "undefined"` → no-op.
+- Library UIs (devtools, chat) put `data-web-agents-ui` (`UI_HOST_ATTR`) on their host so input there never yields the cursor.
+
+### Visuals / motion
+- Transforms and opacity only; one rAF loop; springs and minimum-jerk timing live in `motion.ts`.
+- Every animation has a reduced-motion path (`reduced()`, `wait()` collapse to 0).
+- Write fields like a user: native value setter + `input`/`change` events (React sees them).
+- Only `isTrusted` input may count as the user.
+
+### Errors
+- A tool's failure is a readable result for the agent (`"Error: …"`) and the same text on the page.
+- Event listeners must never break a tool run (`emit` catches and logs).
+
+---
+
+## Testing
+
+- `*.test.ts`: Node environment, pure logic (motion, events, SSR import).
+- `*.browser.test.ts`: real Chromium via Vitest browser mode; use `userEvent` from `vitest/browser` for **trusted**
+  input (required for yield tests); targets must sit inside the ~414 px-wide test viewport.
+- Helpers in `packages/core/src/test-utils.ts`: `fixture`, `toolForm`, `uniqueName` (the polyfill registry lives for
+  the whole page, so tool names must be unique per test), `recordEvents`, `until`.
+- Always `destroy()` visuals and remove fixtures in `afterEach`.
+
+---
+
+## Validation
+
+Before finishing any change: `pnpm check`. For visual changes also run the playground and drive a tool
+(`agent.run("add_to_cart_mug-01", { qty: 3 })` in DevTools, or the agent-browser skill), including moving the mouse
+mid-run (the cursor must vanish and the tool still complete).
+
+---
+
+## Gotchas
+
+- Vite 8's Lightning CSS warns that `:tool-form-active` / `:tool-submit-active` are unknown pseudo-classes. They are
+  Chrome's native WebMCP states; the rules are kept in the output. Keep native and `[data-tool-…]` rules separate.
+- Chrome cancels a call whose tool definition changes mid-flight; a form that hides itself after its own action must
+  stay until the agent has its answer (`apps/playground/src/tools/useAnswerGrace.ts`).
+- `executeTool` arg shapes differ by Chrome version (object vs JSON string); see `packages/devtools/src/console.ts`.
