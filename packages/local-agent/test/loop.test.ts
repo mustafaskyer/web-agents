@@ -104,9 +104,39 @@ describe("runLocalAgent", () => {
     const call = '<tool_call>{"name":"add_to_cart","arguments":{"qty":1}}</tool_call>';
     const max = await run(fake([call, call.replace("1", "2"), call.replace("1", "3")]), {}, { maxSteps: 2 });
     expect(max.parts.at(-1)).toEqual({ type: "finish", reason: "max-steps" });
+    // the run ends on words, not a silent tool card
+    expect(max.parts.at(-2)).toEqual({
+      type: "text-delta",
+      messageId: expect.any(String),
+      delta: expect.stringMatching(/^Added 2 mugs\.\n\nI stopped after 2 steps without finishing\./),
+    });
     const loop = await run(fake([call]), {}, { maxSteps: 6 });
-    expect(loop.callTool).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(loop.parts)).toContain("repeating the same action");
+    expect(loop.callTool).toHaveBeenCalledTimes(3); // the 2nd identical answer is flagged, the 3rd stops
+    expect(JSON.stringify(loop.parts)).toContain("going in circles");
+  });
+
+  it("stops a loop that alternates between calls (search → browse → search → browse)", async () => {
+    const search = '<tool_call>{"name":"search","arguments":{"q":"red tshirt"}}</tool_call>';
+    const browse = '<tool_call>{"name":"browse","arguments":{"c":"apparel"}}</tool_call>';
+    const loopTools: ToolDescriptor[] = ["search", "browse"].map((name) => ({
+      name,
+      description: name,
+      inputSchema: { type: "object", properties: {} },
+    }));
+    const provider = fake([search, browse, search, browse, search, browse]);
+    const callTool = vi.fn(async ({ name }: { name: string }) => ({
+      content: [{ type: "text", text: name === "search" ? "No match." : "Apparel: tee" }],
+    }));
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, { messages: [user], tools: loopTools, signal: new AbortController().signal, callTool }))
+      parts.push(p);
+    expect(callTool).toHaveBeenCalledTimes(4);
+    // the first repeat is told it learned nothing
+    expect(
+      provider.requests[3]!.messages.find((m) => m.role === "tool" && m.content.includes("already made this exact call")),
+    ).toBeTruthy();
+    expect(parts.at(-1)).toEqual({ type: "finish", reason: "stop" });
+    expect(JSON.stringify(parts)).toContain("going in circles");
   });
 
   it("an abort finishes as aborted", async () => {

@@ -30,7 +30,9 @@ export interface LocalLoopOptions {
 const TOO_LONG = "This request is too long for the on-device model. Start a new chat, or try the cloud assistant.";
 const TIMEOUT = "The on-device model took too long. Try a shorter request or the cloud assistant.";
 const APOLOGY = "Sorry, I couldn't work out how to do that on this page. Try rephrasing, or use the cloud assistant.";
-const REPEAT = "I stopped because I was repeating the same action. Tell me what to change, or try the cloud assistant.";
+const REPEAT = "I stopped because I was going in circles. Tell me more about what you want, or try the cloud assistant.";
+const MAX_STEPS = (n: number): string =>
+  `I stopped after ${n} steps without finishing. Try a more specific request (a product name, a size), or the cloud assistant.`;
 
 const lastUserText = (messages: readonly AgentMessage[]): string => {
   const m = messages.findLast((x) => x.role === "user");
@@ -132,8 +134,9 @@ export async function* runLocalAgent(
   const format = provider.callFormat ?? "tags";
   const turns: ChatTurn[] = toChatTemplateMessages(req.messages, format);
   const used: string[] = [];
-  let lastCall = "";
-  let repeats = 0;
+  /** Each call made in this run (name + arguments) and what it returned: a call that brings nothing new is a loop. */
+  const seen = new Map<string, string>();
+  let loops = 0;
   /** The last tool call's error, until a later call succeeds: a reply that ignores it isn't accepted as the answer. */
   let failure: string | null = null;
   /** This run's successful tool results, newest last: what a final answer has to be about. */
@@ -244,17 +247,23 @@ export async function* runLocalAgent(
     // ---------- 2. run the calls on the page, in order ----------
     for (const call of calls) {
       const key = JSON.stringify(call);
-      repeats = key === lastCall ? repeats + 1 : 0;
-      lastCall = key;
-      if (repeats >= 2) {
-        yield { type: "text-delta", messageId, delta: REPEAT };
-        return yield { type: "finish", reason: "stop" };
-      }
       const id = newId();
       yield { type: "tool-call", messageId, id, name: call.name, input: call.arguments };
       const output = await req.callTool({ id, name: call.name, input: call.arguments });
       used.push(call.name);
-      turns.push({ role: "tool", name: call.name, content: textOf(output).slice(0, 1500) });
+      // The same call with the same answer as before (search → browse → search …): it learned nothing. Say so once;
+      // the second time, stop. A repeat that answers differently (the cart changed) is fine.
+      const same = seen.get(key) === textOf(output);
+      seen.set(key, textOf(output));
+      if (same && ++loops >= 2) {
+        yield output.isError ? { type: "tool-error", id, error: textOf(output) } : { type: "tool-result", id, output };
+        yield { type: "text-delta", messageId, delta: REPEAT };
+        return yield { type: "finish", reason: "stop" };
+      }
+      const note = same
+        ? "\n\n(You already made this exact call and got this same answer. Don't repeat it: try different words, another tool, or answer the user with what you found.)"
+        : "";
+      turns.push({ role: "tool", name: call.name, content: textOf(output).slice(0, 1500) + note });
       failure = output.isError ? textOf(output).slice(0, 300) : null;
       if (!output.isError) results.push(textOf(output));
       yield output.isError ? { type: "tool-error", id, error: textOf(output) } : { type: "tool-result", id, output };
@@ -264,5 +273,9 @@ export async function* runLocalAgent(
     turns.push({ role: "user", content: continuePrompt(query) });
     yield { type: "step-finish", step };
   }
+  // out of steps: say so (with what was found), rather than end on a silent tool card
+  const messageId = newId();
+  yield { type: "message-start", messageId };
+  yield { type: "text-delta", messageId, delta: (results.length ? `${brief(results.at(-1)!)}\n\n` : "") + MAX_STEPS(maxSteps) };
   yield { type: "finish", reason: "max-steps" };
 }

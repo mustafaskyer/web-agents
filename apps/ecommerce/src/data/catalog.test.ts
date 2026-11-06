@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allProducts, describeProduct, getProduct, listByCategory, money, related, searchProducts } from "./catalog";
+import { allProducts, describeProduct, getProduct, listByCategory, money, related, searchProducts, unmatchedWords } from "./catalog";
 
 describe("catalog", () => {
   it("ranks name-prefix matches before description matches", () => {
@@ -22,6 +22,9 @@ describe("catalog", () => {
     ).toEqual(["trail-cap", "wool-beanie"]);
     expect(searchProducts("something for coffee").map((p) => p.slug)).toEqual(expect.arrayContaining(["stoneware-mug", "pour-over-set"]));
     expect(searchProducts("a beautiful one")).toEqual([]);
+    // hyphens and size words don't get in the way; a colour that isn't sold is reported, not a dead end
+    expect(searchProducts("red tshirt large size")[0]?.slug).toBe("ocean-tee");
+    expect(unmatchedWords("red tshirt large size")).toEqual(["red"]);
   });
 
   it("filters by category and limits", () => {

@@ -5,7 +5,7 @@
     "category": "apparel",
     "price": 4800,
     "description": "A heavyweight cotton tee dyed in small batches, so every one is a slightly different blue.",
-    "tags": ["t-shirt", "shirt", "top", "blue", "cotton"],
+    "tags": ["t-shirt", "tee", "shirt", "top", "blue", "cotton"],
     "details": {
       "fit": "Relaxed, true to size",
       "fabric": "240 gsm organic cotton",

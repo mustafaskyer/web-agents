@@ -70,12 +70,16 @@ const STOP_WORDS = new Set(
     " ",
   ),
 );
+/** Sizes are a product's options, not words in its name: "a large tee" searches for "tee". */
+const SIZE_WORDS = new Set("size sizes sized xs small medium large xl xxl".split(" "));
 
+/** Hyphens don't count: "tshirt" finds "t-shirt". */
 const words = (s: string): string[] =>
   s
     .toLowerCase()
     .split(/[^a-z0-9-]+/)
-    .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
+    .map((w) => w.replace(/-/g, ""))
+    .filter((w) => w.length > 1 && !STOP_WORDS.has(w) && !SIZE_WORDS.has(w));
 
 /** "bags" finds "bag", "mugs" finds "mug". */
 const singular = (w: string): string => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
@@ -93,8 +97,8 @@ export function searchProducts(query: string, { category, limit }: SearchOptions
     let s = 0;
     if (name.startsWith(q) || name.split(/\s+/).some((w) => w.startsWith(q))) s += 20;
     else if (name.includes(q)) s += 10;
-    const nameWords = name.split(/\s+/).map(singular);
-    const tagWords = p.tags.flatMap((t) => t.toLowerCase().split(/\s+/)).map(singular);
+    const nameWords = words(name).map(singular);
+    const tagWords = p.tags.flatMap((t) => words(t)).map(singular);
     const descriptionWords = words(p.description).map(singular);
     for (const t of terms) {
       if (nameWords.some((w) => w.startsWith(t))) s += 4;
@@ -144,3 +148,8 @@ export const categoryOverview = (): string =>
         .map((p) => p.name)
         .join(", ")}`,
   ).join("\n");
+
+/** The words of `query` that match no product at all ("red" in "red tshirt"): worth telling the user. */
+export function unmatchedWords(query: string): string[] {
+  return [...new Set(words(query))].filter((w) => searchProducts(w).length === 0);
+}
