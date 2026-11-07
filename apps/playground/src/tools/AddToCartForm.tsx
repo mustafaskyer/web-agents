@@ -24,7 +24,7 @@ export function AddToCartForm({ product }: { product: Product }) {
   return (
     <form
       toolname={`add_to_cart_${product.sku}`}
-      tooldescription={`Add ${product.name} to the shopping cart`}
+      tooldescription={`Add ${product.name} to the cart, with a quantity. Use when the user asks for this product. Next: checkout (apply_promo first for a code).`}
       toolautosubmit=""
       onSubmit={onSubmit}
       className="tool-form"
@@ -39,7 +39,7 @@ export function AddToCartForm({ product }: { product: Product }) {
           required
           value={qty}
           onChange={(e) => setQty(Number(e.target.value))}
-          toolparamdescription="How many to add, e.g. 2"
+          toolparamdescription="How many to add, 1–20, e.g. 2"
         />
       </label>
       <button type="submit">Add to cart</button>

@@ -19,7 +19,7 @@ export function ClearCartButton() {
     () =>
       defineWebTool({
         id: "clear_cart",
-        description: "Remove every item from the shopping cart. The user confirms on the page.",
+        description: "Remove every item from the cart. Use only when the user asks to empty it. The user confirms on the page.",
         annotations: { destructiveHint: true },
         requireConfirmation: true,
         execute: () => cart.clear(),

@@ -33,7 +33,7 @@ export function CheckoutForm() {
   return (
     <form
       toolname="place_order"
-      tooldescription="Place the order for everything in the cart, using the applied promo code if any. The user confirms on the page."
+      tooldescription="Place the order for everything in the cart, with the applied promo code if any. Needs: items in the cart (an add_to_cart_… tool). The user confirms on the page. Next: list_orders shows it."
       onSubmit={onSubmit}
       className="tool-form checkout-form"
     >

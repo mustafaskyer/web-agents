@@ -43,7 +43,7 @@ export function ApplyPromoForm() {
   return (
     <form
       toolname="apply_promo"
-      tooldescription="Apply a promo code to the cart. The discount shows in the cart total and is used when the order is placed."
+      tooldescription="Apply a promo code the user gave you to the cart, before checkout. The discount shows in the cart total and is used when the order is placed. remove_promo takes it off."
       toolautosubmit=""
       onSubmit={onSubmit}
       className="tool-form promo-form"
@@ -63,7 +63,7 @@ export function ApplyPromoForm() {
           }}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          toolparamdescription="The promo code to apply, e.g. 123"
+          toolparamdescription="The code exactly as the user gave it, e.g. 123"
         />
       </label>
       <button type="submit" disabled={!!cart.promo}>

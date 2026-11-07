@@ -30,7 +30,8 @@ function cartOf(context: CartApi | undefined): CartApi {
 export const getCart = defineWebTool({
   id: "get_cart",
   title: "Read the cart",
-  description: "List the items in the shopping cart, the applied promo code and the totals.",
+  description:
+    "Read the cart: items, quantities, promo code and totals. Use to answer questions about the cart, or to check it before checkout.",
   annotations: { readOnlyHint: true },
   execute: (_input, ctx) => {
     const cart = cartOf(ctx.context);
@@ -46,7 +47,7 @@ export const getCart = defineWebTool({
 export const removePromo = defineWebTool({
   id: "remove_promo",
   title: "Remove the promo code",
-  description: "Remove the promo code applied to the cart.",
+  description: "Take the applied promo code off the cart. Use when the user asks to drop it.",
   target: '[toolname="remove_promo"]',
   execute: (_input, ctx) => cartOf(ctx.context).removePromo(),
 });
@@ -54,7 +55,7 @@ export const removePromo = defineWebTool({
 export const listOrders = defineWebTool({
   id: "list_orders",
   title: "List past orders",
-  description: "List the orders placed in this session, newest first.",
+  description: "List the orders placed in this session, newest first. Use for questions about past orders (after checkout).",
   inputSchema: z.object({
     limit: z.number().int().min(1).max(50).optional().describe("How many orders to return, e.g. 5. Default: all."),
   }),
