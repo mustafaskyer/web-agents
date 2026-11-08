@@ -23,7 +23,7 @@ export const DEFAULT_CPU_MODEL = "onnx-community/Qwen3-0.6B-ONNX";
 
 /** Options for `createTransformersProvider`. */
 export interface TransformersProviderOptions {
-  /** A transformers.js text-generation model id. Default: Qwen3 1.7B on WebGPU, 0.6B on WASM. */
+  /** A transformers.js text-generation model id. Default: Qwen3 0.6B (`DEFAULT_GPU_MODEL` / `DEFAULT_CPU_MODEL`). */
   model?: string;
   /** Default: q4f16 on WebGPU with f16 shaders, q4 otherwise. */
   dtype?: Dtype;

@@ -68,6 +68,7 @@ packages/vercel-api/    @web-agents/vercel-api (private): createVercelChatRoute 
 packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
+docs/                   API reference: docs/<package>/<api>.md, one file per public API (+ deploy.md); update it with the API
 .agents/plans/          roadmap + phase plans (execute with /execute <plan>)
 tsconfig.base.json      shared compiler options (incl. customConditions)
 ```

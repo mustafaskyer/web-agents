@@ -26,7 +26,7 @@ export type SessionAction =
   /** A core agent event about a running tool, matched by tool name (calls run one at a time). */
   | { type: "toolPhase"; name: string; state: "running" | "awaiting-confirmation"; prompt?: string }
   | { type: "stop" }
-  /** Run again from the last user message: drops what came after it. */
+  /** Run again from the interrupted turn's last finished tool call (see `resumable`); what came after it goes. */
   | { type: "retry" }
   | { type: "reset" };
 

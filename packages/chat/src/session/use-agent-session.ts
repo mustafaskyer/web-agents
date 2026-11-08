@@ -28,7 +28,7 @@ export interface AgentSession {
   adapterStatus: AdapterStatus;
   send(text: string): void;
   stop(): void;
-  /** Run again from the last user message. */
+  /** Run the interrupted turn again from its last finished tool call (see `resumable`): nothing is done twice. */
   retry(): void;
   /** Start a new conversation. */
   reset(): void;

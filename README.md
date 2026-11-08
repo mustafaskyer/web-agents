@@ -17,6 +17,8 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 
 ## Packages
 
+API reference, one file per API: [docs/](docs/README.md).
+
 | Package | |
 |---|---|
 | [`@web-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
