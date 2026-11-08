@@ -27,8 +27,9 @@ Imperative tools with no element on screen run at once (nothing to animate) but 
 
 Library UIs call tools like an agent with `executeTool(name, args, { signal })`: it looks the tool up
 in `getTools()`, absorbs the Chrome 150/156 argument-shape difference, normalises the result
-(`normalizeToolResult`), resolves `null` when the call navigated, and on abort calls
-`cancelTool(name)` where available and rejects with an `AbortError`.
+(`normalizeToolResult`), resolves `null` when the call navigated, and on abort cancels the call through
+`modelContext.executeTool(tool, args, { signal })` (Chrome's cancellation; the polyfill does the same) and
+rejects with an `AbortError`.
 
 Ships the WebMCP types as globals (`document.modelContext`, `SubmitEvent.agentInvoked`,
 `respondWith`) and as named exports (`ModelContext`, `ModelContextTool`, …).

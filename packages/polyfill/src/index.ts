@@ -91,14 +91,19 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
   async executeTool(
     toolOrName: ModelContextToolInfo | string,
     rawArgs: Record<string, unknown> | string = {},
+    { signal }: { signal?: AbortSignal } = {},
   ): Promise<ModelContextToolResult> {
     // Accept both the polyfill's (name, object) and Chrome's (tool, JSON string) call shapes.
     const name = typeof toolOrName === "string" ? toolOrName : toolOrName.name;
     const args: Record<string, unknown> = typeof rawArgs === "string" ? JSON.parse(rawArgs || "{}") : rawArgs;
     const tool = this.#tools.get(name);
     if (!tool) throw new Error(`Unknown tool "${name}"`);
+    if (signal?.aborted) throw new DOMException("Tool execution cancelled", "AbortError");
     const controller = new AbortController();
     this.#running.set(name, controller);
+    // The caller's signal cancels this call, as in Chrome: the tool's own signal aborts and toolcancel fires.
+    const cancel = (): void => this.#cancel(name, controller);
+    signal?.addEventListener("abort", cancel, { once: true });
     this.#emit("toolactivated", name);
     try {
       return normalize(await tool.execute(args, { signal: controller.signal }));
@@ -107,16 +112,22 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
       if (err instanceof FormGoneError) this.#emit("toolcancel", name); // the agent still gets a readable answer
       return { content: [{ type: "text", text: String((err as Error)?.message ?? err) }], isError: true };
     } finally {
-      this.#running.delete(name);
+      signal?.removeEventListener("abort", cancel);
+      if (this.#running.get(name) === controller) this.#running.delete(name);
     }
   }
 
-  /** Non-standard: lets the dev console cancel a running tool. */
+  #cancel(name: string, controller: AbortController): void {
+    if (controller.signal.aborted) return;
+    controller.abort();
+    this.#emit("toolcancel", name);
+  }
+
+  /** Non-standard: lets dev tooling cancel a call it didn't start (its own calls pass a `signal` to executeTool). */
   cancelTool(name: string): boolean {
     const c = this.#running.get(name);
     if (!c) return false;
-    c.abort();
-    this.#emit("toolcancel", name);
+    this.#cancel(name, c);
     return true;
   }
 }

@@ -30,7 +30,6 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 
 /** The runner under an expanded tool row. */
 export function ToolRunner({ store, tool, initial, gone = false, id, onRun }: ToolRunnerProps) {
-  const canCancel = useDevtools(store, (s) => s.canCancel);
   const hasVisuals = useDevtools(store, (s) => s.hasVisuals);
   const [value, setValue] = useState(initial);
   const [mode, setMode] = useState<"form" | "json">("form");
@@ -120,7 +119,7 @@ export function ToolRunner({ store, tool, initial, gone = false, id, onRun }: To
         <button type="button" className="btn primary" disabled={gone || !!jsonError} onClick={run}>
           Run <span className="kbd">{isMac ? "⌘↵" : "Ctrl+↵"}</span>
         </button>
-        {canCancel && running && last && (
+        {running && last && (
           <button type="button" className="btn" onClick={() => store.cancel(last.id)}>
             Cancel
           </button>

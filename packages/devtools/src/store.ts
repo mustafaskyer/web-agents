@@ -110,7 +110,10 @@ export interface DevtoolsState {
   settings: DevtoolsSettings;
   /** `document.modelContext` exists. */
   supported: boolean;
-  /** Calls can be cancelled from the page (only the polyfill implements `cancelTool`). */
+  /**
+   * Calls an agent started can be cancelled from the page (only the polyfill implements `cancelTool`).
+   * The panel's own runs can always be cancelled: they pass a signal to `executeTool`.
+   */
   canCancel: boolean;
   /** Spotlight and yield-to-user switches have a visuals controller to drive. */
   hasVisuals: boolean;
@@ -377,7 +380,7 @@ export function createDevtoolsStore({
     if (!call || !isOpen(call)) return;
     const controller = aborts.get(id);
     if (controller)
-      controller.abort(); // executeTool calls cancelTool and rejects
+      controller.abort(); // the browser cancels through executeTool's signal
     else mc?.cancelTool?.(call.tool);
   }
 

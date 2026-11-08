@@ -150,6 +150,45 @@ describe("declarative forms", () => {
     expect((err as DOMException).name).toBe("AbortError");
     expect(cancelled).toEqual([name]);
   });
+
+  it("cancels a paused call when the caller aborts executeTool's signal, as in Chrome", async () => {
+    const name = unique("signal");
+    const form = mount(`<form toolname="${name}"><button type="submit">Go</button></form>`);
+    await tick();
+
+    const cancelled: string[] = [];
+    const onCancel = (e: Event) => cancelled.push((e as ToolEvent).toolName);
+    mc.addEventListener("toolcancel", onCancel);
+    const controller = new AbortController();
+    const pending = mc.executeTool(name, {}, { signal: controller.signal }).catch((e: unknown) => e);
+    await tick();
+    controller.abort();
+    const err = await pending;
+    mc.removeEventListener("toolcancel", onCancel);
+
+    expect((err as DOMException).name).toBe("AbortError");
+    expect(cancelled).toEqual([name]);
+    expect(form.querySelector("button")?.hasAttribute("data-tool-submit-active")).toBe(false);
+  });
+
+  it("fails a paused call with a readable answer when its form leaves the page", async () => {
+    const name = unique("gone");
+    const form = mount(`<form toolname="${name}"><button type="submit">Go</button></form>`);
+    await tick();
+
+    const cancelled: string[] = [];
+    const onCancel = (e: Event) => cancelled.push((e as ToolEvent).toolName);
+    mc.addEventListener("toolcancel", onCancel);
+    const pending = mc.executeTool(name, {});
+    await tick();
+    form.remove();
+    const result = await pending;
+    mc.removeEventListener("toolcancel", onCancel);
+
+    expect((result as ModelContextToolResult).isError).toBe(true);
+    expect(text(result)).toMatch(/left the page before the user confirmed/);
+    expect(cancelled).toEqual([name]);
+  });
 });
 
 describe("imperative tools", () => {

@@ -75,7 +75,7 @@ export function CallDetail({ id, call, store, onRerun }: CallDetailProps) {
         <button type="button" className="btn" onClick={() => onRerun(call)}>
           Re-run…
         </button>
-        {open && canCancel && (
+        {open && (canCancel || call.origin === "devtools") && (
           <button type="button" className="btn" onClick={() => store.cancel(call.id)}>
             Cancel
           </button>

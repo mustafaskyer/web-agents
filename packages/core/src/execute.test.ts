@@ -4,8 +4,10 @@ import { executeTool, normalizeToolResult } from "./execute";
 const tool: ModelContextToolInfo = { name: "add", description: "", inputSchema: "{}" };
 
 /** A fake `document.modelContext` whose executeTool is `impl`. */
-function fakeModelContext(impl: (tool: ModelContextToolInfo | string, args: unknown) => Promise<unknown>) {
-  const mc = { getTools: async () => [tool], executeTool: vi.fn(impl), cancelTool: vi.fn(() => true) };
+function fakeModelContext(
+  impl: (tool: ModelContextToolInfo | string, args: unknown, options?: { signal?: AbortSignal }) => Promise<unknown>,
+) {
+  const mc = { getTools: async () => [tool], executeTool: vi.fn(impl) };
   vi.stubGlobal("document", { modelContext: mc });
   return mc;
 }
@@ -91,6 +93,6 @@ describe("executeTool", () => {
     await vi.waitFor(() => expect(mc.executeTool).toHaveBeenCalled());
     controller.abort();
     await expect(call).rejects.toMatchObject({ name: "AbortError" });
-    expect(mc.cancelTool).toHaveBeenCalledWith("add");
+    expect(mc.executeTool.mock.calls[0]?.[2]).toEqual({ signal: controller.signal }); // the browser cancels through it
   });
 });

@@ -91,7 +91,8 @@ store), `SchemaForm`, `defaultValueFor`, `parseSchema`, `toAgentRunCode`, `toExe
   Two concurrent calls of the same tool can mix their fills and results.
 - An agent's arguments aren't visible, only the fields the cursor typed; Re-run rebuilds
   arguments from those fills.
-- Cancel works only where `document.modelContext.cancelTool` exists (the polyfill). Native
-  Chrome has no page-side cancel, so the button is hidden there.
+- Runs started from the panel can always be cancelled (through `executeTool`'s `signal`). A call
+  an agent started can be cancelled only where `document.modelContext.cancelTool` exists (the
+  polyfill): native Chrome lets only the caller cancel, so the button is hidden there.
 - "On screen" is re-checked on `toolchange` and when the Tools tab is shown.
 - Pressing the hotkey on the page is real keyboard input, so the cursor yields for a moment.

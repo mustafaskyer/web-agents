@@ -58,9 +58,14 @@ declare global {
      * Chrome: `executeTool(toolFromGetTools, args)`. Args are an object in Chrome 156
      * and a JSON string in Chrome 150; the result may be a JSON string.
      * Dev polyfill: `executeTool(name, argsObject)` resolving to a result object.
+     * Aborting `options.signal` cancels the pending call (the tool's execute sees its own signal abort).
      */
-    executeTool(tool: ModelContextToolInfo | string, args?: Record<string, unknown> | string): Promise<ModelContextToolResult | string>;
-    /** Non-standard: only the dev polyfill implements it. */
+    executeTool(
+      tool: ModelContextToolInfo | string,
+      args?: Record<string, unknown> | string,
+      options?: { signal?: AbortSignal },
+    ): Promise<ModelContextToolResult | string>;
+    /** Non-standard, dev polyfill only: cancel a call someone else started (devtools). Use executeTool's `signal` for your own. */
     cancelTool?(name: string): boolean;
 
     ontoolchange?: ((ev: Event) => void) | null;

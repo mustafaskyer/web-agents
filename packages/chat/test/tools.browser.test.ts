@@ -56,14 +56,21 @@ describe("page tools for an agent", () => {
 
   it("an abort cancels the tool and answers Cancelled", async () => {
     const name = uniqueName("slow");
-    mc.registerTool({ name, description: "Slow", execute: () => new Promise(() => {}) });
-    const cancel = vi.spyOn(mc as ModelContext & { cancelTool(n: string): boolean }, "cancelTool");
+    let toolSignal: AbortSignal | undefined;
+    mc.registerTool({
+      name,
+      description: "Slow",
+      execute: (_args, { signal }) => {
+        toolSignal = signal;
+        return new Promise(() => {});
+      },
+    });
     const ctrl = new AbortController();
     const pending = callModelContextTool({ name, input: {} }, { signal: ctrl.signal });
     await new Promise((r) => setTimeout(r, 20));
     ctrl.abort();
     expect(await pending).toEqual({ content: [{ type: "text", text: "Cancelled by the user." }], isError: true });
-    expect(cancel).toHaveBeenCalledWith(name);
+    expect(toolSignal?.aborted).toBe(true); // cancelled through executeTool's signal, as in Chrome
     mc.unregisterTool!(name);
   });
 

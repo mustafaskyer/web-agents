@@ -17,7 +17,9 @@ const modelContext = installWebMCPPolyfill();
   and the confirmation pause, mirrored as `data-tool-form-active` / `data-tool-submit-active`
   (a polyfill can't define the native `:tool-form-active` / `:tool-submit-active` pseudo-classes).
 - `SubmitEvent.agentInvoked` and `respondWith(promise)`.
-- Non-standard `cancelTool(name)`, for dev tooling.
+- `executeTool(name, args, { signal })`: aborting the signal cancels the call (toolcancel fires, the
+  tool's own signal aborts), as in Chrome.
+- Non-standard `cancelTool(name)`, so dev tooling can cancel a call it didn't start.
 
 Event order differs from Chrome: the polyfill fires `toolactivated → fill → submit`,
 native Chrome `fill → submit → toolactivated`. `@web-agents/core` handles both.

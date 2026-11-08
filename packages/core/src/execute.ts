@@ -7,7 +7,7 @@ import { abortError, toToolResult } from "./result";
 
 /** Options for `executeTool`. */
 export interface ExecuteToolOptions {
-  /** Aborting cancels the call: `cancelTool(name)` where the page supports it (the polyfill), and the promise rejects with an AbortError. */
+  /** Aborting cancels the call (passed on to `modelContext.executeTool`), and the promise rejects with an AbortError. */
   signal?: AbortSignal;
 }
 
@@ -52,7 +52,7 @@ export async function executeTool(
   if (!tool) throw new Error(`Unknown tool "${name}"`);
   if (signal?.aborted) throw abortError(signal); // cancelled while looking the tool up
 
-  const call = (shape: typeof argsAs) => mc.executeTool(tool, shape === "object" ? args : JSON.stringify(args));
+  const call = (shape: typeof argsAs) => mc.executeTool(tool, shape === "object" ? args : JSON.stringify(args), { signal });
   const run = async (): Promise<ModelContextToolResult | string | null | undefined> => {
     // This call's shape, not the shared one: a concurrent call may already have switched it.
     const tried = argsAs;
@@ -66,12 +66,10 @@ export async function executeTool(
     }
   };
 
+  // The browser cancels the call through the signal; still reject at once, whatever a build does with it.
   let onAbort = (): void => {};
   const aborted = new Promise<never>((_, reject) => {
-    onAbort = () => {
-      mc.cancelTool?.(name);
-      reject(abortError(signal));
-    };
+    onAbort = () => reject(abortError(signal));
     signal?.addEventListener("abort", onAbort, { once: true });
   });
   try {
