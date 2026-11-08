@@ -179,7 +179,7 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
             min={today}
             value={date}
             onChange={(e) => clear(setDate)(e.target.value)}
-            toolparamdescription={`Departure date, YYYY-MM-DD, today (${today}) or later`}
+            toolparamdescription={`Departure date, YYYY-MM-DD, today (${today}) or later. A relative date (next Friday)? get_time gives it`}
           />
         </label>
         <label className="field" hidden={trip !== "roundtrip"}>

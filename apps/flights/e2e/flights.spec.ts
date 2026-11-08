@@ -192,3 +192,18 @@ test.describe("get_location without the location", () => {
     );
   });
 });
+
+test.describe("get_time", () => {
+  test.use({ timezoneId: "Asia/Riyadh", locale: "en-GB" });
+
+  test("answers the user's date, time and what relative dates mean", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-11-08T11:05:00Z")); // 14:05 in Riyadh, a Sunday
+    await open(page, "/");
+    expect(await list(page)).toContain("get_time");
+    const answer = await run(page, "get_time");
+    expect(answer).toContain("It's 14:05 on Sun 2026-11-08 for the user (Asia/Riyadh, UTC+03:00).");
+    expect(answer).toContain("Tomorrow: Mon 2026-11-09.");
+    expect(answer).toContain("Fri 2026-11-13");
+    expect(answer).toMatch(/Next week: 2026-11-09 to 2026-11-15 \(weeks start on Monday here\)/);
+  });
+});

@@ -6,6 +6,9 @@ allowBuilds:
   # transformers.js' Node-only deps: the browser (Web Worker) build never uses them
   onnxruntime-node: false
   protobufjs: false
+# blume 2.2.7 pins satteri 0.10 but its Astro uses 0.11: two copies break every page (drop once blume aligns them)
+overrides:
+  "blume>satteri": 0.11.7
 minimumReleaseAgeExclude:
   - "@biomejs/biome@2.6.6"
   - "@biomejs/cli-android-arm64@2.6.6"
@@ -23,3 +26,4 @@ minimumReleaseAgeExclude:
   - rolldown-plugin-dts@0.30.0
   - tsdown@0.23.7
   - "@playwright/test@1.65.0"
+  - blume@2.2.7

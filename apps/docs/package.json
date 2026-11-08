@@ -1,0 +1,18 @@
+{
+  "name": "@web-agents/docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview",
+    "test": "blume validate"
+  },
+  "dependencies": {
+    "blume": "^2.2.7"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

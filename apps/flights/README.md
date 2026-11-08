@@ -25,6 +25,7 @@ await agent.run("select_flight", { flightId: "F-…" });
 | `search_flights` | declarative | home and results pages | no |
 | `get_booking` | `defineWebTool`, read-only | global | no |
 | `get_location` | `defineWebTool`, read-only; city, region, country, coordinates and nearest airports. Location from the browser (asks once), city from BigDataCloud's free reverse geocoding (the coordinates leave the browser for that lookup), else a time-zone guess | global | no |
+| `get_time` | `defineWebTool`, read-only; the user's date, time and time zone, and what tomorrow / this weekend / next week / the next 14 days are (week start and weekend from the locale) | global | no |
 | `filter_results` | `defineWebTool` | results route | no |
 | `sort_results` | `defineWebTool` | results route | no |
 | `list_results` | `defineWebTool`, read-only | results route | no |
