@@ -106,7 +106,11 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
     signal?.addEventListener("abort", cancel, { once: true });
     this.#emit("toolactivated", name);
     try {
-      return normalize(await tool.execute(args, { signal: controller.signal }));
+      // Cancelled means settled, as in Chrome, even when the tool ignores its signal.
+      const cancelled = new Promise<never>((_, reject) =>
+        controller.signal.addEventListener("abort", () => reject(controller.signal.reason), { once: true }),
+      );
+      return normalize(await Promise.race([tool.execute(args, { signal: controller.signal }), cancelled]));
     } catch (err) {
       if (controller.signal.aborted) throw new DOMException("Tool execution cancelled", "AbortError");
       if (err instanceof FormGoneError) this.#emit("toolcancel", name); // the agent still gets a readable answer

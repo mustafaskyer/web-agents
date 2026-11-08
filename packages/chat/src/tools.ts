@@ -40,6 +40,13 @@ const text = (value: string, isError?: boolean): ToolOutput => ({ content: [{ ty
 /** What a call that navigated the page answers (Chrome resolves such calls to null). */
 export const NAVIGATED = "The page navigated away while this tool ran, so its result is unknown. Check the page before retrying.";
 
+/**
+ * A call the page or browser cancelled, not the user: the page navigated or the tool changed mid-call. Recoverable,
+ * so the agent must not read it as "the user said stop".
+ */
+export const INTERRUPTED =
+  "Error: The page cancelled this call before it finished (it navigated, or the tool changed). Nothing is confirmed done: check the page with the tools you have now, then try again.";
+
 /** Run a page tool for an agent. Resolves with the tool's result, or an `isError` result explaining what went wrong. */
 export async function callModelContextTool(
   call: { name: string; input: unknown },
@@ -53,7 +60,7 @@ export async function callModelContextTool(
     // Declarative tools can't set isError: the convention is an "Error:" prefix.
     return result.isError || /^Error:/.test(first) ? { ...result, isError: true } : result;
   } catch (err) {
-    if (isAbortError(err)) return text(CANCELLED, true);
+    if (isAbortError(err)) return text(signal?.aborted ? CANCELLED : INTERRUPTED, true);
     const message = errorText(err);
     if (/^Unknown tool/.test(message)) return text(`Error: Tool "${call.name}" is not available on this page right now.`, true);
     return text(message.startsWith("Error:") ? message : `Error: ${message}`, true);

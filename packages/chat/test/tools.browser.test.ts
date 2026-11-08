@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { callModelContextTool, listToolDescriptors, NAVIGATED } from "../src/tools";
+import { callModelContextTool, INTERRUPTED, listToolDescriptors, NAVIGATED } from "../src/tools";
 import { cleanupFixtures, echoForm, modelContext, uniqueName, until } from "./browser-utils";
 
 describe("page tools for an agent", () => {
@@ -71,6 +71,16 @@ describe("page tools for an agent", () => {
     ctrl.abort();
     expect(await pending).toEqual({ content: [{ type: "text", text: "Cancelled by the user." }], isError: true });
     expect(toolSignal?.aborted).toBe(true); // cancelled through executeTool's signal, as in Chrome
+    mc.unregisterTool!(name);
+  });
+
+  it("a call the page cancelled (not the user) is a recoverable error, not 'Cancelled by the user'", async () => {
+    const name = uniqueName("interrupted");
+    mc.registerTool({ name, description: "Slow", execute: () => new Promise(() => {}) });
+    const pending = callModelContextTool({ name, input: {} });
+    await new Promise((r) => setTimeout(r, 20));
+    mc.cancelTool?.(name); // the browser cancelling it, e.g. on navigation
+    expect(await pending).toEqual({ content: [{ type: "text", text: INTERRUPTED }], isError: true });
     mc.unregisterTool!(name);
   });
 
