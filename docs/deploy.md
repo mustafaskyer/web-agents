@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 99
+---
+
 # Deploying the examples to Vercel
 
 Each app (`apps/playground`, `apps/ecommerce`, `apps/flights`) is its own Vercel project. The static app is a Vite
@@ -85,6 +90,32 @@ for i in $(seq 1 32); do curl -s -o /dev/null -w "%{http_code} " -XPOST $P/api/c
   `vercel.json` files don't set it.
 - The build includes ONNX Runtime's ~27 MB WASM as a static asset; it's fetched only after a visitor chooses
   On-device and clicks Download.
+
+# The docs site
+
+`apps/docs` is a static [Blume](https://github.com/haydenbleasel/blume) site that renders this `docs/` folder. It is
+its own Vercel project and needs no secrets.
+
+| Setting | Value |
+|---|---|
+| Root Directory | `apps/docs` |
+| Framework | none (`"framework": null` in `vercel.json`) |
+| Build / install / output | from `vercel.json`: `turbo run build`, `pnpm install --frozen-lockfile`, `dist` |
+| Include source files outside of the Root Directory | on (the default): the content is `../../docs` |
+| Skip builds | `vercel.json`'s `ignoreCommand` skips a commit that touches neither `apps/docs`, `docs/` nor the lockfile |
+| `VERCEL_DEEP_CLONE` | optional, `true`: full git history, so pages show their real "last modified" date |
+
+Blume picks up the production domain from Vercel's environment for canonical URLs, the sitemap and Open Graph images.
+`vercel.json` also sets the content types of the raw Markdown copies (`/<page>.md`) and `llms.txt`.
+
+Smoke test a deployment:
+
+```bash
+D=https://<docs-deployment>
+curl -s -o /dev/null -w "%{http_code}\n" $D/core/define-web-tool          # 200
+curl -sI $D/core/define-web-tool.md | grep -i content-type                 # text/markdown; charset=utf-8
+curl -s $D/llms.txt | head -5
+```
 
 # Publishing the packages
 

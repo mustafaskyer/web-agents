@@ -51,6 +51,18 @@ test("search_flights answers, then shows the results; results tools exist only t
   await expect.poll(() => list(page)).toEqual(expect.arrayContaining(RESULTS_TOOLS));
 });
 
+test("search_flights takes airports the way agents copy them; a malformed date says how to send it", async ({ page }) => {
+  await open(page, "/?latency=0");
+  await expect.poll(() => list(page)).toContain("search_flights");
+  // the date input itself drops anything but YYYY-MM-DD
+  expect(await run(page, "search_flights", { ...search, date: `Fri ${search.date}.` })).toMatch(
+    /^Error: Departure date is missing or wasn't YYYY-MM-DD: send it exactly like \d{4}-\d{2}-\d{2}/,
+  );
+  const answer = await run(page, "search_flights", { ...search, from: "LHR.", to: "Dubai" });
+  expect(answer).toMatch(/^Found \d+ flights London \(LHR\) → Dubai \(DXB\)/);
+  await expect(page).toHaveURL(RESULTS_URL);
+});
+
 test("search_flights errors reach the agent and the page", async ({ page }) => {
   await open(page, "/?latency=0");
   await expect.poll(() => list(page)).toContain("search_flights");
@@ -201,8 +213,8 @@ test.describe("get_time", () => {
     await open(page, "/");
     expect(await list(page)).toContain("get_time");
     const answer = await run(page, "get_time");
-    expect(answer).toContain("It's 14:05 on Sun 2026-11-08 for the user (Asia/Riyadh, UTC+03:00).");
-    expect(answer).toContain("Tomorrow: Mon 2026-11-09.");
+    expect(answer).toContain("Now: 14:05 on Sun 2026-11-08 for the user (Asia/Riyadh, UTC+03:00)");
+    expect(answer).toContain("Tomorrow: 2026-11-09 (Mon)");
     expect(answer).toContain("Fri 2026-11-13");
     expect(answer).toMatch(/Next week: 2026-11-09 to 2026-11-15 \(weeks start on Monday here\)/);
   });

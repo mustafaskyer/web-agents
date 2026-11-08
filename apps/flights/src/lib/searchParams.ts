@@ -9,14 +9,29 @@ import { isIsoDate, todayIso } from "./dates";
 
 export const RESULTS_PATTERN = "/flights/:from/:to/:trip/:cabin/:adults/:children/:infants/:date";
 
-/** "LHR", "lhr", "London", "London — LHR", "Heathrow (LHR)" → the airport. */
+/** Quotes, brackets and sentence punctuation around a value: agents copy values out of sentences ("LHR.", "(LHR)"). */
+const AROUND = /^[\s"'`([{]+|[\s"'`.,;:!?)\]}]+$/g;
+
+/**
+ * "LHR", "lhr", "LHR.", "London", "London — LHR", "Heathrow (LHR)", "London Heathrow LHR", "fly from London" → the
+ * airport. A trailing code wins, then an exact city or airport name, then any known code in the text, then a city in it.
+ */
 export function findAirport(input: string): Airport | undefined {
-  const text = input.trim();
-  const code = text.match(/\b([A-Za-z]{3})\)?$/)?.[1]?.toUpperCase();
+  const text = input.replace(AROUND, "");
+  const lower = text.toLowerCase();
+  const byCode = (code: string | undefined) => (code ? AIRPORTS.find((a) => a.code === code.toUpperCase()) : undefined);
   return (
-    AIRPORTS.find((a) => a.code === code) ??
-    AIRPORTS.find((a) => a.city.toLowerCase() === text.toLowerCase() || a.name.toLowerCase() === text.toLowerCase())
+    byCode(text.match(/\b([A-Za-z]{3})$/)?.[1]) ??
+    AIRPORTS.find((a) => a.city.toLowerCase() === lower || a.name.toLowerCase() === lower) ??
+    (text.match(/\b[A-Za-z]{3}\b/g) ?? []).map(byCode).find(Boolean) ??
+    AIRPORTS.find((a) => lower.includes(a.city.toLowerCase()))
   );
+}
+
+/** The `YYYY-MM-DD` in "2026-11-13", "2026-11-13." or "Fri 2026-11-13"; anything else as given (and rejected). */
+function dateIn(value: unknown): string {
+  const text = String(value ?? "").trim();
+  return text.match(/^[^\d]*(\d{4}-\d{2}-\d{2})[^\d]*$/)?.[1] ?? text;
 }
 
 function airportCode(input: string, field: string): string {
@@ -48,12 +63,14 @@ export function checkQuery(raw: RawQuery, today = todayIso()): FlightQuery {
   const children = count(raw.children || 0, "Children", 0, 8);
   const infants = count(raw.infants || 0, "Infants", 0, 9);
   if (infants > adults) throw new Error(`Each infant needs an adult on their lap: ${infants} infants, ${adults} adults.`);
-  const date = String(raw.date ?? "");
+  const date = dateIn(raw.date);
+  // a date input empties itself on anything but YYYY-MM-DD, so "empty" usually means "sent in another format"
+  if (!date) throw new Error(`Departure date is missing or wasn't YYYY-MM-DD: send it exactly like ${today}, nothing around it.`);
   if (!isIsoDate(date)) throw new Error(`Departure date must be YYYY-MM-DD, got "${date}".`);
   if (date < today) throw new Error(`Date must be today (${today}) or later, got ${date}.`);
   const query: FlightQuery = { from, to, trip, cabin, adults, children, infants, date };
   if (trip === "roundtrip") {
-    const back = String(raw.returnDate ?? "");
+    const back = raw.returnDate ? dateIn(raw.returnDate) : "";
     if (!back) throw new Error("A round trip needs a returnDate (YYYY-MM-DD).");
     if (!isIsoDate(back)) throw new Error(`Return date must be YYYY-MM-DD, got "${back}".`);
     if (back < date) throw new Error(`Return date ${back} is before the departure ${date}.`);

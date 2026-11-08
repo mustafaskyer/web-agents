@@ -17,7 +17,8 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 
 ## Packages
 
-API reference, one file per API: [docs/](docs/README.md).
+API reference, one file per API: [docs/](docs/README.md), also built as a searchable site by
+[`apps/docs`](apps/docs/README.md) (`pnpm --filter @web-agents/docs dev`).
 
 | Package | |
 |---|---|

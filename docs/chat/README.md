@@ -1,3 +1,7 @@
+---
+slug: chat
+---
+
 # `@web-agents/chat`
 
 A chat widget whose agent works the live page through its WebMCP tools (`document.modelContext`). The model runs on

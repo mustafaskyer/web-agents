@@ -22,6 +22,17 @@ describe("results path", () => {
     expect(findAirport("Heathrow (LHR)")?.code).toBe("LHR");
     expect(findAirport("Atlantis")).toBeUndefined();
   });
+
+  it("ignores what an agent copies along with a value", () => {
+    expect(findAirport("LHR.")?.code).toBe("LHR");
+    expect(findAirport(" (DXB), ")?.code).toBe("DXB");
+    expect(findAirport('"JFK"')?.code).toBe("JFK");
+    expect(findAirport("London Heathrow LHR")?.code).toBe("LHR");
+    expect(findAirport("JFK New York")?.code).toBe("JFK");
+    expect(findAirport("from Dubai please")?.code).toBe("DXB");
+    expect(checkQuery({ ...base, from: "LHR.", date: "2026-11-08." }, today)).toEqual(base);
+    expect(checkQuery({ ...base, date: "Sun 2026-11-08" }, today).date).toBe("2026-11-08");
+  });
 });
 
 describe("checkQuery errors", () => {

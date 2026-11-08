@@ -1,3 +1,7 @@
+---
+slug: polyfill
+---
+
 # `@web-agents/polyfill`
 
 A `document.modelContext` (WebMCP) polyfill for development and browsers without native support, including declarative `<form toolname>` tools. It steps aside when the browser has the real API.

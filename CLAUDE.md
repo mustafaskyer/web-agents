@@ -22,6 +22,7 @@ compete with the user (the cursor yields the moment they interact). Roadmap and 
 | Vite 8 + React 19 | apps (`apps/*`); packages declare React as a peer when they need it |
 | Vitest 5 (node + browser mode via Playwright/Chromium) | tests |
 | Biome 2 | lint + format (Markdown excluded) |
+| Blume 2 (Astro) | docs site (`apps/docs`), renders `docs/` |
 
 ---
 
@@ -38,6 +39,7 @@ pnpm turbo run check-exports               # publint + are-the-types-wrong on ev
 pnpm changeset                             # describe a change to a published package (release.yml publishes)
 pnpm e2e                                   # Playwright e2e of apps/ecommerce + apps/flights (not part of pnpm check)
 pnpm --filter @web-agents/core test        # one package
+pnpm --filter @web-agents/docs dev         # docs site on :4321 (also started by pnpm dev); `test` = blume validate (links)
 pnpm --filter @web-agents/core exec vitest run --project core:unit      # node tests only
 pnpm --filter @web-agents/core exec vitest run --project core:browser   # Chromium tests only
 pnpm exec playwright install chromium      # once, for browser-mode tests
@@ -52,6 +54,7 @@ apps/playground/        demo storefront; every action is a WebMCP tool (declarat
 apps/ecommerce/         "Field Store" example (React Router 7): global / route / drawer-scoped tools, confirm-gated checkout;
                         data/ (mock JSON + pure queries), store/ (cart, cartRules), tools/, e2e/ (Playwright)
 apps/flights/           "Skyline" example: search in the URL, results tools on the results route, confirm-gated booking
+apps/docs/              @web-agents/docs: Blume site whose content root is ../../docs (config only; edit content in docs/)
 packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
                         webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css),
                         web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
@@ -68,7 +71,8 @@ packages/vercel-api/    @web-agents/vercel-api (private): createVercelChatRoute 
 packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
-docs/                   API reference: docs/<package>/<api>.md, one file per public API (+ deploy.md); update it with the API
+docs/                   API reference: docs/<package>/<api>.md, one file per public API (+ deploy.md); update it with the API.
+                        Each README.md has a `slug` frontmatter (/ or /<package>); each package folder a meta.ts (sidebar order)
 .agents/plans/          roadmap + phase plans (execute with /execute <plan>)
 tsconfig.base.json      shared compiler options (incl. customConditions)
 ```
@@ -189,3 +193,8 @@ mid-run (the cursor must vanish and the tool still complete).
   the agent cursor and make the devtools inert.
 - Devtools browser tests pre-bundle React in `optimizeDeps.include`; a dependency discovered mid-run reloads Vite and
   leaves two copies of React ("Cannot read properties of null (reading 'useState')").
+- The docs site (`apps/docs`, Blume): `blume build` refuses while `blume dev` runs (they share `.blume/`), so stop
+  `pnpm dev` before `pnpm check`. Docs pages stay `.md` (in `.mdx`, braces are JSX). A new package folder in `docs/`
+  needs a README `slug` and a `meta.ts`. `pnpm-workspace.yaml` overrides `satteri` for `blume` (two copies break every
+  page). `blume check` crashes (native type-checker), so the app has no `typecheck`. `apps/docs/turbo.json` makes
+  `docs/**` a build input; Turbo would otherwise replay a stale cached site.

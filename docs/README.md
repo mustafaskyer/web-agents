@@ -1,3 +1,9 @@
+---
+slug: index
+sidebar:
+  order: 0
+---
+
 # web-agents API docs
 
 Reference for every public API of the `@web-agents/*` packages, one file per API. Each package folder starts with a

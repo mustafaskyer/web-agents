@@ -1,3 +1,7 @@
+---
+slug: devtools
+---
+
 # `@web-agents/devtools`
 
 Devtools for WebMCP pages. The panel shows which tools are live on the current screen. It runs them from a form

@@ -36,12 +36,15 @@ export const getTime = defineWebTool({
     const offset = utcOffset(now);
     const time = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     const range = (r: { start: string; end: string }) => (r.start === r.end ? r.start : `${r.start} to ${r.end}`);
+    // one fact per line, no full stop after a date: models copy "2026-11-13." into arguments
     const text = [
-      `It's ${time} on ${cal.today.weekday} ${cal.today.date} for the user (${timeZone}, ${offset}).`,
-      `Today: ${cal.today.date}. Tomorrow: ${cal.tomorrow.weekday} ${cal.tomorrow.date}.`,
-      `This weekend: ${range(cal.weekend)}. Next week: ${range(cal.nextWeek)} (weeks start on ${NAMES[week.firstDay - 1]} here).`,
-      `Next 14 days: ${cal.upcoming.map((d) => `${d.weekday} ${d.date}`).join(", ")}.`,
-      "Dates go to search_flights as YYYY-MM-DD.",
+      `Now: ${time} on ${cal.today.weekday} ${cal.today.date} for the user (${timeZone}, ${offset})`,
+      `Today: ${cal.today.date}`,
+      `Tomorrow: ${cal.tomorrow.date} (${cal.tomorrow.weekday})`,
+      `This weekend: ${range(cal.weekend)}`,
+      `Next week: ${range(cal.nextWeek)} (weeks start on ${NAMES[week.firstDay - 1]} here)`,
+      `Next 14 days: ${cal.upcoming.map((d) => `${d.weekday} ${d.date}`).join(", ")}`,
+      "Pass dates to search_flights exactly as YYYY-MM-DD",
     ].join("\n");
     return {
       content: [{ type: "text", text }],

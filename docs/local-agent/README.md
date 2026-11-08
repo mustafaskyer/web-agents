@@ -1,3 +1,7 @@
+---
+slug: local-agent
+---
+
 # `@web-agents/local-agent`
 
 An on-device agent for [`@web-agents/chat`](../chat/README.md): the model runs in the visitor's browser. No server, no

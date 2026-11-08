@@ -1,3 +1,7 @@
+---
+slug: core
+---
+
 # `@web-agents/core`
 
 `@web-agents/core` shows the person using a page what a WebMCP agent is doing: a ghost cursor that glides to the tool, types the agent's values, clicks, and parks on a submit button while the browser waits for confirmation. The visual layer is driven only by WebMCP lifecycle events, so tools don't know it exists, and it gets out of the way the moment the user moves. The package also holds the tool model shared by the other `@web-agents/*` packages: `defineWebTool`, a ref-counted tool registry, deferred release helpers, error codes for tool results, a cross-browser `executeTool`, and the WebMCP types.

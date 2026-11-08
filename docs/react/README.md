@@ -1,3 +1,7 @@
+---
+slug: react
+---
+
 # `@web-agents/react`
 
 React bindings for WebMCP tools. Say once which tools the agent may see, turn them on globally, per route or per mounted component, and get the agent cursor without any ordering rules.

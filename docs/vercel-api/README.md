@@ -1,3 +1,7 @@
+---
+slug: vercel-api
+---
+
 # `@web-agents/vercel-api`
 
 The examples' `/api/chat` as Vercel web handlers. It puts `@web-agents/chat`'s server handler behind an origin

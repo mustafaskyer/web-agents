@@ -9,5 +9,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["playground", "@web-agents/example-ecommerce", "@web-agents/example-flights", "@web-agents/vercel-api"]
+  "ignore": ["playground", "@web-agents/example-ecommerce", "@web-agents/example-flights", "@web-agents/vercel-api", "@web-agents/docs"]
 }
