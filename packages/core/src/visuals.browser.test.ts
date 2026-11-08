@@ -166,6 +166,37 @@ describe("installAgentVisuals", () => {
     await until(() => !cursorVisible(), 1000, "cursor hidden");
   });
 
+  it("drops a parked confirm when its form leaves the page, and answers the agent", async () => {
+    const name = uniqueName("t_gone");
+    const form = toolForm(name, { autosubmit: false, fields: "" });
+    await tick();
+    const pending = modelContext().executeTool(name, {});
+    await until(() => rec.types().includes("park"), 4000, "park event");
+
+    form.remove(); // the person navigated away from the page with the form
+    expect(resultText(await pending)).toMatch(/left the page/);
+    await until(() => rec.types().includes("cancel"), 1000, "cancel event");
+    await until(() => !document.querySelector(".is-waiting") && !cursorVisible(), 1000, "unparked and hidden");
+  });
+
+  it("unparks on cancel even while another run is still open", async () => {
+    const mc = modelContext();
+    const first = uniqueName("t_open");
+    const second = uniqueName("t_park");
+    toolForm(first, { autosubmit: false, fields: "" });
+    toolForm(second, { autosubmit: false, fields: "" });
+    await tick();
+    const a = mc.executeTool(first, {}).catch((e: unknown) => e);
+    await until(() => rec.types().includes("park"), 4000, "first park");
+    const b = mc.executeTool(second, {}).catch((e: unknown) => e);
+    await until(() => rec.types().filter((t) => t === "park").length === 2, 4000, "second park");
+
+    expect(mc.cancelTool?.(second)).toBe(true);
+    expect(mc.cancelTool?.(first)).toBe(true);
+    await Promise.all([a, b]);
+    await until(() => !document.querySelector(".is-waiting"), 1000, "unparked");
+  });
+
   it("never lets a replaced registration's unregister remove the newer one", async () => {
     const name = uniqueName("t_owner");
     const first = registerWebTool(defineWebTool({ id: name, description: "first", execute: () => "first" }));

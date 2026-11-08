@@ -675,6 +675,11 @@ function start({
     if (!run || (onlyGeneration !== undefined && run.generation !== onlyGeneration)) return;
     run.el.removeAttribute("data-agent-active");
     runs.delete(toolName);
+    // the shared cursor would otherwise stay parked while any other run is still open
+    if (run.parked) {
+      agentCursor.unpark();
+      agentCursor.highlight(null);
+    }
     for (const { field } of run.fills) {
       owned.delete(field);
       known.set(field, fieldValue(field));

@@ -47,6 +47,9 @@ function normalize(r: unknown): ModelContextToolResult {
   return { content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };
 }
 
+/** A paused form left the page before the user confirmed: Chrome cancels such a call, so the polyfill does too. */
+class FormGoneError extends Error {}
+
 export class PolyfillModelContext extends EventTarget implements ModelContext {
   // biome-ignore lint/suspicious/noExplicitAny: a tool may declare any argument type; registration must accept them all
   #tools = new Map<string, ModelContextTool<any>>();
@@ -101,6 +104,7 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
       return normalize(await tool.execute(args, { signal: controller.signal }));
     } catch (err) {
       if (controller.signal.aborted) throw new DOMException("Tool execution cancelled", "AbortError");
+      if (err instanceof FormGoneError) this.#emit("toolcancel", name); // the agent still gets a readable answer
       return { content: [{ type: "text", text: String((err as Error)?.message ?? err) }], isError: true };
     } finally {
       this.#running.delete(name);
@@ -205,13 +209,23 @@ export function installWebMCPPolyfill(): ModelContext | undefined {
                 cleanup();
                 reject(new DOMException("cancelled", "AbortError"));
               };
+              // The person navigated away (or the page dropped the form): nothing can confirm any more.
+              const gone = new MutationObserver(() => {
+                if (submitter.isConnected) return;
+                cleanup();
+                reject(
+                  new FormGoneError(`Error: Not done: the "${name}" form left the page before the user confirmed. Nothing was submitted.`),
+                );
+              });
               const cleanup = () => {
+                gone.disconnect();
                 submitter.removeEventListener("click", onClick, true);
                 signal.removeEventListener("abort", onAbort);
                 submitter.removeAttribute("data-tool-submit-active");
               };
               submitter.addEventListener("click", onClick, true);
               signal.addEventListener("abort", onAbort, { once: true });
+              gone.observe(document, { childList: true, subtree: true });
             });
           }
 

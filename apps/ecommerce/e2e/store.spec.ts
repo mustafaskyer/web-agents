@@ -179,6 +179,24 @@ test("checkout waits for the person's click (confirm gate)", async ({ page }) =>
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^Order FS-[A-Z0-9]{4} confirmed$/);
 });
 
+test("leaving checkout while it waits for the click ends the call and the parked cursor", async ({ page }) => {
+  await open(page, "/product/canvas-tote");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  await run(page, "add_to_cart", { qty: 1 });
+  await page.keyboard.press("Escape");
+  await page.goto("/checkout");
+  await page.waitForFunction(() => !!window.agent);
+  await expect.poll(() => list(page)).toContain("checkout");
+
+  const contact = { email: "ada@example.com", name: "Ada Lovelace", address: "1 Analytical Way", city: "London", postcode: "N1 9GU" };
+  const pending = run(page, "checkout", contact);
+  await expect(page.getByRole("button", { name: /^Place order/ })).toHaveAttribute("data-tool-submit-active", "");
+
+  await page.locator("header a[href='/']").first().click(); // the person navigates away instead
+  expect(await pending).toMatch(/left the page before the user confirmed/);
+  await expect(page.locator(".agent-cursor.is-waiting, .agent-ring.is-waiting")).toHaveCount(0);
+});
+
 test.describe("with motion", () => {
   test.use({ reducedMotion: "no-preference" });
 
