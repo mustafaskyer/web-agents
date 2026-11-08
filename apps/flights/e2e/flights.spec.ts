@@ -155,14 +155,25 @@ test("reloading the booking page with nothing selected goes home", async ({ page
 });
 
 test.describe("get_location", () => {
-  test.use({ geolocation: { latitude: 51.5074, longitude: -0.1278 }, permissions: ["geolocation"] }); // central London
+  test.use({ geolocation: { latitude: 51.5074, longitude: -0.1278, accuracy: 120 }, permissions: ["geolocation"] }); // central London
 
-  test("answers the nearest airport from the browser's location, from any page", async ({ page }) => {
+  test("answers the city, coordinates and nearest airport, from any page", async ({ page }) => {
+    await page.route("https://api.bigdatacloud.net/**", (route) =>
+      route.fulfill({ json: { city: "London", locality: "London", principalSubdivision: "England", countryName: "United Kingdom" } }),
+    );
     await open(page, "/");
     expect(await list(page)).toContain("get_location");
     const answer = await run(page, "get_location");
-    expect(answer).toMatch(/^The user's nearest airport is London Heathrow \(LHR\), about \d+ km away\./);
+    expect(answer).toMatch(
+      /^The user is in London, England, United Kingdom at 51\.5074, -0\.1278 \(accurate to about 0\.1 km\)\. The nearest airport is London Heathrow \(LHR\), about \d+ km away\./,
+    );
     expect(answer).toContain("Use from: LHR in search_flights.");
+  });
+
+  test("still answers coordinates and airports when the city lookup fails", async ({ page }) => {
+    await page.route("https://api.bigdatacloud.net/**", (route) => route.abort());
+    await open(page, "/");
+    expect(await run(page, "get_location")).toMatch(/^The user is at 51\.5074, -0\.1278 .*London Heathrow \(LHR\)/);
   });
 });
 
@@ -177,7 +188,7 @@ test.describe("get_location without the location", () => {
       Object.defineProperty(navigator, "permissions", { value: { query: async () => ({ state: "denied" }) }, configurable: true });
     });
     expect(await run(page, "get_location")).toMatch(
-      /time zone \(Asia\/Dubai\) suggests Dubai International \(DXB\)\. Confirm with the user/,
+      /no coordinates, but their time zone \(Asia\/Dubai\) suggests Dubai International \(DXB\)\. Confirm with the user/,
     );
   });
 });
