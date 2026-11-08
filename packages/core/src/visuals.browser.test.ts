@@ -166,6 +166,30 @@ describe("installAgentVisuals", () => {
     await until(() => !cursorVisible(), 1000, "cursor hidden");
   });
 
+  it("sets a hidden field in place: the cursor never flies to the page's corner for it", async () => {
+    const name = uniqueName("t_hidden");
+    const form = toolForm(name, {
+      fields: '<input name="qty" type="number" min="1"><div style="display: none"><input name="returnDate"></div>',
+    });
+    await tick();
+    const corner: string[] = [];
+    let sampling = true;
+    const sample = (): void => {
+      const c = document.querySelector(".agent-cursor.is-visible")?.getBoundingClientRect();
+      const ring = document.querySelector(".agent-ring.is-visible")?.getBoundingClientRect();
+      if (c && c.x < 5 && c.y < 5) corner.push(`cursor ${c.x},${c.y}`);
+      if (ring && ring.width < 12) corner.push(`ring ${ring.x},${ring.y} ${ring.width}x${ring.height}`);
+      if (sampling) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    const result = await modelContext().executeTool(name, { qty: 2, returnDate: "2026-12-01" });
+    sampling = false;
+    expect(resultText(result)).toContain("ok");
+    expect((form.elements.namedItem("returnDate") as HTMLInputElement).value).toBe("2026-12-01");
+    expect(rec.events).toContainEqual({ type: "fill", tool: name, field: "returnDate", value: "2026-12-01" });
+    expect(corner).toEqual([]);
+  });
+
   it("drops a parked confirm when its form leaves the page, and answers the agent", async () => {
     const name = uniqueName("t_gone");
     const form = toolForm(name, { autosubmit: false, fields: "" });

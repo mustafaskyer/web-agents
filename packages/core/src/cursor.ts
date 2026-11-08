@@ -232,7 +232,8 @@ class GhostCursor {
   /** Glide to `el`. Resolves on arrival, or as soon as another move supersedes this one. */
   moveTo(el: Element): Promise<void> {
     // Yielded or detached: arrive at once and show nothing. Never scroll the page under a user who is interacting.
-    if (!this.ensure() || this.yielded) {
+    // Same for an element with no box (display: none, e.g. a hidden form field): it would aim at the page's corner.
+    if (!this.ensure() || this.yielded || !el.getClientRects()[0]) {
       this.arrival?.();
       this.arrival = null;
       return Promise.resolve();
@@ -276,6 +277,8 @@ class GhostCursor {
    */
   highlight(el: Element | null, force = false): void {
     if (!this.ensure()) return;
+    // no box (display: none): nothing to ring, and following it would drag the ring to the page's corner
+    if (!el?.getClientRects()[0]) el = null;
     if (el && this.yielded && !force) return;
     if (el === this.ringTarget) return;
     const previous = this.ringTarget;
@@ -359,9 +362,11 @@ class GhostCursor {
     for (const el of [this.cursorEl, this.tagEl, this.ringEl]) el.classList.add("is-waiting");
   }
 
+  /** Stop waiting: the prompt and the ring on the button go. */
   unpark(): void {
     if (!this.parked) return;
     this.parked = false;
+    this.highlight(null);
     this.setTag(this.name);
     for (const el of [this.cursorEl, this.tagEl, this.ringEl]) el.classList.remove("is-waiting");
   }
