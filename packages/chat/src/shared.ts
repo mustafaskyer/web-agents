@@ -1,10 +1,14 @@
 /** Small pieces several modules agree on. Pure: the server imports them too. */
 
-/** What a cancelled tool call answers; the session shows such a call as cancelled, not failed. */
-export const CANCELLED = "Cancelled by the user.";
+/** What a tool call the user stopped answers (code `cancelled`); the session shows it as cancelled, not failed. */
+export const CANCELLED = "Error [cancelled]: Cancelled by the user.";
 
-/** True for a tool error that is a cancellation. */
-export const isCancelled = (text: string): boolean => text.startsWith(CANCELLED);
+/** True for a tool error that is a cancellation (also the uncoded text conversations saved before codes carried). */
+export const isCancelled = (text: string): boolean => text.startsWith("Error [cancelled]") || text.startsWith("Cancelled by the user");
+
+/** What a call to a tool that isn't on the page answers (code `unavailable`): from the page, or from the server. */
+export const notOnPage = (tool: string): string =>
+  `Error [unavailable]: Tool "${tool}" is not on this page right now. Use a tool you have to get to the page that has it.`;
 
 let counter = 0;
 /** A unique message id: `prefix-<time>-<n>`. */

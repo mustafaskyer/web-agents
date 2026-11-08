@@ -10,7 +10,7 @@ import { newId } from "../shared";
 import { callModelContextTool, listToolDescriptors } from "../tools";
 import type { AdapterStatus, AgentAdapter, AgentMessage, ToolDescriptor } from "../types";
 import { useAdapterStatus } from "./use-adapter-status";
-import { initialSession, type SessionError, type SessionState, sessionReducer } from "./reducer";
+import { initialSession, resumable, type SessionError, type SessionState, sessionReducer } from "./reducer";
 
 /** Options for `useAgentSession`. */
 export interface UseAgentSessionOptions {
@@ -170,12 +170,12 @@ export function useAgentSession(adapter: AgentAdapter, { storageKey = "web-agent
     [run],
   );
 
+  // Retry continues the interrupted turn from its last finished tool call (see `resumable`): nothing is done twice.
   const retry = useCallback(() => {
     const { messages, status } = latest.current;
-    const last = messages.findLastIndex((m) => m.role === "user");
-    if (last === -1 || status === "streaming") return;
+    if (!messages.some((m) => m.role === "user") || status === "streaming") return;
     dispatch({ type: "retry" });
-    void run(messages.slice(0, last + 1));
+    void run(resumable(messages));
   }, [run]);
 
   const stop = useCallback(() => {

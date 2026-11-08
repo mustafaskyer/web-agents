@@ -88,3 +88,18 @@ Vite ships those to the browser.
 Implement `AgentAdapter` (`run(req)` yields `AgentStreamPart`s and calls `req.callTool()` for each tool call; read
 `req.tools` fresh before every model call). `callModelContextTool()` and `listToolDescriptors()` are exported for
 adapters that don't use the widget. `@web-agents/local-agent` (in-browser models) plugs in the same way.
+
+## When a tool fails
+
+A failed tool never ends the run: the result goes back to the model, coded (`Error [timeout]: …`, see core's
+error codes), and both system prompts say what to do per code. `callModelContextTool`:
+
+- answers `cancelled` only for the person's Stop; a call the page cancelled (a navigation, the tool re-registered) is
+  `interrupted`, so the agent checks the page and carries on instead of stopping;
+- stops a tool that hasn't answered in `TOOL_TIMEOUT_MS` (30 s; `timeoutMs` option, `0` for none) with `timeout`,
+  cancelling the call. The clock stops for good once the tool waits for the person (a confirm, a `waitingForUser`);
+- codes the rest: `unavailable` (not on this page), `failed` (a throw, or a plain `"Error: …"` answer).
+
+If the run itself fails (the model, the network), **Try again** resumes it: the conversation is sent through the
+last tool call that finished (`resumable(messages)`), so the agent continues from there and nothing is done twice.
+With nothing finished yet, the turn starts over.

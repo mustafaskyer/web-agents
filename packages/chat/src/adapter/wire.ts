@@ -38,7 +38,7 @@ function toUIPart(part: AgentPart): UIPart | null {
       ? CANCELLED
       : part.state === "error"
         ? part.error || outputText(part.output) || "The tool failed."
-        : "The tool didn't finish (the conversation was interrupted).";
+        : "Error [interrupted]: The tool didn't finish (the conversation was interrupted). Check the page before trying again.";
   return { ...base, state: "output-error", errorText };
 }
 
@@ -112,7 +112,11 @@ export async function* readParts(body: ReadableStream<Uint8Array>, messageId: st
       case "tool-input-error":
         // The model produced input that doesn't parse: it's still a call the model expects an answer to.
         yield { type: "tool-call", messageId, id: chunk.toolCallId, name: chunk.toolName, input: chunk.input };
-        yield { type: "tool-error", id: chunk.toolCallId, error: `Error: ${chunk.errorText}` };
+        yield {
+          type: "tool-error",
+          id: chunk.toolCallId,
+          error: chunk.errorText.startsWith("Error") ? chunk.errorText : `Error [invalid_input]: ${chunk.errorText}`,
+        };
         break;
       case "error":
         yield { type: "error", error: chunk.errorText };

@@ -121,6 +121,8 @@ export async function* runLocalAgent(
   const query = lastUserText(req.messages);
   const format = provider.callFormat ?? "tags";
   const turns: ChatTurn[] = toChatTemplateMessages(req.messages, format);
+  // Retry resumes an interrupted turn after its last finished call: carry on from that result, don't start over.
+  if (turns.at(-1)?.role === "tool") turns.push({ role: "user", content: continuePrompt(query) });
   const used: string[] = [];
   /** Each call made in this run (name + arguments) and what it returned: a call that brings nothing new is a loop. */
   const seen = new Map<string, string>();
@@ -129,6 +131,17 @@ export async function* runLocalAgent(
   let failure: string | null = null;
   /** This run's successful tool results, newest last: what a final answer has to be about. */
   const results: string[] = [];
+  // A resumed turn's calls count: a repeat is still a repeat, and a failure still has to be dealt with.
+  for (const m of req.messages.slice(req.messages.findLastIndex((m) => m.role === "user") + 1)) {
+    for (const p of m.parts) {
+      if (p.type !== "tool" || (p.state !== "done" && p.state !== "error")) continue;
+      const answer = p.error ?? textOf(p.output);
+      seen.set(JSON.stringify({ name: p.name, arguments: p.input ?? {} }), answer);
+      used.push(p.name);
+      failure = p.state === "error" ? answer.slice(0, 300) : null;
+      if (p.state === "done") results.push(answer);
+    }
+  }
   const path = typeof location === "undefined" ? undefined : location.pathname;
   const page = pageSummary();
 

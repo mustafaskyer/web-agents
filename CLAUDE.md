@@ -125,7 +125,9 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
   comes from, with an example. See `packages/react/README.md` "Writing tool descriptions".
 
 ### Errors
-- A tool's failure is a readable result for the agent (`"Error: …"`) and the same text on the page.
+- A tool's failure is a readable result for the agent and the same text on the page, with an error code:
+  `"Error [code]: …"` + `structuredContent.error` (`toolError`, `WebToolError`; codes in packages/core/src/result.ts).
+  A tool waiting on the person calls `waitingForUser` so the agent's 30 s tool timeout doesn't fire.
 - Event listeners must never break a tool run (`emit` catches and logs).
 
 ---

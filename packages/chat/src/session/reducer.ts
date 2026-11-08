@@ -58,6 +58,27 @@ const cancelOpen = (messages: AgentMessage[]): AgentMessage[] =>
     () => ({ state: "cancelled", prompt: undefined }),
   );
 
+/**
+ * What Retry sends: the conversation through the last tool call that finished in the interrupted turn, so the agent
+ * picks up from there instead of redoing it (adding to the cart twice). What came after (unfinished calls, a reply cut
+ * short) goes; with nothing finished, the turn restarts from the user's message.
+ */
+export function resumable(messages: AgentMessage[]): AgentMessage[] {
+  const user = messages.findLastIndex((m) => m.role === "user");
+  if (user === -1) return messages;
+  const finished = (p: AgentPart): boolean => p.type === "tool" && (p.state === "done" || p.state === "error");
+  // a call the failure cut short isn't the user's Stop: drop it rather than tell the model "Cancelled by the user"
+  const keep = (parts: AgentPart[]): AgentPart[] => parts.filter((p) => p.type !== "tool" || finished(p));
+  for (let i = messages.length - 1; i > user; i--) {
+    const m = messages[i]!;
+    const last = m.parts.findLastIndex(finished);
+    if (last === -1) continue;
+    const turn = [...messages.slice(user + 1, i), { ...m, parts: m.parts.slice(0, last + 1) }];
+    return [...messages.slice(0, user + 1), ...turn.map((t) => ({ ...t, parts: keep(t.parts) }))];
+  }
+  return messages.slice(0, user + 1);
+}
+
 function applyPart(state: SessionState, part: AgentStreamPart): SessionState {
   const { messages } = state;
   switch (part.type) {
@@ -144,11 +165,9 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
     }
     case "stop":
       return { ...state, status: "idle", messages: cancelOpen(state.messages) };
-    case "retry": {
-      const last = state.messages.findLastIndex((m) => m.role === "user");
-      if (last === -1) return state;
-      return { status: "streaming", messages: state.messages.slice(0, last + 1) };
-    }
+    case "retry":
+      if (!state.messages.some((m) => m.role === "user")) return state;
+      return { status: "streaming", messages: resumable(state.messages) };
     case "reset":
       return initialSession;
   }

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { toolErrorCode } from "./result";
 import { defineWebTool, toModelContextTool, WebToolInputError } from "./web-tool";
 
 const ctx = () => ({ signal: new AbortController().signal, source: "test" as const });
@@ -96,7 +97,7 @@ describe("toModelContextTool", () => {
     expect(res.content[0]?.text).toContain("qty");
   });
 
-  it("turns a thrown error into an isError result", async () => {
+  it("turns a thrown error into an isError result with a code", async () => {
     const tool = defineWebTool({
       id: "boom",
       description: "d",
@@ -105,9 +106,17 @@ describe("toModelContextTool", () => {
       },
     });
     await expect(toModelContextTool(tool).execute({}, ctx())).resolves.toEqual({
-      content: [{ type: "text", text: "Out of stock" }],
+      content: [{ type: "text", text: "Error [failed]: Out of stock" }],
       isError: true,
+      structuredContent: { error: { code: "failed", retryable: false } },
     });
+  });
+
+  it("codes invalid input as invalid_input, so the agent fixes its arguments", async () => {
+    const tool = addToCart();
+    const result = (await toModelContextTool(tool).execute({ sku: "mug", qty: 0 }, ctx())) as ModelContextToolResult;
+    expect(toolErrorCode(result)).toBe("invalid_input");
+    expect(result.content[0]?.text).toMatch(/^Error \[invalid_input\]: Invalid input for add_to_cart: .*qty/);
   });
 
   it("rejects with the AbortError when the call is cancelled", async () => {

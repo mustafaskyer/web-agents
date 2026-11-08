@@ -1,5 +1,5 @@
 /** Imperative WebTool: get_booking (global). Reads a confirmed booking by reference. */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool, WebToolError } from "@web-agents/react";
 import { z } from "zod";
 import { itineraryText } from "../lib/itinerary";
 import { app } from "./context";
@@ -18,7 +18,7 @@ export const getBooking = defineWebTool({
   annotations: { readOnlyHint: true },
   execute: ({ reference }, ctx) => {
     const booking = app(ctx).booking.getBooking(reference);
-    if (!booking) throw new Error(`No booking ${reference.toUpperCase()}.`);
+    if (!booking) throw new WebToolError("invalid_input", `No booking ${reference.toUpperCase()}.`);
     return itineraryText(booking);
   },
 });

@@ -41,6 +41,47 @@ async function run(provider: LocalProvider, over: Partial<AgentRunRequest> = {},
 }
 
 describe("runLocalAgent", () => {
+  it("a resumed turn (Retry after an interruption) continues after the last result instead of starting over", async () => {
+    const provider = fake(["Added 1 mug. Done."]);
+    const resumed: AgentMessage = {
+      id: "a1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool",
+          id: "c1",
+          name: "add_to_cart",
+          input: { qty: 2 },
+          state: "done",
+          output: { content: [{ type: "text", text: "Added 2 mugs." }] },
+        },
+      ],
+    };
+    const { callTool } = await run(provider, { messages: [user, resumed] });
+    expect(callTool).not.toHaveBeenCalled();
+    const turns = provider.requests[0]!.messages;
+    expect(turns.at(-2)).toMatchObject({ role: "tool", content: "Added 2 mugs." });
+    expect(turns.at(-1)).toEqual({ role: "user", content: continuePrompt("add 2 mugs") });
+  });
+
+  it("a resumed failure still has to be dealt with: 'it worked' after it gets the correction", async () => {
+    const provider = fake(["Added them!", "Sorry, adding failed: out of stock."]);
+    const failed: AgentMessage = {
+      id: "a1",
+      role: "assistant",
+      parts: [{ type: "tool", id: "c1", name: "add_to_cart", input: { qty: 2 }, state: "error", error: "Error [failed]: Out of stock." }],
+    };
+    const { parts } = await run(provider, { messages: [user, failed] });
+    expect(provider.requests).toHaveLength(2);
+    expect(provider.requests[1]!.messages.at(-1)).toEqual({ role: "user", content: failedPrompt("Error [failed]: Out of stock.") });
+    expect(
+      parts
+        .filter((p) => p.type === "text-delta")
+        .map((p) => (p as { delta: string }).delta)
+        .join(""),
+    ).toContain("out of stock");
+  });
+
   it("text only: message-start, text deltas, finish(stop)", async () => {
     const { types, parts } = await run(fake(["Hello there."]));
     expect(types[0]).toBe("message-start");
@@ -145,7 +186,7 @@ describe("runLocalAgent", () => {
       signal: ctrl.signal,
       callTool: async () => {
         ctrl.abort();
-        return { content: [{ type: "text", text: "Cancelled by the user." }], isError: true };
+        return { content: [{ type: "text", text: "Error [cancelled]: Cancelled by the user." }], isError: true };
       },
     });
     expect(parts.at(-1)).toEqual({ type: "finish", reason: "aborted" });

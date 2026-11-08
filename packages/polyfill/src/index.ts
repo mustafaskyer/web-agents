@@ -113,7 +113,15 @@ export class PolyfillModelContext extends EventTarget implements ModelContext {
       return normalize(await Promise.race([tool.execute(args, { signal: controller.signal }), cancelled]));
     } catch (err) {
       if (controller.signal.aborted) throw new DOMException("Tool execution cancelled", "AbortError");
-      if (err instanceof FormGoneError) this.#emit("toolcancel", name); // the agent still gets a readable answer
+      if (err instanceof FormGoneError) {
+        this.#emit("toolcancel", name);
+        // core's toolError("interrupted", …), inlined: core is only an optional (type) peer of the polyfill
+        return {
+          content: [{ type: "text", text: `Error [interrupted]: ${err.message}` }],
+          isError: true,
+          structuredContent: { error: { code: "interrupted", retryable: true } },
+        };
+      }
       return { content: [{ type: "text", text: String((err as Error)?.message ?? err) }], isError: true };
     } finally {
       signal?.removeEventListener("abort", cancel);
@@ -228,9 +236,7 @@ export function installWebMCPPolyfill(): ModelContext | undefined {
               const gone = new MutationObserver(() => {
                 if (submitter.isConnected) return;
                 cleanup();
-                reject(
-                  new FormGoneError(`Error: Not done: the "${name}" form left the page before the user confirmed. Nothing was submitted.`),
-                );
+                reject(new FormGoneError(`The "${name}" form left the page before the user confirmed. Nothing was submitted.`));
               });
               const cleanup = () => {
                 gone.disconnect();

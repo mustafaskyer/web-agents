@@ -17,7 +17,7 @@
  *   });
  */
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec";
-import { CONFIRM, TARGET, waitForConfirmation } from "./confirm";
+import { CONFIRM, ConfirmationUnavailableError, TARGET, waitForConfirmation } from "./confirm";
 import type { CallTracker } from "./deferred";
 import { abortError, errorResult, isAbortError, toToolResult } from "./result";
 
@@ -236,7 +236,10 @@ export function toModelContextTool(tool: WebTool, { context, calls }: ToModelCon
       return toToolResult(await tool.execute(input, { signal, source: "webmcp", context: context?.() as RegisteredContext }));
     } catch (err) {
       if (isAbortError(err)) throw err;
-      return errorResult(err);
+      return errorResult(
+        err,
+        err instanceof WebToolInputError ? "invalid_input" : err instanceof ConfirmationUnavailableError ? "unavailable" : "failed",
+      );
     }
   };
   return {

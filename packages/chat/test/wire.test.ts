@@ -27,7 +27,7 @@ describe("toUIMessages", () => {
     expect(assistant!.parts).toMatchObject([
       { type: "reasoning", providerMetadata: { anthropic: { signature: "sig" } } },
       { type: "dynamic-tool", toolCallId: "c1", state: "output-available" },
-      { type: "dynamic-tool", toolCallId: "c2", state: "output-error", errorText: "Cancelled by the user." },
+      { type: "dynamic-tool", toolCallId: "c2", state: "output-error", errorText: "Error [cancelled]: Cancelled by the user." },
       { type: "dynamic-tool", toolCallId: "c3", state: "output-error", errorText: "Error: bad code" },
     ]);
     const text = JSON.stringify((assistant!.parts[1] as { output: unknown }).output);

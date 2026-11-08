@@ -63,6 +63,34 @@ describe("sessionReducer", () => {
     expect(failed).toMatchObject({ status: "error", error: { message: "Slow down", code: "rate_limited" } });
   });
 
+  it("retry resumes after the last finished tool call: nothing done twice, the cut-short rest dropped", () => {
+    const s = play([
+      { type: "message-start", messageId: "a1" },
+      { type: "tool-call", messageId: "a1", id: "c1", name: "add_to_cart", input: { qty: 1 } },
+      { type: "tool-result", id: "c1", output: { content: [{ type: "text", text: "Added 1 mug." }] } },
+      { type: "message-start", messageId: "a2" },
+      { type: "text-delta", messageId: "a2", delta: "Now che" },
+      { type: "tool-call", messageId: "a2", id: "c2", name: "checkout", input: {} },
+      { type: "error", error: "The on-device model took too long." },
+    ]);
+    expect(tools(s).map((t) => t.state)).toEqual(["done", "cancelled"]);
+    const again = sessionReducer(s, { type: "retry" });
+    expect(again.status).toBe("streaming");
+    expect(again.messages.map((m) => m.id)).toEqual(["u1", "a1"]);
+    expect(tools(again)).toMatchObject([{ id: "c1", state: "done" }]);
+  });
+
+  it("retry drops calls the failure cut short, rather than resend them as cancelled by the user", () => {
+    const s = play([
+      { type: "message-start", messageId: "a1" },
+      { type: "tool-call", messageId: "a1", id: "c1", name: "slow", input: {} },
+      { type: "tool-call", messageId: "a1", id: "c2", name: "fast", input: {} },
+      { type: "tool-result", id: "c2", output: { content: [{ type: "text", text: "ok" }] } },
+      { type: "error", error: "network" },
+    ]);
+    expect(tools(sessionReducer(s, { type: "retry" })).map((t) => t.id)).toEqual(["c2"]);
+  });
+
   it("retry drops everything after the last user message", () => {
     const s = play([
       { type: "message-start", messageId: "a1" },

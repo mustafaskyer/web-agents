@@ -94,8 +94,8 @@ const off = registerWebTool(addToCart);
 ```
 
 - Input is validated with the schema's `~standard.validate`; bad input and thrown errors reach the
-  agent as `isError` results it can act on (`Invalid input for add_to_cart: qty: …`). Cancellation
-  rejects with an `AbortError`.
+  agent as `isError` results it can act on, with an error code (see below). Cancellation rejects
+  with an `AbortError`.
 - `requireConfirmation: true` makes the call wait for the person's (trusted) click on the tool's
   element, which runs the tool instead of the element's own click handler. With the visuals
   installed, the cursor parks there with "Click "…" to confirm". Input is validated before asking,
@@ -108,6 +108,31 @@ registered: `enable(ids)` is ref-counted and returns a disposer. Releases are de
 (a release plus a re-enable in the same tick never touches WebMCP) and wait until the tool's calls
 have settled plus `RESPONSE_GRACE_MS` (Chrome cancels a call whose tool is unregistered).
 `update(catalog)` re-registers only tools whose definition changed. `@web-agents/react` builds on it.
+
+## Error codes
+
+Every failed call says why with one code, twice: in the text every model reads
+(`Error [invalid_input]: Invalid input for add_to_cart: qty: …`) and in
+`structuredContent.error` (`{ code, retryable }`) for browsers, devtools and code that branches on it.
+
+| Code | Means | The agent should |
+|---|---|---|
+| `cancelled` | the user stopped it | stop; retry only if asked |
+| `interrupted` | the page navigated or the tool changed mid-call | check the page, then retry |
+| `timeout` | no answer in time (it may or may not have worked) | check the page, then retry or try another way |
+| `unavailable` | no such tool on this page right now | get to the page that has it |
+| `invalid_input` | the arguments were wrong | fix them and retry |
+| `needs_user` | the user has to choose or confirm | ask them |
+| `failed` | the tool couldn't do it | read the message |
+
+`toolError(code, message)` builds such a result and `toolErrorCode(result)` reads it back (from either place).
+A WebTool picks its code by throwing `new WebToolError("invalid_input", "No product \"x\"")`; other throws
+are `failed`, bad input `invalid_input`, nothing on the page to confirm on `unavailable`. A declarative form answers
+`"Error [needs_user]: …"` itself (a plain `"Error: …"` is coded `failed` by the chat).
+
+A tool that waits for the person (beyond a confirm the browser already pauses on) calls
+`waitingForUser(toolName, "Choose a size")`: the chat shows the prompt on the call, and the agent's tool
+time limit stops for it.
 
 ## How it works: driven by events only
 

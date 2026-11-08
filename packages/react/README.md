@@ -41,7 +41,8 @@ sentence or two each:
 
 Parameter descriptions say where a value comes from ("the slug as search_products lists it") and its format, with an
 example. Tool answers repeat the next step where it helps ("…Use add_to_cart to buy it."), and errors say how to fix
-them. Ask for what the user didn't give; never invent it. The example apps (`apps/ecommerce/src/tools`,
+them, with a code the agent can act on: `throw new WebToolError("invalid_input", "No product matches \"x\". Try
+search_products.")` (codes in `@web-agents/core`'s README). Ask for what the user didn't give; never invent it. The example apps (`apps/ecommerce/src/tools`,
 `apps/flights/src/tools`) follow this throughout.
 
 ## Provider props

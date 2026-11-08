@@ -70,7 +70,7 @@ test("add_to_cart without a size: 'Not now' tells the agent to ask", async ({ pa
   await expect.poll(() => list(page)).toContain("add_to_cart");
   const pending = run(page, "add_to_cart", { qty: 1 });
   await page.getByRole("button", { name: "Not now" }).click();
-  expect(await pending).toBe("Error: The user didn't choose a size. Ask them which one they want: S, M, L, XL.");
+  expect(await pending).toBe("Error [needs_user]: The user didn't choose a size. Ask them which one they want: S, M, L, XL.");
 });
 
 test("add_to_cart with a bad quantity: the agent and the page get the same error", async ({ page }) => {
@@ -101,7 +101,7 @@ test("close_cart closes the drawer; a tool for the page closes it first", async 
 
 test("open_product with a slug that matches nothing answers an error and stays put", async ({ page }) => {
   await open(page, "/");
-  expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^No product matches "nope"/);
+  expect(await run(page, "open_product", { slug: "nope" })).toMatch(/^Error \[invalid_input\]: No product matches "nope"/);
   await expect(page).toHaveURL(/\/$/);
 });
 
@@ -115,7 +115,7 @@ test("go_to_page goes home and to all products", async ({ page }) => {
 
 test("go_to_page checkout needs something in the cart, then opens checkout and its tools", async ({ page }) => {
   await open(page, "/");
-  expect(await run(page, "go_to_page", { page: "checkout" })).toMatch(/^The cart is empty: add something first/);
+  expect(await run(page, "go_to_page", { page: "checkout" })).toMatch(/^Error \[failed\]: The cart is empty: add something first/);
   await expect(page).toHaveURL(/:\d+\/$/);
   await run(page, "open_product", { slug: "stoneware-mug" });
   await expect.poll(() => list(page)).toContain("add_to_cart");

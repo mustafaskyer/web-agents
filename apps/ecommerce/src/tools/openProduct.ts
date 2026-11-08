@@ -6,7 +6,7 @@
  * within the document, and these tools are global, so their definitions stay
  * put and the call is never cancelled by its own navigation.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool, WebToolError } from "@web-agents/react";
 import { z } from "zod";
 import {
   categorySlugs,
@@ -37,12 +37,12 @@ export const openProduct = defineWebTool({
     // An exact slug, else the best search match: agents guess slugs ("tee" for "ocean-tee"), and a near miss that
     // opens the right page beats an error a small model won't recover from.
     const words = query ?? slug?.replace(/-/g, " ");
-    if (!slug && !words) throw new Error("Pass a slug or a query.");
+    if (!slug && !words) throw new WebToolError("invalid_input", "Pass a slug or a query.");
     let product: Product | undefined = slug ? findProduct(slug) : undefined;
     let others: Product[] = [];
     if (!product) {
       [product, ...others] = searchProducts(words!);
-      if (!product) throw new Error(`No product matches "${words}". Try search_products with other words.`);
+      if (!product) throw new WebToolError("invalid_input", `No product matches "${words}". Try search_products with other words.`);
     }
     store(ctx).navigate(`/product/${product.slug}`);
     const next =
@@ -98,7 +98,7 @@ export const goToPage = defineWebTool({
     const { navigate, cart } = store(ctx);
     // describe() reads the latest cart (an add_to_cart a moment ago counts); `count` is the last render's
     if (page === "checkout" && cart.describe().startsWith("The cart is empty"))
-      throw new Error("The cart is empty: add something first (open_product, then add_to_cart).");
+      throw new WebToolError("failed", "The cart is empty: add something first (open_product, then add_to_cart).");
     navigate(PAGES[page]);
     if (page === "home") return "Opened the home page.";
     if (page === "checkout")

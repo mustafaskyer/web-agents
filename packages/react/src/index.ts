@@ -21,5 +21,6 @@ export { useAgentEvents } from "./use-agent-events";
 export { usePathname } from "./use-pathname";
 
 // The common path in one import.
-export { defineWebTool } from "@web-agents/core";
+export { defineWebTool, waitingForUser, WebToolError } from "@web-agents/core";
+export type { ToolErrorCode } from "@web-agents/core";
 export type { Register, WebTool, WebToolConfig, WebToolContext } from "@web-agents/core";

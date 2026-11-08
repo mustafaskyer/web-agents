@@ -103,7 +103,7 @@ describe("createCloudAdapter", () => {
       signal: ctrl.signal,
       callTool: async () => {
         ctrl.abort();
-        return { content: [{ type: "text", text: "Cancelled by the user." }], isError: true };
+        return { content: [{ type: "text", text: "Error [cancelled]: Cancelled by the user." }], isError: true };
       },
     });
     expect(parts.at(-1)).toEqual({ type: "finish", reason: "aborted" });

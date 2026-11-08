@@ -10,9 +10,10 @@
  * An agent that leaves out the size isn't failed: the person is right here.
  * The form highlights the size field and waits for their pick (a page can't
  * open a native dropdown without a real click), then adds and tells the agent
- * what was chosen. No pick within a minute answers the agent to ask instead.
+ * what was chosen. No pick within a minute answers the agent to ask instead
+ * (`Error [needs_user]`). `waitingForUser` tells the agent's tool clock the person is being asked.
  */
-import { errorText } from "@web-agents/core";
+import { errorText, waitingForUser } from "@web-agents/core";
 import { useToolAnswer } from "@web-agents/react";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { QtyStepper } from "../components/QtyStepper";
@@ -71,14 +72,15 @@ export function AddToCartForm({ product }: { product: Product }) {
           setAsking(null);
           if (picked === null) {
             resolve(
-              `Error: The user didn't choose a ${axis!.name.toLowerCase()}. Ask them which one they want: ${axis!.options.join(", ")}.`,
+              `Error [needs_user]: The user didn't choose a ${axis!.name.toLowerCase()}. Ask them which one they want: ${axis!.options.join(", ")}.`,
             );
             return;
           }
           const text = add(qtyToAdd, picked);
-          resolve(text.startsWith("Error:") ? text : `${text} The user chose ${axis!.name.toLowerCase()} ${picked}.`);
+          resolve(text.startsWith("Error") ? text : `${text} The user chose ${axis!.name.toLowerCase()} ${picked}.`);
         }
         setAsking({ qty: qtyToAdd, settle });
+        waitingForUser("add_to_cart", `Choose a ${axis.name.toLowerCase()} to add ${product.name}`);
       });
       answer(event, result);
       openCartAfter(event, result);
@@ -93,7 +95,7 @@ export function AddToCartForm({ product }: { product: Product }) {
   /** On success, open the drawer once the agent has its answer: it makes this form inert and turns on its own tools. */
   function openCartAfter(event: SubmitEvent, result: Promise<string>): void {
     void result.then((text) => {
-      if (!text.startsWith("Error:")) afterAnswer(event, Promise.resolve(text), openCart);
+      if (!text.startsWith("Error")) afterAnswer(event, Promise.resolve(text), openCart);
     });
   }
 

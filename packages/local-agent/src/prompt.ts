@@ -8,6 +8,8 @@ import type { CallFormat, ChatTurn, CompactTool } from "./types";
 
 const MAX_TURNS = 12;
 const MAX_TOOL_TEXT = 1500;
+/** @web-agents/chat's CANCELLED (a type-only dependency here: importing its runtime would pull in the widget). */
+const CANCELLED = "Error [cancelled]: Cancelled by the user.";
 
 const RULES = `You are an assistant inside the web page the user is looking at. You act on the page with tools; the user watches each step.
 You do the work yourself: when the user asks for something a tool here can do, call it. Never tell the user to click, open or use something you can do.
@@ -20,7 +22,7 @@ Rules:
 - Only use the tools listed. Never invent tool names or arguments; ask for missing values.
 - Some tools wait for the user to confirm on the page (orders, bookings, deletions). If a result says it was cancelled, tell the user; never claim it succeeded.
 - Never say you did something unless a tool result says it happened.
-- A tool result starting with "Error:" failed. Explain briefly and suggest a fix.
+- A result starting with "Error [code]:" failed. interrupted, timeout or unavailable: check the page and try again. invalid_input: fix the arguments. needs_user: ask the user. cancelled: stop and tell the user. failed: explain briefly.
 - Asked what you can do, say in plain words what the tools below let you do here.`;
 
 const TAG_FORMAT = `To use a tool, reply ONLY with:
@@ -124,7 +126,7 @@ export function toChatTemplateMessages(history: readonly AgentMessage[], format:
       if (p.type === "text") text += p.text;
       else if (p.type === "tool") {
         text += callMarkup(p.name, (p.input ?? {}) as Record<string, unknown>, format);
-        const result = p.state === "cancelled" ? "Cancelled by the user." : p.error || textOf(p.output) || "(no result)";
+        const result = p.state === "cancelled" ? CANCELLED : p.error || textOf(p.output) || "(no result)";
         results.push({ role: "tool", name: p.name, content: result.slice(0, MAX_TOOL_TEXT) });
       }
     }

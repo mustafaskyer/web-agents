@@ -13,7 +13,7 @@ export type AgentEvent =
   | { type: "start"; tool: string; at: number; args?: unknown }
   /** The agent filled a field of a declarative form; emitted once the cursor has typed it. */
   | { type: "fill"; tool: string; field: string; value: string | boolean }
-  /** The browser paused on a submit button for the user's confirmation. */
+  /** The tool is waiting for the user (the browser paused on a submit button, or the page asked them something). */
   | { type: "park"; tool: string; prompt: string }
   /** The tool answered the agent. `ms` is measured from the run's start. */
   | { type: "result"; tool: string; result: unknown; ms: number }
@@ -43,4 +43,12 @@ export function emit(e: AgentEvent): void {
       console.error("[web-agents] agent event listener threw", err);
     }
   }
+}
+
+/**
+ * Say that `tool` is waiting for the person (a choice, a confirmation) with `prompt` as what they should do. The chat
+ * shows it on the call, and agents don't time the call out while the person is being asked.
+ */
+export function waitingForUser(tool: string, prompt: string): void {
+  emit({ type: "park", tool, prompt });
 }

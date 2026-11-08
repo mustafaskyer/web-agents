@@ -36,6 +36,8 @@ declare global {
   interface ModelContextToolResult {
     content: Array<{ type: string; text?: string; [key: string]: unknown }>;
     isError?: boolean;
+    /** MCP structured output. A failed call may carry `{ error: { code, retryable } }` (see `toolError`). */
+    structuredContent?: Record<string, unknown>;
   }
 
   /** `toolactivated` / `toolcancel` carry the name of the tool they concern. */

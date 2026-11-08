@@ -20,6 +20,7 @@ import {
   toUIMessageStream,
 } from "ai";
 import { toUIMessages } from "../adapter/wire";
+import { notOnPage } from "../shared";
 import type { AgentMessage } from "../types";
 import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "./system-prompt";
 import {
@@ -156,8 +157,8 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
           sendReasoning: true,
           onError: (err) => {
             // A bad tool call goes back to the model as that call's error: say exactly what was wrong.
-            if (NoSuchToolError.isInstance(err)) return `Error: Tool "${err.toolName}" is not available on this page right now.`;
-            if (InvalidToolInputError.isInstance(err)) return `Error: Invalid input for "${err.toolName}": ${err.message}`;
+            if (NoSuchToolError.isInstance(err)) return notOnPage(err.toolName);
+            if (InvalidToolInputError.isInstance(err)) return `Error [invalid_input]: Invalid input for "${err.toolName}": ${err.message}`;
             console.error("[web-agents/chat] model error:", err);
             return "The assistant had a problem answering. Try again.";
           },

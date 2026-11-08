@@ -55,7 +55,7 @@ export function ToolCallCard({ part }: { part: ToolPart }) {
       )}
       {result && (
         <p className="wa-chat__tool-result" data-clamp={result.length > 140 || undefined}>
-          {result.replace(/^Error:\s*/, "")}
+          {result.replace(/^Error(?: \[[a-z_]+\])?:\s*/, "")}
         </p>
       )}
     </div>

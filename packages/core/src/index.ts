@@ -8,7 +8,7 @@ import "./webmcp"; // global WebMCP types (document.modelContext, SubmitEvent.ag
 
 export { installAgentVisuals } from "./visuals";
 export type { AgentVisuals, AgentVisualsOptions, SpotlightOptions, YieldOptions } from "./visuals";
-export { onAgentEvent } from "./events";
+export { onAgentEvent, waitingForUser } from "./events";
 export type { AgentEvent } from "./events";
 export { UI_HOST_ATTR } from "./user-yield";
 
@@ -30,7 +30,18 @@ export type { ToolRegistry, ToolRegistryOptions } from "./registry";
 export { createCallTracker, deferRelease, RESPONSE_GRACE_MS } from "./deferred";
 export type { CallTracker, DeferReleaseOptions } from "./deferred";
 export { matchPath } from "./path-match";
-export { errorResult, errorText, isAbortError, toToolResult } from "./result";
+export {
+  errorResult,
+  errorText,
+  isAbortError,
+  isErrorText,
+  RETRYABLE,
+  toolError,
+  toolErrorCode,
+  toToolResult,
+  WebToolError,
+} from "./result";
+export type { ToolErrorCode } from "./result";
 export { executeTool, normalizeToolResult } from "./execute";
 export type { ExecuteToolOptions } from "./execute";
 
