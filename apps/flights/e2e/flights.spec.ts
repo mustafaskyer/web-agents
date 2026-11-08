@@ -153,3 +153,31 @@ test("reloading the booking page with nothing selected goes home", async ({ page
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Book your next adventure");
 });
+
+test.describe("get_location", () => {
+  test.use({ geolocation: { latitude: 51.5074, longitude: -0.1278 }, permissions: ["geolocation"] }); // central London
+
+  test("answers the nearest airport from the browser's location, from any page", async ({ page }) => {
+    await open(page, "/");
+    expect(await list(page)).toContain("get_location");
+    const answer = await run(page, "get_location");
+    expect(answer).toMatch(/^The user's nearest airport is London Heathrow \(LHR\), about \d+ km away\./);
+    expect(answer).toContain("Use from: LHR in search_flights.");
+  });
+});
+
+test.describe("get_location without the location", () => {
+  test.use({ permissions: [], timezoneId: "Asia/Dubai" });
+
+  test("falls back to the time zone when the location isn't shared", async ({ page, context }) => {
+    await context.clearPermissions();
+    await open(page, "/");
+    // a blocked location reads as "not shared"
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "permissions", { value: { query: async () => ({ state: "denied" }) }, configurable: true });
+    });
+    expect(await run(page, "get_location")).toMatch(
+      /time zone \(Asia\/Dubai\) suggests Dubai International \(DXB\)\. Confirm with the user/,
+    );
+  });
+});

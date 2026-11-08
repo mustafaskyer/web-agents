@@ -129,7 +129,7 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
             onChange={(e) => clear(setFrom)(e.target.value)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
-            toolparamdescription="Origin airport, 3-letter code, e.g. LHR"
+            toolparamdescription="Origin airport, 3-letter code, e.g. LHR. Not given by the user? Call get_location first"
           />
         </label>
         <button

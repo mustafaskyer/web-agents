@@ -11,8 +11,12 @@ export interface Airport {
   city: string;
   name: string;
   country: string;
-  /** Longitude: drives the made-up flight durations. */
+  /** Latitude: finds the airport nearest the user. */
+  lat: number;
+  /** Longitude: drives the made-up flight durations, and finds the nearest airport. */
   lon: number;
+  /** IANA time zone: a rough guess at the user's airport when their location isn't shared. */
+  tz: string;
 }
 export interface Airline {
   code: string;

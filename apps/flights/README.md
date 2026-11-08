@@ -24,6 +24,7 @@ await agent.run("select_flight", { flightId: "F-…" });
 |---|---|---|---|
 | `search_flights` | declarative | home and results pages | no |
 | `get_booking` | `defineWebTool`, read-only | global | no |
+| `get_location` | `defineWebTool`, read-only; the nearest airport from the browser's location (asks once), else a time-zone guess | global | no |
 | `filter_results` | `defineWebTool` | results route | no |
 | `sort_results` | `defineWebTool` | results route | no |
 | `list_results` | `defineWebTool`, read-only | results route | no |
