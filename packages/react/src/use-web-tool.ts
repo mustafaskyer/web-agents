@@ -22,7 +22,7 @@ import {
   registerWebTool,
   type WebTool,
   webToolSignature,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { WebAgentsContext } from "./context";
 import { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect";

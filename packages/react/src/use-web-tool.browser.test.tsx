@@ -1,4 +1,4 @@
-import { defineWebTool } from "@web-agents/core";
+import { defineWebTool } from "@webmcp-agents/core";
 import { StrictMode, useMemo, useState } from "react";
 import { userEvent } from "vitest/browser";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";

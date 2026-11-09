@@ -1,4 +1,4 @@
-import { defineWebTool, type WebTool } from "@web-agents/core";
+import { defineWebTool, type WebTool } from "@webmcp-agents/core";
 import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";

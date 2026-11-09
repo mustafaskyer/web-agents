@@ -1,4 +1,4 @@
-import type { AgentVisuals, ToolRegistry } from "@web-agents/core";
+import type { AgentVisuals, ToolRegistry } from "@webmcp-agents/core";
 import { createContext, useContext } from "react";
 
 /** Runtime control of the agent cursor the provider installed. */

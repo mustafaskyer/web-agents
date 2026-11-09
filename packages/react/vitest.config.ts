@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { conditions: ["@web-agents/source", ...defaultClientConditions] },
+  resolve: { conditions: ["@webmcp-agents/source", ...defaultClientConditions] },
   test: {
     name: "react:browser",
     include: ["src/**/*.browser.test.tsx"],

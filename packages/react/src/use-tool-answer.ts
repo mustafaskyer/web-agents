@@ -5,7 +5,7 @@
  * disappear (placing the order empties the cart, applying a code hides the
  * promo form), keep it in place until the agent has its answer.
  */
-import { RESPONSE_GRACE_MS } from "@web-agents/core";
+import { RESPONSE_GRACE_MS } from "@webmcp-agents/core";
 import { useCallback, useState } from "react";
 
 export interface ToolAnswer {

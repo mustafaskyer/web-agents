@@ -21,7 +21,7 @@ import {
   matchPath,
   type RegisteredContext,
   type WebTool,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WebAgentsContext, type WebAgentsContextValue, type WebAgentsVisuals } from "./context";
 import { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect";

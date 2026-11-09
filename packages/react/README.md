@@ -1,15 +1,15 @@
-# @web-agents/react
+# @webmcp-agents/react
 
 React bindings for WebMCP tools: say once which tools the agent may see, turn them on globally,
 per route or per mounted component, and get the agent cursor without any ordering rules.
 
 ```sh
-pnpm add @web-agents/react @web-agents/core
+pnpm add @webmcp-agents/react @webmcp-agents/core
 ```
 
 ```tsx
-import { defineWebTool, EnableTools, useWebTool, WebAgentsProvider } from "@web-agents/react";
-import "@web-agents/core/cursor.css";
+import { defineWebTool, EnableTools, useWebTool, WebAgentsProvider } from "@webmcp-agents/react";
+import "@webmcp-agents/core/cursor.css";
 
 // Module level (or memoised): the catalog of every tool the app may expose.
 const catalog = [getCart, listOrders, removePromo];
@@ -42,7 +42,7 @@ sentence or two each:
 Parameter descriptions say where a value comes from ("the slug as search_products lists it") and its format, with an
 example. Tool answers repeat the next step where it helps ("…Use add_to_cart to buy it."), and errors say how to fix
 them, with a code the agent can act on: `throw new WebToolError("invalid_input", "No product matches \"x\". Try
-search_products.")` (codes in `@web-agents/core`'s README). Ask for what the user didn't give; never invent it. The example apps (`apps/ecommerce/src/tools`,
+search_products.")` (codes in `@webmcp-agents/core`'s README). Ask for what the user didn't give; never invent it. The example apps (`apps/ecommerce/src/tools`,
 `apps/flights/src/tools`) follow this throughout.
 
 ## Provider props
@@ -74,7 +74,7 @@ The package also types the declarative attributes for JSX: `toolname`, `tooldesc
 ## Typing `ctx.context`
 
 ```ts
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: CartApi;
   }
