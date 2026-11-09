@@ -20,7 +20,8 @@ function createVercelChatRoute(options: VercelChatRouteOptions): {
 interface VercelChatRouteOptions {
   app: string;
   env?: Env;
-  model?: LanguageModel;
+  model?: LanguageModel | string;
+  agents?: readonly WebAgent[];
 }
 ```
 
@@ -30,14 +31,16 @@ interface VercelChatRouteOptions {
 |---|---|---|---|
 | `app` | `string` | — | Namespaces the rate-limit keys per app (`<app>:minute`, `<app>:day`, `<app>:global`). |
 | `env` | `Env` | `process.env` | Where every env var below is read. Also passed to the chat handler. |
-| `model` | `LanguageModel` (from `ai`) | — | A model instance instead of the Claude id from env, for tests or other AI SDK providers. |
+| `model` | `LanguageModel \| string` | `env.WEB_AGENTS_MODEL ?? "anthropic/claude-sonnet-5-5"` | A model instance, or a `"<provider>/<model>"` id (see [`resolveModel`](../chat/resolve-model.md)). |
+| `agents` | `readonly WebAgent[]` | — | The page's agents ([`defineWebAgent`](../chat/define-web-agent.md)): the same list the page passes to `<AgentChat>`. |
 
 ## Environment variables
 
 | Var | Default | Used for |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | — | Read by the chat handler. Without it (and without `model`) `GET` reports `enabled: false` and `POST` answers 503 `chat_disabled`. |
-| `WEB_AGENTS_MODEL` | `"claude-sonnet-5-5"` | The Claude model id, when `model` isn't passed. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, … | — | The key of the provider in `WEB_AGENTS_MODEL` (see [`resolveModel`](../chat/resolve-model.md)). Without it `GET` reports `enabled: false` and `POST` answers 503 `chat_disabled`, naming the variable. |
+| `AI_GATEWAY_API_KEY` | — | Serves any `a/b` model id through the AI Gateway when the provider's own key is missing. |
+| `WEB_AGENTS_MODEL` | `"anthropic/claude-sonnet-5-5"` | The model, as `<provider>/<model>`, when `model` isn't passed. |
 | `WEB_AGENTS_MAX_OUTPUT_TOKENS` | `4096` | Output token cap per model step. Thinking counts against it. |
 | `WEB_AGENTS_MAX_STEPS` | `6` | Tool steps per user turn. |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Requests per IP per minute (fail open). |
@@ -56,10 +59,19 @@ Numeric vars that are missing, not a number, or not greater than 0 fall back to 
 From `apps/playground/api/chat.ts`:
 
 ```ts
-// /api/chat on Vercel: the chat handler behind origin, rate-limit and budget guards (see docs/deploy.md).
+// /api/chat on Vercel: the chat handler behind origin, rate-limit and budget guards (see docs/guides/deploy.md).
 import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
 
 export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" });
+```
+
+With agents (`apps/ecommerce/api/chat.ts`):
+
+```ts
+import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
+import { shopper } from "../src/agents";
+
+export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "ecommerce", agents: [shopper] });
 ```
 
 ## Notes
@@ -77,4 +89,4 @@ export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" 
 
 - [guards.md](./guards.md)
 - [limiter.md](./limiter.md)
-- [../deploy.md](../deploy.md): setting the env vars on Vercel
+- [Deploy to Vercel](../../guides/deploy.md): setting the env vars on Vercel

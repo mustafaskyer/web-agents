@@ -27,7 +27,7 @@ interface SessionError {
 
 type SessionAction =
   | { type: "send"; id: string; text: string }
-  | { type: "part"; part: AgentStreamPart }
+  | { type: "part"; part: AgentStreamPart; within?: string }
   | { type: "toolPhase"; name: string; state: "running" | "awaiting-confirmation"; prompt?: string }
   | { type: "stop" }
   | { type: "retry" }
@@ -38,6 +38,7 @@ type SessionAction =
 
 | Action | Effect |
 |---|---|
+| `part` with `within` | The part belongs to a sub-agent's run behind the `delegate_to_*` call `within`: it is applied to that call's nested messages (`AgentPart.agent.messages`) with the same state machine. A nested `finish` or `error` ends only the nested run; the parent stays streaming. `toolPhase`, `tool-result`, `tool-error` and `stop` reach nested calls too. |
 | `send` | Appends a user message with one text part; `status` becomes `streaming`; clears `error`. |
 | `part` | Applies one [`AgentStreamPart`](./adapter-types.md#agentstreampart) (see below). |
 | `toolPhase` | A core agent event about a running tool. Sets the newest open call of that tool name to `state` and `prompt`. Calls run one at a time, so name matching is enough. |

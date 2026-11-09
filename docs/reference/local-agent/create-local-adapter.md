@@ -17,6 +17,8 @@ function createLocalAdapter(opts?: LocalAdapterOptions): AgentAdapter;
 interface LocalAdapterOptions extends Pick<LocalLoopOptions, "maxSteps" | "stepTimeoutMs" | "instructions"> {
   providers?: LocalProvider[];
   model?: string;
+  models?: readonly string[];
+  dtype?: "q4f16" | "q4";
   worker?: Worker | (() => Worker);
   label?: string;
 }
@@ -27,17 +29,21 @@ interface LocalAdapterOptions extends Pick<LocalLoopOptions, "maxSteps" | "stepT
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `providers` | `LocalProvider[]` | `[createPromptApiProvider(), createTransformersProvider({ model, worker })]` | Engines to try, in order. |
-| `model` | `string` | Qwen3 0.6B ONNX (`DEFAULT_GPU_MODEL` / `DEFAULT_CPU_MODEL`) | transformers.js model id, passed to the default transformers provider. Ignored with `providers`. |
+| `model` | `string` | Qwen3 0.6B ONNX (`DEFAULT_MODEL`) | transformers.js model id to start with, passed to the default transformers provider. Ignored with `providers`. |
+| `models` | `readonly string[]` | `[model]` | Models the person may pick from in the chat (a picker with each one's brief and size). Ignored with `providers`. |
+| `dtype` | `"q4f16" \| "q4"` | by device | Quantization, passed to the default transformers provider. Ignored with `providers`. |
 | `worker` | `Worker \| (() => Worker)` | the package's own worker | The transformers.js worker, when your bundler can't resolve the package's own. Ignored with `providers`. |
-| `instructions` | `string` | — | What the site is and how its tools fit together, in a few short lines. Goes into the system prompt under "About this site". |
+| `instructions` | `string` | — | What the site is and how its tools fit together, in a few short lines. Goes into the system prompt under "About this site". A fallback: the page's agent (`<AgentChat agent>`, [`defineWebAgent`](../chat/define-web-agent.md)) wins when it sets instructions. |
 | `maxSteps` | `number` | `6` | Model steps per user message. |
 | `stepTimeoutMs` | `number` | `60_000` | Time limit per generation. |
 | `label` | `string` | `"On-device"` | Shown in the chat's adapter switcher. |
 
 ## Returns
 
-An [`AgentAdapter`](../chat/adapter-types.md#agentadapter) with `id: "local"`, `status()`, `subscribe()`, `prepare()`
-and `run()`.
+An [`AgentAdapter`](../chat/adapter-types.md#agentadapter) with `id: "local"`, `status()`, `subscribe()`, `prepare()`,
+`models()`, `selectModel()` and `run()`. `models()` is the active provider's list (empty before detection); `selectModel`
+switches it, then detects again so the status describes the new model (a download, or ready). It rejects with
+`Error [busy]` while a reply, a download or a load is in progress.
 
 ## Download and cached flow
 
@@ -52,7 +58,8 @@ and `run()`.
    goes `downloading` (0 to 1), then `ready`. Aborting the signal cancels and restores the previous status; any other
    failure sets `error` ("The model couldn't load: …").
 4. **Cached.** A provider that reports `needs-download` with `cached: true` (downloaded on an earlier visit) shows as
-   `ready`. The first `run()` loads it, with the chat showing progress, and no second click.
+   `ready`. The first `run()` reads it from disk with the status `loading` (with `progress`, 0 to 1), never
+   `downloading`: the chat says "Loading the model from this device…", and there is no second click.
 
 ## Fallback between providers
 

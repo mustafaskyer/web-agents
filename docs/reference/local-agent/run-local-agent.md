@@ -33,11 +33,11 @@ interface LocalLoopOptions {
 |---|---|---|---|
 | `provider` | `LocalProvider` | — | The engine that generates text. Must be ready (`prepare()` done). |
 | `req` | `AgentRunRequest` | — | From the chat: messages, a `tools` getter, `signal`, `callTool`. |
-| `opts.maxSteps` | `number` | `6` | Model steps per user message. |
+| `opts.maxSteps` | `number` | `6` | Model steps per user message. The page's agent (`req.agent?.maxSteps`) wins. |
 | `opts.stepTimeoutMs` | `number` | `60_000` | Time limit per generation. |
 | `opts.maxTools` | `number` | `8` | Most tools shown to the model per step. |
 | `opts.toolsInline` | `boolean` | `false` | List the tools in the prompt text, with a JSON reply format (providers without chat-template tools). `createLocalAdapter` passes `provider.toolsInline`. |
-| `opts.instructions` | `string` | — | What the site is and how its tools fit together. Added under "About this site". |
+| `opts.instructions` | `string` | — | What the site is and how its tools fit together. Added under "About this site". The page's agent (`req.agent?.instructions`) wins; with sub-agents a delegation note is added too. |
 
 ## Returns
 

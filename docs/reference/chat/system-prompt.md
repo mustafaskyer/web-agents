@@ -1,8 +1,8 @@
 # `buildSystemPrompt`
 
-The system prompt the chat handler sends Claude: `DEFAULT_SYSTEM_PROMPT` says how to act on a live page, and
-`buildSystemPrompt` adds the page's path when it is known. Page-supplied text (titles, tool descriptions) never goes in
-here.
+The system prompt the chat handler sends the model: `DEFAULT_SYSTEM_PROMPT` says how to act on a live page, and
+`buildSystemPrompt` adds the page's path, the agent's instructions (from the server's registry) and, when the agent has
+sub-agents, the delegation note. Page-supplied text (titles, tool descriptions) never goes in here.
 
 ```ts
 import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "@webmcp-agents/chat/server";
@@ -12,7 +12,7 @@ import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "@webmcp-agents/chat/se
 
 ```ts
 const DEFAULT_SYSTEM_PROMPT: string;
-function buildSystemPrompt(base: string, path?: string): string;
+function buildSystemPrompt(base: string, path?: string, instructions?: readonly string[], delegation?: boolean): string;
 ```
 
 ## Parameters
@@ -21,11 +21,13 @@ function buildSystemPrompt(base: string, path?: string): string;
 |---|---|---|---|
 | `base` | `string` | — | The prompt to start from: `DEFAULT_SYSTEM_PROMPT`, or your own. |
 | `path` | `string` | — | The page's path. When given, a line is added. |
+| `instructions` | `readonly string[]` | — | The agent's lines (`WebAgent.instructions`), added under "About this site:". |
+| `delegation` | `boolean` | `false` | Add `DELEGATION_NOTE` (what `delegate_to_<agent>` tools are for). |
 
 ## Returns
 
-`base` unchanged without `path`. With it, `base` plus a blank line and
-`The user is on the page "<path>" of this site.` (the path JSON-quoted).
+`base`, then (each after a blank line, when given): `The user is on the page "<path>" of this site.` (the path
+JSON-quoted), `About this site:` followed by the instruction lines, and the delegation note.
 
 ## What `DEFAULT_SYSTEM_PROMPT` says
 
@@ -52,9 +54,9 @@ const handler = createChatHandler({
 
 ## Notes
 
-- The handler calls `buildSystemPrompt(opts.system ?? DEFAULT_SYSTEM_PROMPT, path)` itself; the path is only set for
-  a same-origin browser request (see [`createChatHandler`](./create-chat-handler.md)). You need this function only to
-  build the same prompt elsewhere.
+- The handler calls it through [`toToolLoopAgentSettings`](./to-tool-loop-agent.md); the path is only set for a
+  same-origin browser request, the instructions come from the registered agent (never the request). You need this
+  function only to build the same prompt elsewhere.
 - If you replace the prompt, keep the per-code guidance: tool failures arrive as `Error [code]: …`.
 - Don't put page text in a custom system prompt: it is controlled by the page and its users.
 

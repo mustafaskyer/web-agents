@@ -14,6 +14,7 @@ function useAgentSession(adapter: AgentAdapter, options?: UseAgentSessionOptions
 
 interface UseAgentSessionOptions {
   storageKey?: string | false;
+  agent?: WebAgent;
 }
 
 interface AgentSession {
@@ -22,6 +23,7 @@ interface AgentSession {
   error?: SessionError;
   tools: ToolDescriptor[];
   adapterStatus: AdapterStatus;
+  agent?: WebAgent;
   send(text: string): void;
   stop(): void;
   retry(): void;
@@ -35,6 +37,7 @@ interface AgentSession {
 |---|---|---|---|
 | `adapter` | `AgentAdapter` | — | The agent that runs the model loop. |
 | `options.storageKey` | `string \| false` | `"web-agents:chat"` | sessionStorage key for the conversation. `false` keeps it in memory only. |
+| `options.agent` | `WebAgent` | — | The page's agent ([`defineWebAgent`](./define-web-agent.md)). `tools` is filtered through it (plus one `delegate_to_<id>` tool per sub-agent), the request carries it, and a `delegate_to_*` call runs the sub-agent's own loop on the same adapter, nested under the call (`AgentPart.agent`). |
 
 ## Returns
 
@@ -43,7 +46,8 @@ interface AgentSession {
 | `messages` | `AgentMessage[]` | The conversation. |
 | `status` | `"idle" \| "streaming" \| "error"` | Whether a run is streaming, or the last one failed. |
 | `error` | `SessionError \| undefined` | The last run's failure (`message`, optional `code`). |
-| `tools` | `ToolDescriptor[]` | The page's tools right now (also what the next model step sees). |
+| `tools` | `ToolDescriptor[]` | What the model sees right now: the page's tools through the agent's filter, plus its delegate tools. |
+| `agent` | `WebAgent \| undefined` | The agent in use. |
 | `adapterStatus` | `AdapterStatus` | The adapter's status, updated through its `subscribe()`. Absent `status()` means `ready`. |
 | `send(text)` | `(text: string) => void` | Trims `text` and starts a run. Ignored when empty or while streaming. |
 | `stop()` | `() => void` | Aborts the run; open tool calls become `cancelled`. |
@@ -70,8 +74,15 @@ const cloud = createCloudAdapter();
 function MiniChat() {
   const chat = useAgentSession(cloud, { storageKey: false });
   return (
-    <form onSubmit={(e) => { e.preventDefault(); chat.send(new FormData(e.currentTarget).get("q") as string); }}>
-      {chat.messages.map((m) => <p key={m.id}>{m.parts.map((p) => (p.type === "text" ? p.text : "")).join("")}</p>)}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        chat.send(new FormData(e.currentTarget).get("q") as string);
+      }}
+    >
+      {chat.messages.map((m) => (
+        <p key={m.id}>{m.parts.map((p) => (p.type === "text" ? p.text : "")).join("")}</p>
+      ))}
       {chat.status === "error" && <button type="button" onClick={chat.retry}>Try again</button>}
       <input name="q" disabled={chat.adapterStatus.state !== "ready"} />
     </form>
