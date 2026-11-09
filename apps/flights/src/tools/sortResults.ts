@@ -1,5 +1,5 @@
 /** Imperative WebTool: sort_results (results route). The cursor presses the sort bar. */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { SORTS } from "../data/flights";
 import { app } from "./context";

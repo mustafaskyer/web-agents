@@ -3,7 +3,7 @@
  * (see Root.tsx). Module-level tools can't call hooks, so the booking store
  * and navigation reach them this way.
  */
-import type { WebToolContext } from "@web-agents/react";
+import type { WebToolContext } from "@webmcp-agents/react";
 import type { BookingApi } from "../store/booking";
 
 export interface FlightsContext {
@@ -12,7 +12,7 @@ export interface FlightsContext {
   navigate(to: string): void;
 }
 
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: FlightsContext;
   }

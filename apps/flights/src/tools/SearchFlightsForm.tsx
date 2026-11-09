@@ -9,8 +9,8 @@
  * The answer summarises the results and names the next tools; the page moves
  * to the results after the agent has it.
  */
-import { errorText } from "@web-agents/core";
-import { useToolAnswer } from "@web-agents/react";
+import { errorText } from "@webmcp-agents/core";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useId, useState } from "react";
 import { useNavigate } from "react-router";
 import { Counter } from "../components/Counter";

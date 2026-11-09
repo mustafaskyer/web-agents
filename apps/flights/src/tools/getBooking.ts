@@ -1,5 +1,5 @@
 /** Imperative WebTool: get_booking (global). Reads a confirmed booking by reference. */
-import { defineWebTool, WebToolError } from "@web-agents/react";
+import { defineWebTool, WebToolError } from "@webmcp-agents/react";
 import { z } from "zod";
 import { itineraryText } from "../lib/itinerary";
 import { app } from "./context";

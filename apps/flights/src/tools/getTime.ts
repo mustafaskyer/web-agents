@@ -4,7 +4,7 @@
  * YYYY-MM-DD the agent didn't have to work out. The week start and weekend follow the user's locale where the browser
  * says (Intl.Locale week info), e.g. a Sunday-first week with a Friday–Saturday weekend.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { calendarAt, DEFAULT_WEEK, utcOffset, type WeekInfo } from "../lib/calendar";
 

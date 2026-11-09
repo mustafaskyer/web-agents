@@ -5,8 +5,8 @@ and ids). Search, filter and sort the results, pick a flight, fill in the travel
 step is a WebMCP tool, and booking waits for the person's click.
 
 ```
-pnpm --filter @web-agents/example-flights dev     # http://localhost:5175
-pnpm --filter @web-agents/example-flights e2e     # Playwright, desktop + Pixel 7
+pnpm --filter @webmcp-agents/example-flights dev     # http://localhost:5175
+pnpm --filter @webmcp-agents/example-flights e2e     # Playwright, desktop + Pixel 7
 ```
 
 Open the devtools (bottom right, Alt+Shift+A), or from the browser console:

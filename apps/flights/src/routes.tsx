@@ -1,4 +1,4 @@
-import { errorText } from "@web-agents/core";
+import { errorText } from "@webmcp-agents/core";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
 import { fromResultsParams, RESULTS_PATTERN } from "./lib/searchParams";
 import { Booking } from "./pages/Booking";

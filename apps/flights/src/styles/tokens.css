@@ -1,4 +1,4 @@
-/* Skyline design tokens. Imported after @web-agents/core/cursor.css, so the --agent* values below win. */
+/* Skyline design tokens. Imported after @webmcp-agents/core/cursor.css, so the --agent* values below win. */
 :root {
   --bg: #f9fafb;
   --surface: #ffffff;

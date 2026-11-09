@@ -6,7 +6,7 @@
  * search, which is fixed on this page, so the tool's schema never changes
  * while a call is in flight.
  */
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useState } from "react";
 import { todayIso } from "../lib/dates";
 import { type Contact, type Traveler, type TravelerKind, useBooking } from "../store/booking";

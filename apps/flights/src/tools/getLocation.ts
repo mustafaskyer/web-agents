@@ -9,7 +9,7 @@
  *
  * The answer is text for the model and `structuredContent.location` / `.airports` for code.
  */
-import { defineWebTool, waitingForUser, WebToolError } from "@web-agents/react";
+import { defineWebTool, waitingForUser, WebToolError } from "@webmcp-agents/react";
 import { z } from "zod";
 import { AIRPORTS, type Airport } from "../data/flights";
 import { airportsInTimeZone, nearestAirports } from "../data/location";

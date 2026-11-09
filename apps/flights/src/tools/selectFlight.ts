@@ -5,7 +5,7 @@
  * route-scoped tools only after their calls settle, so leaving the results
  * page doesn't cancel this call. The cursor presses that flight's Select button.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { describeFlight, fareFor, money } from "../data/flights";
 import { app } from "./context";

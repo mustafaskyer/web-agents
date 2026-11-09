@@ -37,7 +37,7 @@
 }
 .sheetRoot {
   position: fixed;
-  /* clear of a docked assistant (@web-agents/chat) */
+  /* clear of a docked assistant (@webmcp-agents/chat) */
   inset: 0 var(--wa-chat-inset-right, 0) 0 var(--wa-chat-inset-left, 0);
   z-index: 50;
 }

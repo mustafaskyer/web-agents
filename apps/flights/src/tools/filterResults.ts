@@ -5,7 +5,7 @@
  * filter. filter_results' target is the filters card (on phones, the Filters
  * button), so the cursor shows where the change happens.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { describeFlight } from "../data/flights";
 import { app } from "./context";

@@ -6,8 +6,8 @@
  * clicks it. Missing traveler details are an error for the agent (naming the
  * fields) and focus the first missing field for the person.
  */
-import { errorText } from "@web-agents/core";
-import { useToolAnswer } from "@web-agents/react";
+import { errorText } from "@webmcp-agents/core";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useId, useState } from "react";
 import { useNavigate } from "react-router";
 import { money } from "../data/flights";
