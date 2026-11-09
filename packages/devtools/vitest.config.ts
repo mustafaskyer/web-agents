@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { conditions: ["@web-agents/source", ...defaultClientConditions], dedupe: ["react", "react-dom"] },
+  resolve: { conditions: ["@webmcp-agents/source", ...defaultClientConditions], dedupe: ["react", "react-dom"] },
   // Pre-bundle React up front: discovering it mid-run reloads the optimizer and leaves two copies of React.
   optimizeDeps: {
     include: ["react", "react/jsx-dev-runtime", "react-dom", "react-dom/client", "@tanstack/react-devtools", "vitest-browser-react"],

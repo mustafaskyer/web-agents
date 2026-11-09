@@ -92,7 +92,7 @@ code, pre, .mono { font-family: var(--wa-mono); font-size: 11.5px; }
   background: var(--wa-bg); border: 0 solid var(--wa-border); box-shadow: var(--wa-shadow);
   animation: wa-in 0.16s ease-out;
 }
-/* clear of a docked assistant (@web-agents/chat), which publishes its width on <html> */
+/* clear of a docked assistant (@webmcp-agents/chat), which publishes its width on <html> */
 .panel[data-dock="bottom"] { left: var(--wa-chat-inset-left, 0); right: var(--wa-chat-inset-right, 0); bottom: 0; border-top-width: 1px; }
 .panel[data-dock="right"] { top: 0; right: var(--wa-chat-inset-right, 0); bottom: 0; border-left-width: 1px; }
 .panel[data-embedded] { position: static; height: 100%; box-shadow: none; animation: none; border: 0; }

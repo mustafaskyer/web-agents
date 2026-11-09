@@ -94,7 +94,7 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
     return (
       <div className="empty" role="status">
         <strong>document.modelContext isn't available.</strong>
-        Import <code>@web-agents/polyfill/auto</code> in development, or use a Chrome build with WebMCP.
+        Import <code>@webmcp-agents/polyfill/auto</code> in development, or use a Chrome build with WebMCP.
       </div>
     );
   }

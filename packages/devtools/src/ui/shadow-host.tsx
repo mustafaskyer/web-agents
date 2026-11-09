@@ -5,7 +5,7 @@
  * Floating (default): the host is appended to `document.body`.
  * `inline`: the host is rendered in place and fills its container (the TanStack Devtools tab).
  */
-import { UI_HOST_ATTR } from "@web-agents/core";
+import { UI_HOST_ATTR } from "@webmcp-agents/core";
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { adoptStyles } from "./styles";

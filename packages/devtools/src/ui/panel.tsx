@@ -3,7 +3,7 @@
  * closed, docked to the bottom or right and resizable. `embedded` drops the
  * launcher, dock and resize and fills its container (the TanStack Devtools tab).
  */
-import { UI_HOST_ATTR } from "@web-agents/core";
+import { UI_HOST_ATTR } from "@webmcp-agents/core";
 import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { coerce } from "../schema-form/coerce";
 import { type CallRecord, type DevtoolsStore, type DevtoolsTab, isOpen } from "../store";

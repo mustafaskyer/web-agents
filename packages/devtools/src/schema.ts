@@ -3,7 +3,7 @@
  * shallow (a form's fields, a WebTool's zod object), so this stays small;
  * anything else falls back to raw JSON in the form.
  */
-import type { ModelContextToolInfo } from "@web-agents/core";
+import type { ModelContextToolInfo } from "@webmcp-agents/core";
 
 /** A JSON Schema node, as tools declare them. Unknown keywords pass through. */
 export interface SchemaNode {

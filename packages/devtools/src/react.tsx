@@ -1,11 +1,11 @@
 /**
- * @web-agents/devtools/react
+ * @webmcp-agents/devtools/react
  *
  *   <WebAgentsDevtools />                               // floating panel, wired to <WebAgentsProvider>'s cursor
  *   <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />   // a "Web Agents" tab in TanStack Devtools
  */
-import { deferRelease } from "@web-agents/core";
-import { useOptionalWebAgents } from "@web-agents/react";
+import { deferRelease } from "@webmcp-agents/core";
+import { useOptionalWebAgents } from "@webmcp-agents/react";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { type DevtoolsOptions, startDevtools } from "./host";
 import type { DevtoolsStore } from "./store";

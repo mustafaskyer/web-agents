@@ -2,7 +2,7 @@
  * How the devtools read a tool's answer. Running a tool is core's
  * `executeTool`; this only decides what the answer means on screen.
  */
-import { isErrorText, type ModelContextToolResult } from "@web-agents/core";
+import { isErrorText, type ModelContextToolResult } from "@webmcp-agents/core";
 
 /** Chrome resolves nothing when a call navigates the page; shown as this text. */
 export const NAVIGATED: ModelContextToolResult = { content: [{ type: "text", text: "(navigated)" }] };

@@ -1,4 +1,4 @@
-import { type AgentVisuals, installAgentVisuals, type ModelContextExecuteOptions } from "@web-agents/core";
+import { type AgentVisuals, installAgentVisuals, type ModelContextExecuteOptions } from "@webmcp-agents/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { createDevtoolsStore, type DevtoolsStore } from "./store";

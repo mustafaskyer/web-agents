@@ -20,7 +20,7 @@ import {
   type ModelContextToolResult,
   onAgentEvent,
   toToolResult,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 import { isFailure, NAVIGATED } from "./execute";
 import { parseSchema, type SchemaNode } from "./schema";
 

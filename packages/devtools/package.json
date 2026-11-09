@@ -1,5 +1,5 @@
 {
-  "name": "@web-agents/devtools",
+  "name": "@webmcp-agents/devtools",
   "version": "0.1.0",
   "type": "module",
   "description": "Devtools for WebMCP pages: see the tools on screen, run them from a generated form, watch every call.",
@@ -11,12 +11,12 @@
   ],
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./react": {
-      "@web-agents/source": "./src/react.tsx",
+      "@webmcp-agents/source": "./src/react.tsx",
       "types": "./dist/react.d.ts",
       "import": "./dist/react.js"
     },
@@ -31,7 +31,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-devtools": ">=0.10",
-    "@web-agents/react": "workspace:^",
+    "@webmcp-agents/react": "workspace:^",
     "react": ">=18",
     "react-dom": ">=18"
   },
@@ -39,21 +39,21 @@
     "@tanstack/react-devtools": {
       "optional": true
     },
-    "@web-agents/react": {
+    "@webmcp-agents/react": {
       "optional": true
     }
   },
   "dependencies": {
     "@tanstack/devtools-event-client": "^0.5.1",
-    "@web-agents/core": "workspace:^"
+    "@webmcp-agents/core": "workspace:^"
   },
   "devDependencies": {
     "@tanstack/react-devtools": "^0.10.14",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
-    "@web-agents/polyfill": "workspace:*",
-    "@web-agents/react": "workspace:*",
+    "@webmcp-agents/polyfill": "workspace:*",
+    "@webmcp-agents/react": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.7",

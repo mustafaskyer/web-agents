@@ -1,5 +1,5 @@
 /** One call, expanded: arguments, the fields the agent typed, the result or error, and Re-run. */
-import type { ModelContextToolResult } from "@web-agents/core";
+import type { ModelContextToolResult } from "@webmcp-agents/core";
 import { type CallRecord, type DevtoolsStore, isOpen } from "../store";
 import { JsonView } from "./json-view";
 import { formatDuration } from "./labels";

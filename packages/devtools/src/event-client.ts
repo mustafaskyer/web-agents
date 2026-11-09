@@ -5,7 +5,7 @@
  * outside development, like every TanStack event client.
  */
 import { EventClient } from "@tanstack/devtools-event-client";
-import { type AgentEvent, onAgentEvent } from "@web-agents/core";
+import { type AgentEvent, onAgentEvent } from "@webmcp-agents/core";
 import type { DevtoolsState, DevtoolsStore } from "./store";
 
 /** What the bridge posts, by event name. */

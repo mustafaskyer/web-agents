@@ -1,13 +1,13 @@
 /**
- * @web-agents/devtools: see the WebMCP tools on a page, run them from a
+ * @webmcp-agents/devtools: see the WebMCP tools on a page, run them from a
  * generated form, and watch every call (yours or an agent's).
  *
- *   import { installWebAgentsDevtools } from "@web-agents/devtools";
+ *   import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
  *   if (import.meta.env.DEV) installWebAgentsDevtools({ visuals });
  *
- * React apps: `@web-agents/devtools/react` (`<WebAgentsDevtools />`, TanStack plugin).
+ * React apps: `@webmcp-agents/devtools/react` (`<WebAgentsDevtools />`, TanStack plugin).
  */
-import { installAgentVisuals } from "@web-agents/core";
+import { installAgentVisuals } from "@webmcp-agents/core";
 import type { DevtoolsVisuals } from "./store";
 import { type DevtoolsOptions, installWebAgentsDevtools } from "./vanilla";
 

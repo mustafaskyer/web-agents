@@ -1,5 +1,5 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { useWebAgents, WebAgentsProvider, type WebAgentsVisuals } from "@web-agents/react";
+import { useWebAgents, WebAgentsProvider, type WebAgentsVisuals } from "@webmcp-agents/react";
 import { StrictMode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -14,7 +14,7 @@ function Probe({ onVisuals }: { onVisuals(visuals: WebAgentsVisuals | null): voi
   return null;
 }
 
-describe("@web-agents/devtools/react", () => {
+describe("@webmcp-agents/devtools/react", () => {
   beforeAll(() => modelContext());
   beforeAll(() => localStorage.clear());
   afterEach(() => sleep(20)); // deferred store release of the unmounted tree

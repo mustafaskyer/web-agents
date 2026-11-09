@@ -1,4 +1,4 @@
-# @web-agents/devtools
+# @webmcp-agents/devtools
 
 Devtools for WebMCP pages. See which tools are live on the current screen, run them from a form
 generated from their JSON Schema, and watch every call: yours from the panel, or a real agent's.
@@ -19,7 +19,7 @@ The panel renders in a shadow root (no CSS leaks either way), sits above the spo
 host carries `data-web-agents-ui`, so using it never makes the agent cursor yield.
 
 ```sh
-pnpm add -D @web-agents/devtools
+pnpm add -D @webmcp-agents/devtools
 ```
 
 React and React DOM (≥ 18) are peer dependencies, also for the vanilla host.
@@ -31,7 +31,7 @@ import { lazy, Suspense } from "react";
 
 // The condition guards the import() itself, so production bundles leave the devtools out.
 const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
+  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
 <WebAgentsProvider tools={catalog} visuals={{ spotlight: true }}>
@@ -43,13 +43,13 @@ const Devtools = import.meta.env.DEV
 ```
 
 Inside `<WebAgentsProvider>` the Settings switches drive the provider's cursor. Outside one, pass
-`visuals` (needs `@web-agents/react` only when you use the `/react` entry).
+`visuals` (needs `@webmcp-agents/react` only when you use the `/react` entry).
 
 ### TanStack Devtools
 
 ```tsx
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { webAgentsDevtoolsPlugin } from "@web-agents/devtools/react";
+import { webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />;
 ```
@@ -61,8 +61,8 @@ TanStack's event bus (`webAgentsEventClient`; a no-op outside development).
 ## Vanilla
 
 ```ts
-import { installAgentVisuals } from "@web-agents/core";
-import { installWebAgentsDevtools } from "@web-agents/devtools";
+import { installAgentVisuals } from "@webmcp-agents/core";
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
 
 const visuals = installAgentVisuals({ spotlight: true });
 if (import.meta.env.DEV) installWebAgentsDevtools({ visuals, initialSettings: { spotlight: true } });
