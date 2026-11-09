@@ -3,7 +3,7 @@
 Calls a listener for every agent event (`start`, `fill`, `park`, `result`, `error`, `cancel`, `yield`, `resume`) while the component is mounted. It is the React form of [`onAgentEvent`](../core/on-agent-event.md).
 
 ```ts
-import { useAgentEvents } from "@web-agents/react";
+import { useAgentEvents } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -18,7 +18,7 @@ function useAgentEvents(listener: (event: AgentEvent) => void): void;
 |---|---|---|---|
 | `listener` | `(event: AgentEvent) => void` | — | Called for each event. The latest render's listener is used, so an inline function is fine. |
 
-`AgentEvent` (from `@web-agents/core`):
+`AgentEvent` (from `@webmcp-agents/core`):
 
 | `type` | Fields | When |
 |---|---|---|
@@ -40,7 +40,7 @@ Nothing.
 From `apps/ecommerce/src/Root.tsx`: a tool that isn't about the cart closes the drawer first, so the agent never works on a page hidden behind it.
 
 ```tsx
-import { useAgentEvents } from "@web-agents/react";
+import { useAgentEvents } from "@webmcp-agents/react";
 
 function CloseDrawerForOtherTools() {
   const { cartOpen, closeCart } = useUi();

@@ -3,7 +3,7 @@
 Returns the catalog tool ids registered with WebMCP right now, sorted. Use it to show which tools the agent can see on the current page.
 
 ```ts
-import { useEnabledTools } from "@web-agents/react";
+import { useEnabledTools } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -23,7 +23,7 @@ function useEnabledTools(): readonly string[];
 ## Example
 
 ```tsx
-import { useEnabledTools } from "@web-agents/react";
+import { useEnabledTools } from "@webmcp-agents/react";
 
 function ToolBadge() {
   const ids = useEnabledTools();

@@ -1,9 +1,9 @@
 # JSX attributes
 
-`@web-agents/react` types the declarative WebMCP attributes, so JSX accepts `toolname`, `tooldescription`, `toolautosubmit` and `toolparamdescription` on any element. It is type-only: it ships in the package's `.d.ts` without a side-effect import.
+`@webmcp-agents/react` types the declarative WebMCP attributes, so JSX accepts `toolname`, `tooldescription`, `toolautosubmit` and `toolparamdescription` on any element. It is type-only: it ships in the package's `.d.ts` without a side-effect import.
 
 ```ts
-import "@web-agents/react"; // any import from the package brings the types in
+import "@webmcp-agents/react"; // any import from the package brings the types in
 ```
 
 ## Signature

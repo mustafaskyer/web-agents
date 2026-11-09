@@ -3,7 +3,7 @@
 One place to say which tools the agent sees. Enabled tools are `global`, plus every `routes` entry that matches the pathname, plus whatever mounted components enable with [`useEnableTools`](./use-enable-tools.md). The provider also installs the agent cursor itself, before the first tool registers, so imperative tools are animated without any ordering rule in the app.
 
 ```ts
-import { WebAgentsProvider } from "@web-agents/react";
+import { WebAgentsProvider } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -45,7 +45,7 @@ A context provider. Descendants read it with [`useWebAgents`](./use-web-agents.m
 From `apps/ecommerce/src/Root.tsx`, trimmed. The router's pathname is passed in, because React Router's `pushState` is invisible without the Navigation API.
 
 ```tsx
-import { WebAgentsProvider } from "@web-agents/react";
+import { WebAgentsProvider } from "@webmcp-agents/react";
 import { useLocation, useNavigate } from "react-router";
 import { catalog, globalTools } from "./tools/catalog";
 
@@ -69,7 +69,7 @@ function Shell() {
 Typing `ctx.context`:
 
 ```ts
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: CartApi;
   }

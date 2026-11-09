@@ -3,7 +3,7 @@
 Turns catalog tools on while the calling component is mounted: a promo row enables `remove_promo`, an open cart drawer enables its item tools. `EnableTools` is the component form, for JSX that would rather not call a hook.
 
 ```ts
-import { EnableTools, useEnableTools } from "@web-agents/react";
+import { EnableTools, useEnableTools } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -31,7 +31,7 @@ Nothing. `EnableTools` renders `null`.
 From `apps/ecommerce/src/components/CartDrawer.tsx`: the drawer's tools exist exactly while it is open.
 
 ```tsx
-import { EnableTools } from "@web-agents/react";
+import { EnableTools } from "@webmcp-agents/react";
 
 <div role="dialog" aria-modal="true" className={styles.panel} inert={!cartOpen}>
   {cartOpen && <EnableTools names={drawerTools} />}

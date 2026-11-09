@@ -3,8 +3,8 @@
 For declarative `<form toolname>` tools whose own action hides them. Chrome cancels a tool call whose definition changes mid-flight, and unmounting or un-naming a declarative form changes it. `useToolAnswer` answers the agent's submit and keeps the form in place until the agent has its answer.
 
 ```ts
-import { useToolAnswer } from "@web-agents/react";
-import type { ToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
+import type { ToolAnswer } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -39,7 +39,7 @@ const useAnswerGrace: typeof useToolAnswer;
 From `apps/ecommerce/src/tools/ApplyPromoForm.tsx`, trimmed. Applying a code hides the form, so it stays for a moment after answering.
 
 ```tsx
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 
 export function ApplyPromoForm() {
   const cart = useCart();

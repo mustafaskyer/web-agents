@@ -3,7 +3,7 @@
 Returns the browser's current `location.pathname`, kept fresh without patching `history`. It is what [`<WebAgentsProvider>`](./web-agents-provider.md) matches `routes` against when you don't pass `pathname`.
 
 ```ts
-import { usePathname } from "@web-agents/react";
+import { usePathname } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -25,7 +25,7 @@ function usePathname(): string;
 From `apps/playground/src/App.tsx`, trimmed. The app has no router: links call `history.pushState` and then dispatch a `popstate`, so browsers without the Navigation API see the change too.
 
 ```tsx
-import { usePathname, WebAgentsProvider } from "@web-agents/react";
+import { usePathname, WebAgentsProvider } from "@webmcp-agents/react";
 
 function NavLink({ to, path, children }) {
   function onClick(e) {

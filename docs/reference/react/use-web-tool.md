@@ -3,8 +3,8 @@
 Registers a tool that lives in a component and closes over its state, while the component is mounted and `enabled`. Calls always reach the latest render's `execute`, so new state never needs a re-registration.
 
 ```ts
-import { useWebTool } from "@web-agents/react";
-import type { UseWebToolOptions, WebToolState } from "@web-agents/react";
+import { useWebTool } from "@webmcp-agents/react";
+import type { UseWebToolOptions, WebToolState } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -43,7 +43,7 @@ interface WebToolState {
 From `apps/playground/src/tools/ClearCartButton.tsx`. The tool is confirm-gated, and only visible to the agent while there is something to clear.
 
 ```tsx
-import { defineWebTool, useWebTool } from "@web-agents/react";
+import { defineWebTool, useWebTool } from "@webmcp-agents/react";
 import { useMemo } from "react";
 
 export function ClearCartButton() {

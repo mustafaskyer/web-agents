@@ -3,8 +3,8 @@
 Reads the nearest [`<WebAgentsProvider>`](./web-agents-provider.md): its tool registry, cursor controls and pathname. `useOptionalWebAgents` does the same but returns `null` outside a provider, for UI that also works without one (the devtools use it).
 
 ```ts
-import { useOptionalWebAgents, useWebAgents } from "@web-agents/react";
-import type { WebAgentsContextValue, WebAgentsVisuals } from "@web-agents/react";
+import { useOptionalWebAgents, useWebAgents } from "@webmcp-agents/react";
+import type { WebAgentsContextValue, WebAgentsVisuals } from "@webmcp-agents/react";
 ```
 
 ## Signature
@@ -47,7 +47,7 @@ type WebAgentsVisuals = Pick<AgentVisuals, "setSpotlight" | "setYieldToUser">;
 Turn the spotlight on at runtime:
 
 ```tsx
-import { useWebAgents } from "@web-agents/react";
+import { useWebAgents } from "@webmcp-agents/react";
 
 function SpotlightToggle() {
   const { visuals } = useWebAgents();

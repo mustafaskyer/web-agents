@@ -2,19 +2,19 @@
 slug: polyfill
 ---
 
-# `@web-agents/polyfill`
+# `@webmcp-agents/polyfill`
 
 A `document.modelContext` (WebMCP) polyfill for development and browsers without native support, including declarative `<form toolname>` tools. It steps aside when the browser has the real API.
 
 ```sh
-pnpm add @web-agents/polyfill
+pnpm add @webmcp-agents/polyfill
 ```
 
-`@web-agents/core` is an optional peer dependency (types only).
+`@webmcp-agents/core` is an optional peer dependency (types only).
 
 ```ts
-import "@web-agents/polyfill/auto"; // or:
-import { installWebMCPPolyfill } from "@web-agents/polyfill";
+import "@webmcp-agents/polyfill/auto"; // or:
+import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
 const modelContext = installWebMCPPolyfill();
 ```
 
@@ -24,7 +24,7 @@ const modelContext = installWebMCPPolyfill();
 |---|---|
 | [`installWebMCPPolyfill`](./install-webmcp-polyfill.md) | Install the polyfill unless the browser has WebMCP; returns the active `ModelContext`. |
 | [`PolyfillModelContext`](./polyfill-model-context.md) | The installed `document.modelContext`: `registerTool`, `unregisterTool`, `getTools`, `executeTool` with `{ signal }`, the non-standard `cancelTool`, events, declarative forms and the confirmation pause. |
-| [`@web-agents/polyfill/auto`](./auto.md) | Side-effect entry that installs the polyfill on import. |
+| [`@webmcp-agents/polyfill/auto`](./auto.md) | Side-effect entry that installs the polyfill on import. |
 
 ## What it covers
 
@@ -36,11 +36,11 @@ const modelContext = installWebMCPPolyfill();
 
 ## Differences from Chrome
 
-- Event order: the polyfill fires `toolactivated → fill → submit`, native Chrome `fill → submit → toolactivated`. `@web-agents/core` handles both.
+- Event order: the polyfill fires `toolactivated → fill → submit`, native Chrome `fill → submit → toolactivated`. `@webmcp-agents/core` handles both.
 - No `:tool-form-active` / `:tool-submit-active` pseudo-classes: use the `data-tool-…` attributes (core's `cursor.css` styles both, in separate rules).
 - Unregistering a tool doesn't cancel its running calls; in Chrome it does.
 
 ## See also
 
-- [`@web-agents/core`](../core/README.md) ([WebMCP types](../core/webmcp-types.md), [`executeTool`](../core/execute-tool.md))
-- [`@web-agents/react`](../react/README.md) ([JSX attributes](../react/jsx-attributes.md), [`useToolAnswer`](../react/use-tool-answer.md))
+- [`@webmcp-agents/core`](../core/README.md) ([WebMCP types](../core/webmcp-types.md), [`executeTool`](../core/execute-tool.md))
+- [`@webmcp-agents/react`](../react/README.md) ([JSX attributes](../react/jsx-attributes.md), [`useToolAnswer`](../react/use-tool-answer.md))

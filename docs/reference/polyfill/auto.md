@@ -1,9 +1,9 @@
-# `@web-agents/polyfill/auto`
+# `@webmcp-agents/polyfill/auto`
 
 A side-effect entry: importing it calls [`installWebMCPPolyfill()`](./install-webmcp-polyfill.md), which installs the polyfill if the browser has no WebMCP. Use it when you don't need the returned `ModelContext`.
 
 ```ts
-import "@web-agents/polyfill/auto";
+import "@webmcp-agents/polyfill/auto";
 ```
 
 ## Signature
@@ -28,11 +28,11 @@ Nothing. The module has no exports.
 The example apps load it in development only, with a dynamic import, before the app module (`apps/playground/src/main.tsx`):
 
 ```ts
-import "@web-agents/core/cursor.css";
+import "@webmcp-agents/core/cursor.css";
 
 // 1. (dev only) give browsers without native WebMCP a document.modelContext
 if (import.meta.env.DEV) {
-  await import("@web-agents/polyfill/auto");
+  await import("@webmcp-agents/polyfill/auto");
 }
 
 // 2. the app: <WebAgentsProvider> (App.tsx) installs the agent cursor before its first tool registers

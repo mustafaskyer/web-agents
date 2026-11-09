@@ -2,19 +2,19 @@
 slug: react
 ---
 
-# `@web-agents/react`
+# `@webmcp-agents/react`
 
 React bindings for WebMCP tools. Say once which tools the agent may see, turn them on globally, per route or per mounted component, and get the agent cursor without any ordering rules.
 
 ```sh
-pnpm add @web-agents/react @web-agents/core
+pnpm add @webmcp-agents/react @webmcp-agents/core
 ```
 
 React is a peer dependency (`react >= 18`).
 
 ```tsx
-import { defineWebTool, EnableTools, useWebTool, WebAgentsProvider } from "@web-agents/react";
-import "@web-agents/core/cursor.css";
+import { defineWebTool, EnableTools, useWebTool, WebAgentsProvider } from "@webmcp-agents/react";
+import "@webmcp-agents/core/cursor.css";
 
 // Module level (or memoised): the catalog of every tool the app may expose.
 const catalog = [getCart, listOrders, removePromo];
@@ -33,7 +33,7 @@ const catalog = [getCart, listOrders, removePromo];
 <EnableTools names={["remove_promo"]} />      // or useEnableTools(["remove_promo"])
 ```
 
-The page needs `document.modelContext`: a WebMCP-enabled Chrome, or [`@web-agents/polyfill`](../polyfill/README.md) in development.
+The page needs `document.modelContext`: a WebMCP-enabled Chrome, or [`@webmcp-agents/polyfill`](../polyfill/README.md) in development.
 
 ## APIs
 
@@ -51,7 +51,7 @@ The page needs `document.modelContext`: a WebMCP-enabled Chrome, or [`@web-agent
 
 ## Re-exported from core
 
-The package re-exports the common path from `@web-agents/core`, so one import is enough. They are documented there:
+The package re-exports the common path from `@webmcp-agents/core`, so one import is enough. They are documented there:
 
 - [`defineWebTool`](../core/define-web-tool.md), with the types `WebTool`, `WebToolConfig`, `WebToolContext`, `Register`
 - [`waitingForUser`](../core/waiting-for-user.md)
@@ -64,6 +64,6 @@ Chrome cancels a running call when its tool's definition changes or the tool is 
 
 ## See also
 
-- [`@web-agents/core`](../core/README.md)
-- [`@web-agents/polyfill`](../polyfill/README.md)
+- [`@webmcp-agents/core`](../core/README.md)
+- [`@webmcp-agents/polyfill`](../polyfill/README.md)
 - Example apps: `apps/playground`, `apps/ecommerce`, `apps/flights`

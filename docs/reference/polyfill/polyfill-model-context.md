@@ -3,7 +3,7 @@
 The `document.modelContext` the polyfill installs: enough of the WebMCP surface to register, list, run and cancel tools, plus declarative `<form toolname>` tools, in a browser without native support. You normally get it from [`installWebMCPPolyfill`](./install-webmcp-polyfill.md), not by constructing it.
 
 ```ts
-import { PolyfillModelContext } from "@web-agents/polyfill";
+import { PolyfillModelContext } from "@webmcp-agents/polyfill";
 ```
 
 ## Signature
@@ -91,7 +91,7 @@ Without `toolautosubmit`, and when the form has a submitter, the call pauses bef
 ## Example
 
 ```ts
-import { installWebMCPPolyfill } from "@web-agents/polyfill";
+import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
 
 const mc = installWebMCPPolyfill();
 mc?.addEventListener("toolactivated", (e) => console.log("running", e.toolName));
@@ -102,7 +102,7 @@ const result = await mc?.executeTool("apply_promo", { code: "WELCOME10" }, { sig
 
 ## Notes
 
-- Event order differs from Chrome: the polyfill fires `toolactivated → fill → submit`, native Chrome `fill → submit → toolactivated`. `@web-agents/core` handles both.
+- Event order differs from Chrome: the polyfill fires `toolactivated → fill → submit`, native Chrome `fill → submit → toolactivated`. `@webmcp-agents/core` handles both.
 - `unregisterTool` doesn't cancel the tool's running calls here, while Chrome does. Code that works under the polyfill can still lose calls in Chrome: release through `deferRelease` (the React hooks and registry do).
 - Registering a name that is already registered replaces it without an error.
 - `cancelTool` tracks one running call per name: the latest.
@@ -114,7 +114,7 @@ const result = await mc?.executeTool("apply_promo", { code: "WELCOME10" }, { sig
 ## See also
 
 - [`installWebMCPPolyfill`](./install-webmcp-polyfill.md)
-- [`@web-agents/polyfill/auto`](./auto.md)
+- [`@webmcp-agents/polyfill/auto`](./auto.md)
 - [WebMCP types](../core/webmcp-types.md)
 - [JSX attributes](../react/jsx-attributes.md)
 - [`useToolAnswer`](../react/use-tool-answer.md)
