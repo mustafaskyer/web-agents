@@ -9,7 +9,7 @@
     "prebuild": "node scripts/copy-cursor-css.mjs",
     "build": "next build",
     "start": "next start -p 5176",
-    "typecheck": "node scripts/copy-cursor-css.mjs && tsc -p tsconfig.json",
+    "typecheck": "node scripts/copy-cursor-css.mjs && next typegen && tsc -p tsconfig.json",
     "e2e": "playwright test"
   },
   "dependencies": {
