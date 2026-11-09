@@ -1,0 +1,44 @@
+---
+// The Demos page at /demos: a recorded clip per example app. Like the home page (index.astro) it is a custom page with
+// its own document, the landing's header and stylesheet, and takes the fonts, the favicon and the theme from Blume.
+import data from "blume:data";
+import Favicon from "blume/components/layout/Favicon.astro";
+import Fonts from "blume/components/layout/Fonts.astro";
+import SocialMeta from "../components/social-meta.astro";
+import { THEME_INIT_SCRIPT } from "blume/components/layout/head-scripts.ts";
+import "@webmcp-agents/core/cursor.css";
+import "../landing.css";
+import { codeToHtml } from "shiki";
+import Demos from "../components/landing/demos.tsx";
+import { DEMOS } from "../components/landing/demos-data.ts";
+
+const { config } = data;
+// Each demo's calls, highlighted at build time like the home page's steps (both themes as CSS variables).
+const calls = await Promise.all(
+  DEMOS.map((demo) =>
+    codeToHtml(demo.calls, { lang: "ts", themes: { light: config.codeThemes.light, dark: config.codeThemes.dark }, defaultColor: false }),
+  ),
+);
+const title = "Demos · WebMCP Agents";
+const description =
+  "Watch an agent book a flight and check out a cart through two example apps' own WebMCP tools, with a visible cursor and a confirm click.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <SocialMeta title={title} description={description} site={config.site} path="/demos" />
+    <Favicon favicon={config.favicon} appleIcon={config.appleIcon} />
+    <Fonts cssVars={data.fontCssVars} />
+    {/* Before the first paint: the theme the reader chose here or in the docs, else the system's. */}
+    <script is:inline data-mode={config.theme.mode} set:html={THEME_INIT_SCRIPT} />
+  </head>
+  <body class="min-h-full bg-background text-foreground antialiased">
+    <Demos client:load year={new Date().getFullYear()} calls={calls} />
+  </body>
+</html>
