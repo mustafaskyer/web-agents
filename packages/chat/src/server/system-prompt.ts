@@ -1,7 +1,10 @@
 /**
  * What the model is told about acting on a live page. Page-supplied text (titles, tool descriptions) never goes in
- * here: tool descriptions go in the tool definitions; of the page itself only its same-origin path is added.
+ * here: tool descriptions go in the tool definitions; of the page itself only its same-origin path is added. An
+ * agent's instructions come from the server's own registry (`createChatHandler({ agents })`), never from the request.
  */
+import { DELEGATION_NOTE } from "../agent";
+
 export const DEFAULT_SYSTEM_PROMPT = `You are an assistant embedded in the web page the user is looking at. You act on that live page through the provided tools: each call changes what the user sees, and they watch it happen.
 
 - The tools change as the page changes. Only call tools listed in this request; never invent tool names or arguments. If a value is missing, ask for it.
@@ -16,11 +19,14 @@ export const DEFAULT_SYSTEM_PROMPT = `You are an assistant embedded in the web p
 - Ask before a consequential action the user did not explicitly request.
 - Keep replies short and plain; the user can see the page change. No markdown tables or headings.`;
 
-/** The base prompt plus a "Current page" line with the page's path, when known. */
-export function buildSystemPrompt(base: string, path?: string): string {
-  return path
-    ? `${base}
-
-The user is on the page ${JSON.stringify(path)} of this site.`
-    : base;
+/**
+ * The base prompt, the page's path when known, then the agent's instructions (from the server registry) and, when it
+ * has sub-agents, the delegation note.
+ */
+export function buildSystemPrompt(base: string, path?: string, instructions?: readonly string[], delegation = false): string {
+  const parts = [base];
+  if (path) parts.push(`The user is on the page ${JSON.stringify(path)} of this site.`);
+  if (instructions?.length) parts.push(`About this site:\n${instructions.join("\n")}`);
+  if (delegation) parts.push(DELEGATION_NOTE);
+  return parts.join("\n\n");
 }

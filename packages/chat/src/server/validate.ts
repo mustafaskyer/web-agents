@@ -4,11 +4,16 @@
  * an unbounded prompt.
  */
 import { z } from "zod";
+import { AGENT_ID } from "../agent";
 import { LIMITS } from "../shared";
 
 export { LIMITS };
 
 const TOOL_NAME = /^[a-zA-Z0-9_.-]{1,128}$/;
+
+const providerMetadata = z
+  .record(z.string(), z.record(z.string(), z.unknown()))
+  .refine((m) => JSON.stringify(m).length <= LIMITS.reasoning, "Provider metadata is too large");
 
 const toolOutput = z.object({
   content: z.array(z.object({ type: z.string() }).loose()).max(20),
@@ -20,10 +25,7 @@ const part = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("reasoning"),
     text: z.string().max(LIMITS.reasoning),
-    providerMetadata: z
-      .record(z.string(), z.record(z.string(), z.unknown()))
-      .refine((m) => JSON.stringify(m).length <= LIMITS.reasoning, "Reasoning metadata is too large")
-      .optional(),
+    providerMetadata: providerMetadata.optional(),
   }),
   z.object({
     type: z.literal("tool"),
@@ -34,6 +36,7 @@ const part = z.discriminatedUnion("type", [
     output: toolOutput.optional(),
     error: z.string().max(LIMITS.text).optional(),
     prompt: z.string().max(LIMITS.text).optional(),
+    providerMetadata: providerMetadata.optional(),
   }),
 ]);
 
@@ -60,6 +63,8 @@ export const chatRequestSchema = z.object({
     .refine((ts) => new Set(ts.map((t) => t.name)).size === ts.length, "Tool names must be unique"),
   /** Where the conversation happens (the page's URL). Only a same-origin path reaches the model. */
   page: z.object({ url: z.string().max(2000).optional() }).optional(),
+  /** The agent's id (`defineWebAgent`), looked up in the handler's registry. Never instructions: unknown keys are stripped. */
+  agent: z.string().regex(AGENT_ID, "Agent ids are 1-64 letters, digits, _ . or -").optional(),
 });
 
 /** A validated /api/chat request. */

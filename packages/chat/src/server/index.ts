@@ -1,10 +1,35 @@
 /**
  * @webmcp-agents/chat/server: the `/api/chat` handler (Node 22+, Vercel functions, `vite dev`).
  *
- *   export default { fetch: createChatHandler() };          // or: export const POST = createChatHandler();
+ *   export default { fetch: createChatHandler({ agents: [shopper] }) };   // or: export const POST = createChatHandler();
  */
 export { createChatHandler, DEFAULT_MODEL } from "./handler";
 export type { ChatHandlerOptions, Effort } from "./handler";
 export { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "./system-prompt";
 export { chatRequestSchema, LIMITS } from "./validate";
 export type { ChatRequest } from "./validate";
+export {
+  AGENT_ID,
+  DELEGATE_PREFIX,
+  DELEGATION_NOTE,
+  defineWebAgent,
+  delegateTool,
+  delegateToolName,
+  flattenWebAgents,
+  isDelegateTool,
+  selectTools,
+} from "../agent";
+export type { WebAgent, WebAgentConfig } from "../agent";
+export { toToolLoopAgent, toToolLoopAgentSettings, toToolSet } from "./web-agent";
+export type { ToToolLoopAgentOptions, WebAgentSettings } from "./web-agent";
+export {
+  _resetModelCache,
+  displayName,
+  ModelUnavailableError,
+  modelAvailability,
+  parseModelId,
+  PROVIDERS,
+  providerOptionsFor,
+  resolveModel,
+} from "./models";
+export type { ModelAvailability, ParsedModelId, ProviderOptions, ProviderSpec, ReasoningLevel } from "./models";

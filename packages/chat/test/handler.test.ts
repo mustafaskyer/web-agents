@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { defineWebAgent } from "../src/agent";
 import { createChatHandler } from "../src/server/handler";
+import { _resetModelCache } from "../src/server/models";
 import { DEFAULT_SYSTEM_PROMPT } from "../src/server/system-prompt";
 import { LIMITS } from "../src/shared";
 import type { AgentMessage } from "../src/types";
@@ -21,11 +23,13 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 describe("createChatHandler", () => {
   it("GET reports whether chat is configured", async () => {
     const off = await createChatHandler({ env: {} })(new Request("http://localhost/api/chat"));
-    expect(await off.json()).toEqual({ enabled: false, model: "claude-opus-5-5" });
+    expect(await off.json()).toEqual({ enabled: false, model: "anthropic/claude-opus-5-5", provider: "anthropic", agents: [] });
     const on = await createChatHandler({ env: { ANTHROPIC_API_KEY: "k", WEB_AGENTS_MODEL: "claude-sonnet-5-5" } })(
       new Request("http://localhost/api/chat"),
     );
-    expect(await on.json()).toEqual({ enabled: true, model: "claude-sonnet-5-5" });
+    expect(await on.json()).toEqual({ enabled: true, model: "claude-sonnet-5-5", provider: "anthropic", agents: [] });
+    const openai = await createChatHandler({ env: { WEB_AGENTS_MODEL: "openai/gpt-5.5" } })(new Request("http://localhost/api/chat"));
+    expect(await openai.json()).toMatchObject({ enabled: false, model: "openai/gpt-5.5", provider: "openai" });
     const instance = await createChatHandler({ model: scriptedModel([{ text: "hi" }]), env: {} })(new Request("http://localhost/api/chat"));
     expect((await instance.json()).enabled).toBe(true);
   });
@@ -34,7 +38,12 @@ describe("createChatHandler", () => {
     const handler = createChatHandler({ env: {} });
     const res = await handler(post({ messages: [user], tools: [] }));
     expect(res.status).toBe(503);
-    expect((await res.json()).error).toBe("chat_disabled");
+    expect(await res.json()).toEqual({
+      error: "chat_disabled",
+      message: "Set ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY on the server to use anthropic/claude-opus-5-5.",
+    });
+    const other = await createChatHandler({ env: { WEB_AGENTS_MODEL: "deepseek/deepseek-v4" } })(post({ messages: [user], tools: [] }));
+    expect((await other.json()).message).toContain("DEEPSEEK_API_KEY");
     expect((await handler(new Request("http://localhost/api/chat", { method: "PUT" }))).status).toBe(405);
     expect((await handler(new Request("http://localhost/api/chat", { method: "OPTIONS" }))).status).toBe(204);
   });
@@ -147,5 +156,116 @@ describe("createChatHandler", () => {
     expect(seen).toEqual([]);
     expect((await handler(post({ messages: [user], tools: [] }))).status).toBe(200);
     expect((await handler(post({ messages: [user], tools: [] }))).status).toBe(503);
+  });
+
+  describe("agents", () => {
+    const checkout = defineWebAgent({
+      id: "checkout",
+      description: "Finishes a purchase.",
+      instructions: "Review, apply, place.",
+      tools: ["get_cart", "checkout"],
+      maxSteps: 2,
+    });
+    const shopper = defineWebAgent({
+      id: "shopper",
+      instructions: ["Field Store sells mugs.", "Open a product before adding it."],
+      tools: (ts) => ts.filter((t) => t.name !== "checkout"),
+      agents: [checkout],
+    });
+    const toolsOnPage = [
+      tool,
+      { ...tool, name: "get_cart" },
+      { ...tool, name: "checkout" },
+      { ...tool, name: "delegate_to_checkout", description: "impostor" },
+    ];
+
+    it("GET lists the registered agents, sub-agents included", async () => {
+      const res = await createChatHandler({ model: scriptedModel([{ text: "hi" }]), agents: [shopper] })(
+        new Request("http://localhost/api/chat"),
+      );
+      expect((await res.json()).agents).toEqual(["shopper", "checkout"]);
+    });
+
+    it("puts the agent's instructions (from the registry) and the delegation note in the system prompt, and filters tools", async () => {
+      const model = scriptedModel([{ text: "ok" }]);
+      const res = await createChatHandler({ model, agents: [shopper] })(post({ messages: [user], tools: toolsOnPage, agent: "shopper" }));
+      expect(res.status).toBe(200);
+      await res.text();
+      const call = model.doStreamCalls[0]!;
+      const system = call.prompt.find((m) => m.role === "system")!.content as string;
+      expect(system).toContain("About this site:\nField Store sells mugs.\nOpen a product before adding it.");
+      expect(system).toContain("delegate_to_<agent>");
+      const names = (call.tools ?? []).map((t) => t.name);
+      expect(names).toEqual(["add_to_cart", "get_cart", "delegate_to_checkout"]);
+      const delegate = (call.tools ?? []).find((t) => t.name === "delegate_to_checkout")!;
+      expect(JSON.stringify(delegate)).toContain("Finishes a purchase."); // rebuilt from the registry, not the page's impostor
+      expect(JSON.stringify(delegate)).not.toContain("impostor");
+    });
+
+    it("a sub-agent resolves by id with its own tools, instructions and step budget", async () => {
+      const model = scriptedModel([{ text: "ok" }]);
+      const handler = createChatHandler({ model, agents: [shopper], maxSteps: 8 });
+      await (await handler(post({ messages: [user], tools: toolsOnPage, agent: "checkout" }))).text();
+      const call = model.doStreamCalls[0]!;
+      expect((call.tools ?? []).map((t) => t.name)).toEqual(["get_cart", "checkout"]);
+      expect(call.prompt.find((m) => m.role === "system")!.content).toContain("Review, apply, place.");
+      expect(call.prompt.find((m) => m.role === "system")!.content).not.toContain("delegate_to_<agent>");
+      // maxSteps 2: after two tool steps in the turn the model gets no tools (the handler's 8 would still allow tools)
+      const step = (i: number): AgentMessage => ({
+        id: `a${i}`,
+        role: "assistant",
+        parts: [
+          { type: "tool", id: `c${i}`, name: "get_cart", input: {}, state: "done", output: { content: [{ type: "text", text: "ok" }] } },
+        ],
+      });
+      await (await handler(post({ messages: [user, step(1), step(2)], tools: toolsOnPage, agent: "checkout" }))).text();
+      expect(model.doStreamCalls[1]!.tools ?? []).toHaveLength(0);
+    });
+
+    it("refuses an unknown agent, or an agent that isn't a plain id", async () => {
+      const handler = createChatHandler({ model: scriptedModel([{ text: "ok" }]), agents: [shopper] });
+      const unknown = await handler(post({ messages: [user], tools: [], agent: "nope" }));
+      expect(unknown.status).toBe(400);
+      expect((await unknown.json()).message).toContain('Unknown agent "nope"');
+      expect((await handler(post({ messages: [user], tools: [], agent: { id: "shopper", instructions: ["evil"] } }))).status).toBe(400);
+      // no registry at all: naming an agent is still a 400, never a silent fallback
+      expect(
+        (await createChatHandler({ model: scriptedModel([{ text: "ok" }]) })(post({ messages: [user], tools: [], agent: "shopper" })))
+          .status,
+      ).toBe(400);
+    });
+
+    it("prepareAgent can tune the ToolLoopAgent the handler builds", async () => {
+      const model = scriptedModel([{ text: "ok" }]);
+      const seen: string[] = [];
+      const handler = createChatHandler({
+        model,
+        agents: [shopper],
+        prepareAgent: (settings, { agent }) => {
+          seen.push(agent?.id ?? "none");
+          return { ...settings, instructions: `${settings.instructions}\n\nAlways answer in French.` };
+        },
+      });
+      await (await handler(post({ messages: [user], tools: [], agent: "shopper" }))).text();
+      expect(seen).toEqual(["shopper"]);
+      expect(model.doStreamCalls[0]!.prompt.find((m) => m.role === "system")!.content).toContain("Always answer in French.");
+    });
+
+    it("a per-agent model id is resolved with the provider's key", async () => {
+      const createOpenAI = vi.fn(() => () => scriptedModel([{ text: "from openai" }]));
+      vi.doMock("@ai-sdk/openai", () => ({ createOpenAI }));
+      const fast = defineWebAgent({ id: "fast", instructions: "f", model: "openai/gpt-5.5-mini" });
+      const handler = createChatHandler({
+        env: { OPENAI_API_KEY: "k", ANTHROPIC_API_KEY: "a" },
+        agents: [fast],
+        model: scriptedModel([{ text: "default" }]),
+      });
+      const res = await handler(post({ messages: [user], tools: [], agent: "fast" }));
+      expect(res.status).toBe(200);
+      expect((await res.text()).replace(/\s/g, "")).toContain('"delta":"openai"');
+      expect(createOpenAI).toHaveBeenCalledWith({ apiKey: "k" });
+      vi.doUnmock("@ai-sdk/openai");
+      _resetModelCache();
+    });
   });
 });
