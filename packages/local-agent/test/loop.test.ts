@@ -1,4 +1,4 @@
-import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@webmcp-agents/chat";
+import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor, WebAgent } from "@webmcp-agents/chat";
 import { describe, expect, it, vi } from "vitest";
 import { continuePrompt, delegatedTool, doItPrompt, failedPrompt, runLocalAgent } from "../src/loop";
 import type { GenerateRequest, LocalProvider } from "../src/types";
@@ -376,5 +376,45 @@ describe("runLocalAgent", () => {
     const text = parts.flatMap((p) => (p.type === "text-delta" ? [p.delta] : [])).join("");
     expect(text).not.toContain("click");
     expect(text).toBe("One mug is in your cart.");
+  });
+});
+
+describe("runLocalAgent with the page's WebAgent", () => {
+  const agent: WebAgent = {
+    id: "shopper",
+    instructions: ["Sells mugs.", "Open a product first."],
+    agents: [{ id: "checkout", instructions: ["c"], agents: [] }],
+    maxSteps: 1,
+  };
+  const req = (over: Partial<AgentRunRequest> = {}): AgentRunRequest => ({
+    messages: [user],
+    tools,
+    signal: new AbortController().signal,
+    callTool: vi.fn(async () => ({ content: [{ type: "text", text: "ok" }] })),
+    ...over,
+  });
+
+  it("puts the agent's instructions and the delegation note in the prompt, over the adapter's own instructions", async () => {
+    const provider = fake(["Hello."]);
+    for await (const _ of runLocalAgent(provider, req({ agent }), { instructions: "adapter text" }));
+    const system = provider.requests[0]!.system;
+    expect(system).toContain("About this site:\nSells mugs.\nOpen a product first.");
+    expect(system).not.toContain("adapter text");
+    expect(system).toContain("delegate_to_<agent>");
+  });
+
+  it("the agent's maxSteps bounds the run", async () => {
+    const provider = fake(['<tool_call>{"name": "add_to_cart", "arguments": {"qty": 2}}</tool_call>', "Second step"]);
+    const parts: AgentStreamPart[] = [];
+    for await (const p of runLocalAgent(provider, req({ agent }), { maxSteps: 6 })) parts.push(p);
+    expect(provider.requests).toHaveLength(1);
+    expect(parts.at(-1)).toMatchObject({ type: "finish" });
+  });
+
+  it("without an agent, the adapter's instructions still apply and there is no delegation note", async () => {
+    const provider = fake(["Hello."]);
+    for await (const _ of runLocalAgent(provider, req(), { instructions: "adapter text" }));
+    expect(provider.requests[0]!.system).toContain("About this site:\nadapter text");
+    expect(provider.requests[0]!.system).not.toContain("delegate_to_<agent>");
   });
 });

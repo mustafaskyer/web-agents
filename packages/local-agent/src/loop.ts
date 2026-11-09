@@ -117,7 +117,11 @@ export async function* runLocalAgent(
   req: AgentRunRequest,
   opts: LocalLoopOptions = {},
 ): AsyncGenerator<AgentStreamPart> {
-  const { maxSteps = 6, stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false, instructions } = opts;
+  const { stepTimeoutMs = 60_000, maxTools = 8, toolsInline = false } = opts;
+  // the page's agent (defineWebAgent) wins over the adapter's options: its instructions, its step budget
+  const maxSteps = req.agent?.maxSteps ?? opts.maxSteps ?? 6;
+  const instructions = req.agent?.instructions.length ? req.agent.instructions.join("\n") : opts.instructions;
+  const delegation = (req.agent?.agents.length ?? 0) > 0;
   const query = lastUserText(req.messages);
   const format = provider.callFormat ?? "tags";
   const turns: ChatTurn[] = toChatTemplateMessages(req.messages, format);
@@ -161,6 +165,7 @@ export async function* runLocalAgent(
         firstTool: tools[0],
         format,
         instructions,
+        delegation,
       });
       if (!provider.fits || (await provider.fits({ system, messages: turns, tools }).catch(() => true))) {
         fitted = true;

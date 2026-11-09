@@ -73,9 +73,14 @@ export interface LocalPromptOptions {
   firstTool?: CompactTool;
   /** The model's call format (chat-template path). Default "tags". */
   format?: CallFormat;
-  /** What the site is and how its tools fit together, from the site (`createLocalAdapter({ instructions })`). */
+  /** What the site is and how its tools fit together, from the site (`createLocalAdapter({ instructions })` or the page's WebAgent). */
   instructions?: string;
+  /** The agent has sub-agents (`delegate_to_*` tools): say what they are for. */
+  delegation?: boolean;
 }
+
+const DELEGATION =
+  "Tools named delegate_to_<agent> hand one complete task to a helper agent that works this page itself and answers with what it did. Give it the whole task at once, then tell the user its answer.";
 
 /** The system prompt (well under ~600 tokens). */
 export function buildLocalSystemPrompt({
@@ -86,10 +91,12 @@ export function buildLocalSystemPrompt({
   firstTool,
   format = "tags",
   instructions,
+  delegation = false,
 }: LocalPromptOptions = {}): string {
   const json = !!toolsInline;
   const parts = [RULES, json ? JSON_FORMAT : format === "pythonic" ? PYTHONIC_FORMAT : TAG_FORMAT];
   if (instructions?.trim()) parts.push(`About this site:\n${instructions.trim()}`);
+  if (delegation) parts.push(DELEGATION);
   const first = firstTool ?? toolsInline?.[0] ?? tools?.[0];
   if (first) parts.push(`Example:\n${example(first, json, format)}`);
   if (toolsInline?.length)

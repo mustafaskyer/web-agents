@@ -195,7 +195,7 @@ describe("createLocalAdapter", () => {
     }))
       parts.push(p);
     expect(prepare).toHaveBeenCalledOnce();
-    expect(seen.at(0)).toEqual({ state: "downloading", progress: 0 });
+    expect(seen.at(0)).toEqual({ state: "loading", progress: 0 }); // from disk: never shown as a download
     expect(seen.at(-1)).toEqual({ state: "ready" });
     expect(parts.find((p) => p.type === "text-delta")).toMatchObject({ delta: "Hi from the device." });
   });
@@ -206,5 +206,48 @@ describe("createLocalAdapter", () => {
     const parts: AgentStreamPart[] = [];
     for await (const p of adapter.run({ messages: [], tools: [], signal: new AbortController().signal, callTool: vi.fn() })) parts.push(p);
     expect(parts).toEqual([{ type: "error", error: "The on-device model isn't ready: download it first." }]);
+  });
+
+  it("lists the provider's models and switches between them, but never mid-reply", async () => {
+    const selectModel = vi.fn(async () => {});
+    const models = () => [
+      { id: "small", label: "Small", brief: "Fast.", selected: true },
+      { id: "big", label: "Big", brief: "Smarter.", bytes: 9 },
+    ];
+    let gate: () => void = () => {};
+    const adapter = createLocalAdapter({
+      providers: [
+        provider(
+          "t",
+          { state: "available" },
+          {
+            models,
+            selectModel,
+            generate: () => new Promise((resolve) => (gate = () => resolve({ text: "done" }))),
+          },
+        ),
+      ],
+    });
+    expect(adapter.models!()).toEqual([]); // nothing until detection ran
+    expect(await settled(adapter)).toEqual({ state: "ready" });
+    expect(adapter.models!().map((m) => m.id)).toEqual(["small", "big"]);
+
+    const req = {
+      messages: [{ id: "u", role: "user" as const, parts: [{ type: "text" as const, text: "hi" }] }],
+      tools: [],
+      signal: new AbortController().signal,
+      callTool: vi.fn(),
+    };
+    const it = adapter.run(req)[Symbol.asyncIterator]();
+    const first = it.next(); // starts generating
+    await new Promise((r) => setTimeout(r, 0));
+    await expect(adapter.selectModel!("big")).rejects.toThrow(/busy/);
+    gate();
+    await first;
+    for (let step = await it.next(); !step.done; step = await it.next());
+
+    await adapter.selectModel!("big");
+    expect(selectModel).toHaveBeenCalledWith("big");
+    expect(await settled(adapter)).toEqual({ state: "ready" }); // re-detected for the new model
   });
 });
