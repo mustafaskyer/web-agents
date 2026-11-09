@@ -33,6 +33,7 @@ const LIMITS: {
   messages: AgentMessage[];                          // 1 to LIMITS.messages
   tools: { name: string; description: string; inputSchema: Record<string, unknown> }[];
   page?: { url?: string };                           // url ≤ 2000 characters
+  agent?: string;                                    // the agent's id; looked up in the handler's registry
 }
 ```
 
@@ -41,12 +42,13 @@ const LIMITS: {
 | `messages` | 1 to 160. Each: `id` 1–64 characters, `role` `"user"` or `"assistant"`, at most 40 `parts`. |
 | text part | `text` ≤ 8000 characters. |
 | reasoning part | `text` ≤ 32 000 characters; `providerMetadata` ≤ 32 000 characters as JSON. |
-| tool part | `id` 1–128 characters; `name` matches the tool name rule; `state` one of the `ToolCallState`s; `output.content` ≤ 20 items; `error` and `prompt` ≤ 8000 characters. |
+| tool part | `id` 1–128 characters; `name` matches the tool name rule; `state` one of the `ToolCallState`s; `output.content` ≤ 20 items; `error` and `prompt` ≤ 8000 characters; `providerMetadata` ≤ 32 000 characters as JSON. A nested `agent` run is not accepted (the cloud adapter strips it). |
 | `tools` | At most 48, unique names. |
 | tool `name` | `/^[a-zA-Z0-9_.-]{1,128}$/` |
 | tool `description` | ≤ 1024 characters. |
 | tool `inputSchema` | An object, ≤ 8192 characters as JSON. |
 | `page.url` | Optional, ≤ 2000 characters. Only a same-origin path reaches the model. |
+| `agent` | Optional, `/^[a-zA-Z0-9_.-]{1,64}$/`. An id only: instructions in the body are unknown keys and are stripped. |
 
 ## `LIMITS`
 

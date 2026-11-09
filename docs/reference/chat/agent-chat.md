@@ -16,6 +16,7 @@ function AgentChat(props: AgentChatProps): React.ReactPortal | null;
 interface AgentChatProps {
   adapter?: AgentAdapter;
   adapters?: readonly AgentAdapter[];
+  agent?: WebAgent;
   title?: string;
   defaultOpen?: boolean;
   position?: "bottom-right" | "bottom-left";
@@ -32,6 +33,7 @@ interface AgentChatProps {
 |---|---|---|---|
 | `adapter` | `AgentAdapter` | — | The agent. Pass this or `adapters`. |
 | `adapters` | `readonly AgentAdapter[]` | — | Several agents. The panel shows a switcher; the first is the default. |
+| `agent` | `WebAgent` | — | The page's agent ([`defineWebAgent`](./define-web-agent.md)): its instructions, the tools it may use, its sub-agents. Register the same definition on the server (`createChatHandler({ agents })`). A delegate call renders as "<Name> agent" with the sub-agent's cards nested inside. |
 | `title` | `string` | `"Assistant"` | Panel title. Also used in the launcher's label ("Open assistant"). |
 | `defaultOpen` | `boolean` | `false` | Open on first render. |
 | `position` | `"bottom-right" \| "bottom-left"` | `"bottom-right"` | Side and corner for the launcher and panel. |
