@@ -251,6 +251,33 @@ describe("installAgentVisuals", () => {
     expect(rec.types()).toEqual(["start", "result"]); // gated: it found the element
   });
 
+  it("falls back to the `toolname` element when a string `target` matches nothing", async () => {
+    const name = uniqueName("t_stale");
+    fixture(`<button type="button" toolname="${name}">Go</button>`);
+    const off = registerWebTool(defineWebTool({ id: name, description: "d", target: "#nothing-here", execute: () => "went" }));
+    const res = await modelContext().executeTool(name, {});
+    off();
+    expect(resultText(res)).toBe("went");
+    expect(rec.types()).toEqual(["start", "result"]); // gated on the fallback element, not run unseen
+  });
+
+  it("parks a confirm-gated tool on the `toolname` element when its string `target` is stale", async () => {
+    const name = uniqueName("t_stale_confirm");
+    const button = fixture(`<button type="button" toolname="${name}">Place order</button>`).querySelector("button") as HTMLButtonElement;
+    const off = registerWebTool(
+      defineWebTool({ id: name, description: "d", requireConfirmation: true, target: "#gone", execute: () => "placed" }),
+    );
+    const pending = modelContext().executeTool(name, {});
+    await until(
+      () => document.querySelector(".agent-tag")?.textContent === 'Click "Place order" to confirm',
+      4000,
+      "parked on the toolname element",
+    );
+    await userEvent.click(button);
+    expect(resultText(await pending)).toBe("placed");
+    off();
+  });
+
   it("parks on a requireConfirmation WebTool until the user clicks, and runs it once", async () => {
     const name = uniqueName("t_destroy");
     const button = fixture(`<button type="button" toolname="${name}">Clear cart</button>`).querySelector("button") as HTMLButtonElement;

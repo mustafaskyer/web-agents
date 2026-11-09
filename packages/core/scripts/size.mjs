@@ -17,7 +17,7 @@ const index = fileURLToPath(new URL("../src/index.ts", import.meta.url));
 
 /** Budgets: see "Quality bar" in .agents/plans/00-web-agents-roadmap.md. */
 const CHECKS = [
-  { name: "visuals (installAgentVisuals, onAgentEvent)", exports: "{ installAgentVisuals, onAgentEvent }", budget: 9 * KB },
+  { name: "visuals (installAgentVisuals, onAgentEvent)", exports: "{ installAgentVisuals, onAgentEvent }", budget: 9.25 * KB },
   { name: "whole package", exports: "*", budget: 13 * KB },
 ];
 

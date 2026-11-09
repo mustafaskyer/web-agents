@@ -77,9 +77,11 @@ export interface WebToolConfig<I = unknown, O = unknown> {
    */
   requireConfirmation?: boolean;
   /**
-   * CSS selector of the element the tool acts on: where the cursor goes. Default `[toolname="<id>"]`. A function
-   * gets the call's input and picks the element per call, e.g. a list row:
-   * `({ slug }) => \`[data-line="${slug}"] button\``. Returning undefined falls back to the default.
+   * Where the cursor goes. Usually unnecessary: put `toolname="<id>"` on the element the tool acts on and leave this
+   * out (the default is `[toolname="<id>"]`; a tool with no element on the page runs at once, unseen). Use a
+   * function only when the element depends on the call, e.g. one row of a list:
+   * `({ slug }) => \`[data-line="${slug}"] button\``. A selector that matches nothing (or a function returning
+   * undefined) falls back to the default.
    */
   target?: string | TargetFn<I>;
   /** Do the work. Throw for bad input or failures: the agent gets the message as an error result. */
@@ -226,12 +228,17 @@ export function toModelContextTool(tool: WebTool, { context, calls }: ToModelCon
       return undefined; // built from agent input: never let a bad selector break the run
     }
   };
+  /** Where a confirmation click must land: the tool's own target when something matches it right now, else `[toolname]`. */
+  const confirmSelector = (input: unknown): string => {
+    const own = targetFor(input);
+    return own && typeof document !== "undefined" && document.querySelector(own) ? own : fallback;
+  };
   const call = async (args: unknown, signal: AbortSignal): Promise<ModelContextToolResult> => {
     try {
       // Chrome 150 passed the arguments as a JSON string.
       const input = await tool.parse(typeof args === "string" ? JSON.parse(args || "{}") : args);
       // Only a valid call asks the user: they must never approve something that then fails validation.
-      if (tool.requireConfirmation) await waitForConfirmation(targetFor(input) ?? fallback, signal, tool.id);
+      if (tool.requireConfirmation) await waitForConfirmation(confirmSelector(input), signal, tool.id);
       if (signal.aborted) throw abortError(signal); // cancelled while validating: don't start the work
       return toToolResult(await tool.execute(input, { signal, source: "webmcp", context: context?.() as RegisteredContext }));
     } catch (err) {

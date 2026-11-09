@@ -48,7 +48,6 @@ export const removePromo = defineWebTool({
   id: "remove_promo",
   title: "Remove the promo code",
   description: "Take the applied promo code off the cart. Use when the user asks to drop it.",
-  target: '[toolname="remove_promo"]',
   execute: (_input, ctx) => cartOf(ctx.context).removePromo(),
 });
 

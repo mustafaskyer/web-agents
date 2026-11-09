@@ -224,7 +224,9 @@ function start({
   const targets = new Map<string, string | ((args: unknown) => string | undefined)>();
   const byTool = (name: string, args?: unknown): Element | null => {
     const t = targets.get(name);
-    return document.querySelector((typeof t === "function" ? t(args) : t) ?? `[toolname="${CSS.escape(name)}"]`);
+    const own = typeof t === "function" ? t(args) : t;
+    // an explicit selector that matches nothing falls back to the `toolname` element: a stale `target` never hides the cursor
+    return (own && document.querySelector(own)) || document.querySelector(`[toolname="${CSS.escape(name)}"]`);
   };
 
   // ---------- field bookkeeping ----------

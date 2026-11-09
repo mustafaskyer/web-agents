@@ -65,7 +65,7 @@ class WebToolInputError extends Error {
 | `outputSchema` | `StandardSchemaV1` | — | Checked in development only by `run`: a mismatch warns, never throws. |
 | `annotations` | `WebToolAnnotations` | — | MCP hints for the agent, never enforced. |
 | `requireConfirmation` | `boolean` | `false` | Wait for the person to click the tool's element (`target`) before running. With the visuals installed, the cursor parks on the element instead of clicking it. |
-| `target` | `string \| TargetFn<I>` | `` [toolname="<id>"] `` | CSS selector of the element the tool acts on: where the cursor goes. A function gets the call's input and picks the element per call; returning `undefined` falls back to the default. |
+| `target` | `string \| TargetFn<I>` | `` [toolname="<id>"] `` | Where the cursor goes. Usually unnecessary: put `toolname="<id>"` on the element and leave this out. A function gets the call's input and picks the element per call (one row of a list). A selector that matches nothing, or a function returning `undefined`, falls back to the default. |
 | `execute` | `(input: I, ctx: WebToolContext) => O \| Promise<O>` | — | Do the work. Throw for bad input or failures: the agent gets the message as an error result. |
 
 `WebToolAnnotations` (all optional `boolean`, plus any other `[hint: string]: unknown`):
@@ -128,7 +128,8 @@ export const removeFromCart = defineWebTool({
 
 - The `id` is checked at definition time; an invalid one throws a `TypeError`.
 - `jsonSchema` throws a `TypeError` if the Standard Schema library doesn't implement Standard JSON Schema (pass a JSON Schema object instead, e.g. `z.toJSONSchema(schema, { target: "draft-07", io: "input" })`), or if the schema's `type` is not `"object"`. A missing `type` is set to `"object"`.
-- A function `target` gets the arguments as sent, before validation, so read them defensively. A throw, or an invalid selector, falls back to the default. `TargetFn` is declared as a method so a `WebTool<Input>` still fits where a `WebTool<unknown>` is expected.
+- A function `target` gets the arguments as sent, before validation, so read them defensively. A throw, an invalid selector, or a selector that matches nothing falls back to the default (`[toolname="<id>"]`), for the cursor and for the confirmation click alike. `TargetFn` is declared as a method so a `WebTool<Input>` still fits where a `WebTool<unknown>` is expected.
+- A tool with no `target` and no `[toolname]` element runs at once, unseen; the `start` and `result` events still fire.
 - `outputSchema` is checked only when `NODE_ENV` is not `"production"`, and only by `run`.
 - With `requireConfirmation`, input is validated before asking, and with nothing clickable to confirm on the call fails with [`ConfirmationUnavailableError`](./confirmation-unavailable-error.md).
 - Throw a [`WebToolError`](./web-tool-error.md) to choose the error code the agent gets. Other throws are `failed`, bad input is `invalid_input`.
