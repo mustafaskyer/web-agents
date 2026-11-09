@@ -1,5 +1,5 @@
 /**
- * @web-agents/local-agent: an on-device AgentAdapter for @web-agents/chat. No server, no key; nothing the user
+ * @webmcp-agents/local-agent: an on-device AgentAdapter for @webmcp-agents/chat. No server, no key; nothing the user
  * types leaves the browser.
  *
  *   <AgentChat adapters={[createCloudAdapter(), createLocalAdapter()]} />
@@ -8,7 +8,7 @@
  * transformers.js in a Web Worker (WebGPU, or WASM with a smaller model). A model download starts only from
  * `prepare()`, i.e. the person's click in the chat's download card.
  */
-import type { AdapterStatus, AgentAdapter, AgentRunRequest, AgentStreamPart } from "@web-agents/chat";
+import type { AdapterStatus, AgentAdapter, AgentRunRequest, AgentStreamPart } from "@webmcp-agents/chat";
 import { type LocalLoopOptions, runLocalAgent } from "./loop";
 import { createPromptApiProvider } from "./providers/prompt-api/provider";
 import { createTransformersProvider, type TransformersProviderOptions } from "./providers/transformers/provider";

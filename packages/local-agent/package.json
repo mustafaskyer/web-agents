@@ -1,8 +1,8 @@
 {
-  "name": "@web-agents/local-agent",
+  "name": "@webmcp-agents/local-agent",
   "version": "0.1.0",
   "type": "module",
-  "description": "An on-device agent for @web-agents/chat: a small model in a Web Worker (transformers.js, WebGPU/WASM) or Chrome's built-in Prompt API. No server, no key, nothing leaves the browser.",
+  "description": "An on-device agent for @webmcp-agents/chat: a small model in a Web Worker (transformers.js, WebGPU/WASM) or Chrome's built-in Prompt API. No server, no key, nothing leaves the browser.",
   "license": "MIT",
   "sideEffects": false,
   "files": [
@@ -11,12 +11,12 @@
   ],
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./worker": {
-      "@web-agents/source": "./src/providers/transformers/worker.ts",
+      "@webmcp-agents/source": "./src/providers/transformers/worker.ts",
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
     },
@@ -30,15 +30,15 @@
     "check-exports": "publint && attw --pack . --profile esm-only"
   },
   "peerDependencies": {
-    "@web-agents/chat": "workspace:^"
+    "@webmcp-agents/chat": "workspace:^"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.2"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "@web-agents/chat": "workspace:*",
-    "@web-agents/core": "workspace:*",
+    "@webmcp-agents/chat": "workspace:*",
+    "@webmcp-agents/core": "workspace:*",
     "tsdown": "^0.23.7"
   },
   "repository": {

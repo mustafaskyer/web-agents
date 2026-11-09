@@ -29,7 +29,7 @@ export interface TransformersProviderOptions {
   dtype?: Dtype;
   /**
    * The model worker. Default: the package's own (`new Worker(new URL("./worker.js", import.meta.url))`). Pass one when
-   * your bundler can't follow that, e.g. `new (await import("@web-agents/local-agent/worker?worker")).default()`.
+   * your bundler can't follow that, e.g. `new (await import("@webmcp-agents/local-agent/worker?worker")).default()`.
    */
   worker?: Worker | (() => Worker);
   /**

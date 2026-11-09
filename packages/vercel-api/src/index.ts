@@ -1,12 +1,12 @@
 /**
- * @web-agents/vercel-api (private): the examples' `/api/chat` as Vercel web handlers.
+ * @webmcp-agents/vercel-api (private): the examples' `/api/chat` as Vercel web handlers.
  *
  *   // apps/<app>/api/chat.ts
  *   export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" });
  *
  * Env is read when the route is created (at the function's cold start), never at import time.
  */
-import { createChatHandler } from "@web-agents/chat/server";
+import { createChatHandler } from "@webmcp-agents/chat/server";
 import type { LanguageModel } from "ai";
 import { budgetGuard, composeGuards, originGuard, rateLimitGuard } from "./guards";
 import { createLimiter, type Env } from "./limiter";

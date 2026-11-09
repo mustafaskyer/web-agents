@@ -2,13 +2,13 @@
  * Prompts for small on-device models: short rules, one exact output format, a
  * worked example, and the recent conversation only.
  */
-import type { AgentMessage } from "@web-agents/chat";
+import type { AgentMessage } from "@webmcp-agents/chat";
 import { toPythonic } from "./pythonic";
 import type { CallFormat, ChatTurn, CompactTool } from "./types";
 
 const MAX_TURNS = 12;
 const MAX_TOOL_TEXT = 1500;
-/** @web-agents/chat's CANCELLED (a type-only dependency here: importing its runtime would pull in the widget). */
+/** @webmcp-agents/chat's CANCELLED (a type-only dependency here: importing its runtime would pull in the widget). */
 const CANCELLED = "Error [cancelled]: Cancelled by the user.";
 
 const RULES = `You are an assistant inside the web page the user is looking at. You act on the page with tools; the user watches each step.

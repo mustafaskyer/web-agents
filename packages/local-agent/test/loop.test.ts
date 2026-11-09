@@ -1,4 +1,4 @@
-import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@web-agents/chat";
+import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "@webmcp-agents/chat";
 import { describe, expect, it, vi } from "vitest";
 import { continuePrompt, delegatedTool, doItPrompt, failedPrompt, runLocalAgent } from "../src/loop";
 import type { GenerateRequest, LocalProvider } from "../src/types";

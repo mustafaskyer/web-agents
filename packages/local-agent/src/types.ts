@@ -3,7 +3,7 @@
  * model (transformers.js in a worker, Chrome's Prompt API). A provider only
  * generates; the loop owns tools, validation and the conversation.
  */
-import type { JSONSchema } from "@web-agents/core";
+import type { JSONSchema } from "@webmcp-agents/core";
 
 /** Whether a provider can run, and what it needs first. */
 export type ProviderAvailability =

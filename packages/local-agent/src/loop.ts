@@ -4,7 +4,7 @@
  * at a time, feed the results back, repeat. Small models get one chance to fix
  * a bad call per step, a step budget, and a timeout per generation.
  */
-import type { AgentMessage, AgentRunRequest, AgentStreamPart } from "@web-agents/chat";
+import type { AgentMessage, AgentRunRequest, AgentStreamPart } from "@webmcp-agents/chat";
 import { buildLocalSystemPrompt, textOf, toChatTemplateMessages } from "./prompt";
 import { type ParsedCall, parseToolCalls } from "./tool-call-parser";
 import { rankTools, validateArgs } from "./tools";

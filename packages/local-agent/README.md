@@ -1,11 +1,11 @@
-# @web-agents/local-agent
+# @webmcp-agents/local-agent
 
-An on-device agent for [`@web-agents/chat`](../chat): the model runs in the visitor's browser. No server, no API key,
+An on-device agent for [`@webmcp-agents/chat`](../chat): the model runs in the visitor's browser. No server, no API key,
 and nothing the user types leaves the device.
 
 ```tsx
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
 
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter()]; // once per page
 <AgentChat adapters={ADAPTERS} />                              // a switcher: Claude (cloud) | On-device
@@ -18,14 +18,14 @@ must see that unbundled:
 
 ```ts
 export default defineConfig({
-  optimizeDeps: { exclude: ["@web-agents/local-agent", "@huggingface/transformers"] },
+  optimizeDeps: { exclude: ["@webmcp-agents/local-agent", "@huggingface/transformers"] },
   worker: { format: "es" },
 });
 ```
 
 If your bundler can't follow the worker URL, pass the worker yourself:
-`createLocalAdapter({ worker: () => new Worker(new URL("@web-agents/local-agent/worker", import.meta.url), { type: "module" }) })`
-(or Vite's `import LocalWorker from "@web-agents/local-agent/worker?worker"` → `worker: () => new LocalWorker()`).
+`createLocalAdapter({ worker: () => new Worker(new URL("@webmcp-agents/local-agent/worker", import.meta.url), { type: "module" }) })`
+(or Vite's `import LocalWorker from "@webmcp-agents/local-agent/worker?worker"` → `worker: () => new LocalWorker()`).
 
 ## Providers (first available wins)
 

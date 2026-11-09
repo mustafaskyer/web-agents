@@ -3,8 +3,8 @@
  * helpers rank the page's tools against the request, compact their schemas,
  * and check a call's arguments before it touches the page.
  */
-import type { JSONSchema } from "@web-agents/core";
-import type { ToolDescriptor } from "@web-agents/chat";
+import type { JSONSchema } from "@webmcp-agents/core";
+import type { ToolDescriptor } from "@webmcp-agents/chat";
 import type { CompactTool } from "./types";
 
 const KEEP = new Set(["type", "properties", "required", "enum", "minimum", "maximum", "items", "description"]);

@@ -1,13 +1,13 @@
 {
-  "name": "@web-agents/vercel-api",
+  "name": "@webmcp-agents/vercel-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The examples' /api/chat on Vercel: @web-agents/chat's handler behind an origin allow-list, per-IP rate limits and a daily budget.",
+  "description": "The examples' /api/chat on Vercel: @webmcp-agents/chat's handler behind an origin allow-list, per-IP rate limits and a daily budget.",
   "license": "MIT",
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     }
@@ -24,7 +24,7 @@
     "@ai-sdk/anthropic": "^4.0.97",
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.41.0",
-    "@web-agents/chat": "workspace:*",
+    "@webmcp-agents/chat": "workspace:*",
     "ai": "^7.0.163"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { AdapterStatus, AgentStreamPart } from "@web-agents/chat";
+import type { AdapterStatus, AgentStreamPart } from "@webmcp-agents/chat";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLocalAdapter } from "../src/index";
 import type { LocalProvider, ProviderAvailability } from "../src/types";

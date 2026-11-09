@@ -1,4 +1,4 @@
-import type { ToolDescriptor } from "@web-agents/chat";
+import type { ToolDescriptor } from "@webmcp-agents/chat";
 import { describe, expect, it } from "vitest";
 import { compactSchema, rankTools, validateArgs } from "../src/tools";
 
