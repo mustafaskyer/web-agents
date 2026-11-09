@@ -165,7 +165,14 @@ test("checkout waits for the person's click (confirm gate)", async ({ page }) =>
   await page.waitForFunction(() => !!window.agent);
   await expect.poll(() => list(page)).toContain("checkout");
 
-  const contact = { email: "ada@example.com", name: "Ada Lovelace", address: "1 Analytical Way", city: "London", postcode: "N1 9GU" };
+  const contact = {
+    email: "mustafa@mail.test",
+    name: "Mustafa Elsayed",
+    address: "King Fahd Road 2411, Al Olaya",
+    city: "Riyadh",
+    postcode: "12214",
+    country: "Saudi Arabia",
+  };
   const pending = run(page, "checkout", contact);
   const placeOrder = page.getByRole("button", { name: /^Place order/ });
   await expect(placeOrder).toHaveAttribute("data-tool-submit-active", "");
@@ -188,7 +195,14 @@ test("leaving checkout while it waits for the click ends the call and the parked
   await page.waitForFunction(() => !!window.agent);
   await expect.poll(() => list(page)).toContain("checkout");
 
-  const contact = { email: "ada@example.com", name: "Ada Lovelace", address: "1 Analytical Way", city: "London", postcode: "N1 9GU" };
+  const contact = {
+    email: "mustafa@mail.test",
+    name: "Mustafa Elsayed",
+    address: "King Fahd Road 2411, Al Olaya",
+    city: "Riyadh",
+    postcode: "12214",
+    country: "Saudi Arabia",
+  };
   const pending = run(page, "checkout", contact);
   await expect(page.getByRole("button", { name: /^Place order/ })).toHaveAttribute("data-tool-submit-active", "");
 

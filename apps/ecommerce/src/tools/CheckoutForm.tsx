@@ -18,7 +18,19 @@ import { afterAnswer } from "../lib/afterAnswer";
 import { type Contact, type Order, useCart } from "../store/cart";
 import styles from "./forms.module.css";
 
-const COUNTRIES = ["United States", "Canada", "United Kingdom", "Germany", "France", "Netherlands", "Egypt", "Japan", "Australia"];
+const COUNTRIES = [
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "Germany",
+  "France",
+  "Netherlands",
+  "Saudi Arabia",
+  "United Arab Emirates",
+  "Egypt",
+  "Japan",
+  "Australia",
+];
 
 export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(order: Order): void }) {
   const cart = useCart();
