@@ -1,5 +1,5 @@
 import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
-import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import { createLocalAdapter, DEFAULT_MODEL } from "@webmcp-agents/local-agent";
 import { EnableTools, usePathname, WebAgentsProvider } from "@webmcp-agents/react";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 import { Orders } from "./Orders";
@@ -14,7 +14,7 @@ import { ClearCartButton } from "./tools/ClearCartButton";
 const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => null;
 
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
-const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ models: [DEFAULT_MODEL, "onnx-community/Qwen3-1.7B-ONNX"] })];
 
 const GLOBAL_TOOLS = ["get_cart"];
 const ROUTE_TOOLS = { "/orders": ["list_orders"] };

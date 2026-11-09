@@ -1,4 +1,5 @@
-// /api/chat on Vercel: the chat handler behind origin, rate-limit and budget guards (see docs/deploy.md).
+// /api/chat on Vercel: the chat handler behind origin, rate-limit and budget guards (see docs/guides/deploy.md).
 import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
+import { shopper } from "../src/agents";
 
-export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "ecommerce" });
+export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "ecommerce", agents: [shopper] });
