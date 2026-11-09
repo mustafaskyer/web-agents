@@ -1,7 +1,7 @@
 # Roadmap: `@webmcp-agents` — WebMCP helpers, visuals, devtools and agents
 
 Source: `TODO.md` (8 items + 1 issue + 1 priority). This file is the **single source of truth for
-shared decisions and public contracts**. Every phase plan (`01-…` → `07-…`) builds against it.
+shared decisions and public contracts**. Every phase plan (`01-…` → `13-…`) builds against it.
 If a phase needs to change a contract here, update this file in the same commit.
 
 ---
@@ -17,6 +17,12 @@ If a phase needs to change a contract here, update this file in the same commit.
 | 5 | `05-chat-widget-cloud-agent.md` | #4 chat widget, #5 agents (cloud adapter first) | 1, 2 | High |
 | 6 | `06-in-browser-agent.md` | #5 agents (in-browser adapter: transformers.js / Chrome Prompt API) | 5 | High |
 | 7 | `07-vercel-deploy-ci.md` | #8 deploy to Vercel (+ CI, publishing) | 4, 5 | Medium |
+| 8 | `08-docs-site-blume.md` | docs site (Blume) rendering `docs/` | 1–7 | Medium |
+| 9 | `09-scope-rename.md` | npm scope `@web-agents/*` → `@webmcp-agents/*` (2026-11-08) | 8 | Low |
+| 10 | `10-fixes-target-secrets-local-model.md` | `target` fallback + docs, `VITE_*` secret guard, on-device loading state + model picker | 9 | Medium |
+| 11 | `11-agents-and-providers.md` | `defineWebAgent` (instructions, tool subsets, sub-agents) on the AI SDK `ToolLoopAgent`; any provider (`provider/model` ids, OpenRouter, AI Gateway) | 10 | High |
+| 12 | `12-ai-elements-and-nextjs.md` | `useAgentChat` (AI SDK `UIMessage`), the `@webmcp-agents` shadcn registry (AI Elements patterns), Next.js example | 10, 11 | High |
+| 13 | `13-docs-media.md` | screenshots + clips captured by Playwright into `docs/media/` | 12 | Medium |
 
 Phases 3 and 5 are independent of each other and may run in parallel after Phase 2.
 Phase 7's static-deploy half can run any time after Phase 4; the `/api/chat` half needs Phase 5.
@@ -29,7 +35,7 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 
 | Decision | Choice | Why |
 |---|---|---|
-| npm scope | **`@webmcp-agents/*`** (user decision) | — |
+| npm scope | **`@webmcp-agents/*`** (user decision; renamed from `@web-agents/*` on 2026-11-08, API identifiers such as `WebAgentsProvider` and `WEB_AGENTS_*` env vars unchanged) | — |
 | Monorepo | pnpm 11 workspaces + **Turborepo 2.11** | user request; pnpm already in use (`pnpm-lock.yaml`, `pnpm-workspace.yaml` exist) |
 | Package split | scoped multi-package (user decision) | isolation; heavy deps (AI SDK, transformers.js) never leak into core |
 | Library build | **tsdown 0.23** (Rolldown) | tsup is unmaintained ("consider tsdown instead"); with `"type": "module"` it emits `dist/*.js` + `*.d.ts` |
@@ -39,8 +45,8 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 | Lint/format | **Biome 2.6** at the root | one fast tool; no ESLint needed now |
 | Tests | **Vitest 5** — `node` env for pure logic, **browser mode (`@vitest/browser-playwright`, chromium)** for DOM/layout/animation; **Playwright 1.65** e2e per app (Phase 4+) | jsdom has no layout, fake rAF, partial `SubmitEvent.submitter` |
 | Schemas | **Standard Schema** (`@standard-schema/spec` 1.1) + Standard JSON Schema; zod 4 in examples | same contract Mastra `createTool` uses → library-agnostic |
-| Agent runtime | pluggable `AgentAdapter`; first adapter = **Vercel AI SDK v7** + `@ai-sdk/anthropic`, browser executes tools | user decision; key stays server-side |
-| Default model | `claude-opus-5-5` (env `WEB_AGENTS_MODEL` overrides; `claude-sonnet-5-5` for cheaper public demos) | current recommended default |
+| Agent runtime | pluggable `AgentAdapter`; the server runs an **AI SDK v7 `ToolLoopAgent`** built per request from a `defineWebAgent` definition (instructions, tool subset, sub-agents as `delegate_to_<id>` client-executed tools, model); any provider SDK (`@ai-sdk/*`, `@openrouter/ai-sdk-provider`, optional peers) or the AI Gateway; browser executes tools | user decision (2026-11-08: build on the ecosystem, not hand-rolled); key stays server-side |
+| Default model | `anthropic/claude-opus-5-5` (`WEB_AGENTS_MODEL` overrides with any `<provider>/<model>` id: `openai/…`, `deepseek/…`, `openrouter/<vendor>/<model>`, …; `anthropic/claude-sonnet-5-5` for public demos) | current recommended default; one string + one env var for any model |
 | In-browser agent | **transformers.js v4** (WebGPU or WASM, Qwen3 0.6B ONNX by default; 1.7B opt-in) in a Worker; Chrome Prompt API provider when available | WebLLM tool calling still "WIP" |
 | Devtools host | standalone panel **and** optional TanStack Devtools plugin (`@tanstack/devtools` 0.16, still 0.x) | don't force TanStack on users |
 | Schema form | hand-rolled ~200-line JSON-schema renderer | WebMCP schemas are shallow; RJSF ≥100 KB with ajv |
@@ -289,7 +295,19 @@ export interface AgentRunRequest {
 //                 | finish { reason: "stop" | "max-steps" | "aborted" } | error { code?: chat_disabled | rate_limited | bad_request | network }
 // <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher); title, defaultOpen, position, suggestions, storageKey, layout ("docked" default, resizable | "floating")
 // createCloudAdapter({ api: "/api/chat", maxSteps: 8, headers, fetch }); useAgentSession(adapter); listToolDescriptors(); callModelContextTool()
-// "@webmcp-agents/chat/server": createChatHandler({ model, system?, effort?, maxOutputTokens?, maxSteps?, guard?, env? }): (req: Request) => Promise<Response>
+// "@webmcp-agents/chat/agent" (Phase 11): defineWebAgent({ id, description?, instructions, tools?: string[] | (tools) => tools, agents?, model?, maxSteps? })
+//    → WebAgent (frozen data, shared by browser and server); selectTools(agent, tools) adds one `delegate_to_<id>` tool per sub-agent;
+//    <AgentChat agent>, useAgentSession(adapter, { agent }); AgentRunRequest.agent; a delegate call runs the sub-agent's loop on the
+//    same adapter, nested under the call (AgentPart.tool.agent, SessionAction part.within). The cloud adapter sends only `agent: id`.
+// useAgentChat({ adapter | adapters, agent?, storageKey? }) (Phase 12): useChat-shaped { messages: UIMessage[], status: ChatStatus, sendMessage, stop,
+//    regenerate, clear, tools, suggestions, adapters/adapter/selectAdapter/adapterStatus, models/selectModel/prepare, toolPhase(part) → { phase:
+//    running|parked|done|error|cancelled, prompt?, agent?: { id, messages: UIMessage[] } }, session }. <AgentChat> is built on it. The
+//    `@webmcp-agents` shadcn registry (registry/ → apps/docs/public/r via `pnpm registry:build`) ships agent-chat, agent-tool,
+//    agent-subagent, agent-reasoning, agent-model-selector as copied source (shadcn/ui AI patterns); apps/nextjs installs them.
+// "@webmcp-agents/chat/server": createChatHandler({ model: LanguageModel | "<provider>/<model>", agents?, system?, reasoning?: "off"|"low"|"medium"|"high",
+//    maxOutputTokens?, maxSteps?, guard?, beforeModel?, prepareAgent?, env? }): (req: Request) => Promise<Response>; per POST an AI SDK
+//    ToolLoopAgent via toToolLoopAgentSettings(agent, …) + createAgentUIStreamResponse; resolveModel / modelAvailability / providerOptionsFor
+//    (PROVIDERS: anthropic, openai, google, deepseek, xai, mistral, openrouter; gateway fallback for slash ids); GET → { enabled, model, provider, agents }
 //    GET → { enabled, model }; POST → one model step as an AI SDK UI message stream; 503 chat_disabled without a key;
 //    guard(req) may return a Response (e.g. 429) to short-circuit; cross-site browser requests are refused (403), POST must be
 //    application/json. Defaults: claude-opus-5-5, effort "low", 8192 output tokens (thinking counts), fallbacks: "default".
@@ -323,7 +341,7 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 
 - **Performance budgets** (`pnpm --filter @webmcp-agents/core size`, part of `pnpm check`; Vite/Rolldown minify + gzip -9,
   measured through a re-export so tree-shaking applies): **visuals-only import (`installAgentVisuals`, `onAgentEvent`)
-  ≤ 9 KB min+gz** (8.96 KB after Phase 3: only ~0.04 KB of headroom left) and **whole package ≤ 13 KB** (12.4 KB after Phase 3).
+  ≤ 9.25 KB min+gz** (8.96 KB after Phase 3; raised from 9 KB in Phase 10 for the `target` fallback, 9.01 KB) and **whole package ≤ 13 KB** (12.93 KB after Phase 10).
   Decision (Phase 3): no `@webmcp-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
   shrink what a visuals-only page pays, and it would churn every import for no gain. The per-import budget keeps the
   cursor lean; the whole-package budget caps WebTool/registry/executeTool growth. Revisit if a non-bundled (CDN) build ships;

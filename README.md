@@ -1,4 +1,4 @@
-# web-agents
+# webmcp-agents
 
 Helpers for [WebMCP](https://developer.chrome.com/docs/ai/webmcp) pages: make every agent action
 visible to the person using the page (a ghost cursor, field replay, a parked "waiting for your
@@ -9,7 +9,7 @@ pnpm install
 pnpm dev         # every app: playground :5173, ecommerce :5174, flights :5175. Open the devtools (bottom right, Alt+Shift+A) and run a tool
 pnpm check       # biome ci + typecheck + tests + build, everything CI runs
 pnpm e2e         # Playwright end-to-end tests of the example apps (desktop + mobile)
-# chat: put ANTHROPIC_API_KEY in apps/<app>/.env.local (see .env.example), then open the Assistant bottom-left
+# chat: put a provider key in apps/<app>/.env.local (see .env.example; Claude by default, or WEB_AGENTS_MODEL=openai/gpt-5.5 …), then open the Assistant bottom-left
 ```
 
 Works in any browser thanks to a dev-only polyfill of `document.modelContext`. In a Chrome
@@ -17,15 +17,17 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 
 ## Packages
 
-API reference, one file per API: [docs/](docs/README.md), also built as a searchable site by
-[`apps/docs`](apps/docs/README.md) (`pnpm --filter @webmcp-agents/docs dev`).
+Docs (introduction, quickstart, concepts, guides, examples and the API reference): [docs/](docs/README.md). The website
+is one app, [`apps/docs`](apps/docs/README.md) (`pnpm --filter @webmcp-agents/docs dev`, http://localhost:4321): the
+landing page at `/`, whose own actions are WebMCP tools you can try from the page, recorded demos of the examples at
+`/demos`, and the searchable docs under `/docs`.
 
 | Package | |
 |---|---|
 | [`@webmcp-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
 | [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
 | [`@webmcp-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
-| [`@webmcp-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (Claude on your server, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `/api/chat` handler and a Vite dev plugin. |
+| [`@webmcp-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (any frontier model on your server through the AI SDK, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `defineWebAgent` for instructions, tool subsets and sub-agents; `/api/chat` handler and a Vite dev plugin. |
 | [`@webmcp-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
 | [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
 
@@ -43,8 +45,12 @@ consequential step. Each app's README has its tool table.
 |---|---|---|
 | [`apps/ecommerce`](apps/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
 | [`apps/flights`](apps/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
+| [`apps/nextjs`](apps/nextjs) | 5176 | **Field Store on Next.js**: App Router + shadcn/ui; the chat is a shadcn block from the `@webmcp-agents` registry (`registry/`), `defineWebAgent` shared between the route handler and the client, the key tainted server-side. |
+| [`apps/docs`](apps/docs) | 4321 | **The website**: the landing page, the Demos page (agent-browser clips of Skyline and Field Store) and the docs in one site. The site is an example too: its demos, docs links, FAQ, copy buttons, theme switch and search are WebMCP tools (`defineWebTool`), run from the hero's chips ("Try it as an agent would") or by any agent. |
 
 `pnpm --filter @webmcp-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
+
+![The agent adds a tee to the cart: the ghost cursor flies to the form, types, clicks, and the cart opens](docs/media/hero.gif)
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
@@ -121,7 +127,7 @@ How the visual layer works, its options, yield-to-user and the WebMCP quirks it 
 ## Deploy your own
 
 Each example app deploys as its own Vercel project with a guarded `/api/chat` (origin allow-list, per-IP rate limits,
-a daily budget). Steps and the env var table: [docs/deploy.md](docs/deploy.md). Live demos: _coming with the first
+a daily budget). Steps and the env var table: [docs/guides/deploy.md](docs/guides/deploy.md). Live demos: _coming with the first
 deploy_.
 
 ## Repository
