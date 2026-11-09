@@ -1,14 +1,9 @@
----
-sidebar:
-  order: 99
----
+# Deploy to Vercel
 
-# Deploying the examples to Vercel
-
-Each app (`apps/playground`, `apps/ecommerce`, `apps/flights`) is its own Vercel project. The static app is a Vite
-SPA; `api/chat.ts` is a Vercel Function (Node.js, web `Request`/`Response` handlers) that serves the chat through
-`@webmcp-agents/vercel-api`: `@webmcp-agents/chat`'s handler behind a same-origin check, per-IP rate limits and a daily
-budget on model calls.
+Each app (`apps/playground`, `apps/ecommerce`, `apps/flights`, `apps/nextjs`) is its own Vercel project. The Vite
+apps are static SPAs whose `api/chat.ts` is a Vercel Function; the Next.js app deploys as a Next.js project whose
+`app/api/chat/route.ts` is the same handler. Both serve the chat through `@webmcp-agents/vercel-api`:
+`@webmcp-agents/chat`'s handler behind a same-origin check, per-IP rate limits and a daily budget on model calls.
 
 ## 1. Create the projects
 
@@ -17,8 +12,8 @@ For each app, in the Vercel dashboard (Add New → Project → import the repo),
 
 | Setting | Value |
 |---|---|
-| Root Directory | `apps/playground` (or `apps/ecommerce`, `apps/flights`) |
-| Framework | Vite (set by `vercel.json`) |
+| Root Directory | `apps/playground` (or `apps/ecommerce`, `apps/flights`, `apps/nextjs`) |
+| Framework | Vite (set by `vercel.json`); Next.js for `apps/nextjs` |
 | Build / install / output | from `vercel.json`: `turbo run build`, `pnpm install --frozen-lockfile`, `dist` |
 | Node.js version | 24.x (AI SDK v7 needs Node 22+) |
 | Skip unaffected projects | on (`vercel.json`'s `ignoreCommand: npx turbo-ignore` does the same from code) |
@@ -33,9 +28,10 @@ Never prefix these with `VITE_`: Vite ships `VITE_*` variables to the browser.
 
 | Var | Required | Default | Purpose |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | for chat | — | Enables `/api/chat`. Without it the widget shows "Chat isn't configured" and the app works. |
-| `WEB_AGENTS_MODEL` | no | `claude-sonnet-5-5` | The Claude model (local dev defaults to `claude-opus-5-5`). |
-| `WEB_AGENTS_MAX_OUTPUT_TOKENS` | no | `4096` | Per model step; Claude's thinking counts against it. |
+| `ANTHROPIC_API_KEY` (or the key of the provider in `WEB_AGENTS_MODEL`: `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, …) | for chat | — | Enables `/api/chat`. Without it the widget shows "Chat isn't configured" and the app works; the function log names the variable. |
+| `AI_GATEWAY_API_KEY` | no | — | Serves any `provider/model` id through the AI Gateway when the provider's own key is missing. |
+| `WEB_AGENTS_MODEL` | no | `anthropic/claude-sonnet-5-5` | The model, as `<provider>/<model>` (local dev defaults to `anthropic/claude-opus-5-5`). See [Pick a model](./chat.mdx#pick-a-model). |
+| `WEB_AGENTS_MAX_OUTPUT_TOKENS` | no | `4096` | Per model step; a thinking model's reasoning counts against it. |
 | `WEB_AGENTS_MAX_STEPS` | no | `6` | Tool steps per user message (counted from the conversation the browser sends). |
 | `RATE_LIMIT_PER_MINUTE` | no | `30` | Per IP. Each tool step is one request (a 6-step turn is 7): keep room for a few turns. |
 | `RATE_LIMIT_PER_DAY` | no | `300` | Per IP. |
@@ -74,10 +70,16 @@ Smoke test a deployment:
 
 ```bash
 P=https://<deployment>
-curl -s $P/api/chat                                                       # {"enabled":true,"model":"claude-sonnet-5-5"}
+curl -s $P/api/chat   # {"enabled":true,"model":"anthropic/claude-sonnet-5-5","provider":"anthropic","agents":[…]}
 curl -s -o /dev/null -w "%{http_code}\n" $P/some/deep/link                  # 200 (SPA rewrite)
-curl -s -o /dev/null -w "%{http_code}\n" -XPOST $P/api/chat -H 'origin: https://evil.example' -H 'content-type: application/json' -d '{}'  # 403
-for i in $(seq 1 32); do curl -s -o /dev/null -w "%{http_code} " -XPOST $P/api/chat -H "origin: $P" -H 'content-type: application/json' -d '{"messages":[{"id":"u","role":"user","parts":[{"type":"text","text":"hi"}]}],"tools":[]}'; done; echo   # ends in 429s
+# a foreign origin is refused (CSRF)
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "$P/api/chat" \
+  -H 'origin: https://evil.example' -H 'content-type: application/json' -d '{}'   # 403
+# the per-minute limit: the 31st request in a minute gets 429
+BODY='{"messages":[{"id":"u","role":"user","parts":[{"type":"text","text":"hi"}]}],"tools":[]}'
+for i in $(seq 1 32); do
+  curl -s -o /dev/null -w "%{http_code} " -X POST "$P/api/chat" -H "origin: $P" -H 'content-type: application/json' -d "$BODY"
+done; echo
 ```
 
 ## Notes
@@ -91,9 +93,10 @@ for i in $(seq 1 32); do curl -s -o /dev/null -w "%{http_code} " -XPOST $P/api/c
 - The build includes ONNX Runtime's ~27 MB WASM as a static asset; it's fetched only after a visitor chooses
   On-device and clicks Download.
 
-# The docs site
+## The website
 
-`apps/docs` is a static [Blume](https://github.com/haydenbleasel/blume) site that renders this `docs/` folder. It is
+`apps/docs` is the whole website, a static [Blume](https://github.com/haydenbleasel/blume) site: the landing page at `/`
+(a custom page whose own actions are WebMCP tools, built on the packages) and this `docs/` folder under `/docs`. It is
 its own Vercel project and needs no secrets.
 
 | Setting | Value |
@@ -102,7 +105,7 @@ its own Vercel project and needs no secrets.
 | Framework | none (`"framework": null` in `vercel.json`) |
 | Build / install / output | from `vercel.json`: `turbo run build`, `pnpm install --frozen-lockfile`, `dist` |
 | Include source files outside of the Root Directory | on (the default): the content is `../../docs` |
-| Skip builds | `vercel.json`'s `ignoreCommand` skips a commit that touches neither `apps/docs`, `docs/` nor the lockfile |
+| Skip builds | `vercel.json`'s `ignoreCommand` skips a commit that touches neither `apps/docs`, `docs/`, `packages/` nor the lockfile |
 | `VERCEL_DEEP_CLONE` | optional, `true`: full git history, so pages show their real "last modified" date |
 
 Blume picks up the production domain from Vercel's environment for canonical URLs, the sitemap and Open Graph images.
@@ -111,13 +114,14 @@ Blume picks up the production domain from Vercel's environment for canonical URL
 Smoke test a deployment:
 
 ```bash
-D=https://<docs-deployment>
-curl -s -o /dev/null -w "%{http_code}\n" $D/core/define-web-tool          # 200
-curl -sI $D/core/define-web-tool.md | grep -i content-type                 # text/markdown; charset=utf-8
+D=https://<site-deployment>
+curl -s -o /dev/null -w "%{http_code}\n" $D/                                        # 200, the landing page
+curl -s -o /dev/null -w "%{http_code}\n" $D/docs/reference/core/define-web-tool     # 200
+curl -sI $D/docs/reference/core/define-web-tool.md | grep -i content-type            # text/markdown; charset=utf-8
 curl -s $D/llms.txt | head -5
 ```
 
-# Publishing the packages
+## Publishing the packages
 
 `.github/workflows/release.yml` runs Changesets on `main`: pending changesets become a "Version Packages" PR, and
 merging it publishes the six public `@webmcp-agents/*` packages to npm with provenance. One-time setup, by the

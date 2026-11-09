@@ -1,0 +1,112 @@
+---
+title: Use your shadcn components
+description: Render the agent chat with shadcn/ui's AI patterns (the successor of Vercel's AI Elements), from the @webmcp-agents registry. The code lands in your project; the session logic stays in the package.
+---
+
+The built-in `<AgentChat>` needs one CSS import and no setup. If your app already uses **shadcn/ui**, you can render
+the same chat with the components you already have: shadcn/ui's AI patterns (Message, Message Scroller, Prompt Input,
+Tool, Subagent, Reasoning, Suggestion, Model Selector). Vercel's **AI Elements** moved into shadcn/ui in late 2026;
+these patterns are where it lives now, as source you copy into your project.
+
+The split is the one AI Elements itself uses:
+
+- **`useAgentChat()`**, in `@webmcp-agents/chat`, is the headless core: the conversation as AI SDK `UIMessage`s, a
+  `useChat`-shaped API (`sendMessage`, `stop`, `regenerate`, `status`), the adapter switcher, the local models, the
+  suggestions, and `toolPhase(part)` for what web-agents adds on top of a plain tool call. Fixes reach you through the
+  package.
+- **The blocks**, from the `@webmcp-agents` registry, are source files composed of shadcn primitives. They are yours
+  to restyle or rearrange.
+
+## Install
+
+Add the registry once, then the block. It pulls the shadcn primitives it needs (`trace`, `code-block`, `message`,
+`bubble`, `message-scroller`, `input-group`, `item`, `dropdown-menu`, `badge`, `button`, `scroll-area`).
+
+```bash
+pnpm dlx shadcn@latest registry add @webmcp-agents=https://web-agents-docs.vercel.app/r/{name}.json
+pnpm dlx shadcn@latest add @webmcp-agents/agent-chat
+pnpm add @webmcp-agents/chat @webmcp-agents/react ai streamdown
+```
+
+Or from the URL directly: `pnpm dlx shadcn@latest add https://web-agents-docs.vercel.app/r/agent-chat.json`. Works
+in any shadcn project: Next.js, Vite, TanStack Start, React Router.
+
+```tsx
+import { AgentChatBlock } from "@/components/web-agents/agent-chat";
+import { createCloudAdapter } from "@webmcp-agents/chat";
+import { shopper } from "@/agents";
+
+const ADAPTERS = [createCloudAdapter()];
+
+<WebAgentsProvider tools={catalog} pathname={pathname}>
+  …
+  <AgentChatBlock adapters={ADAPTERS} agent={shopper} />
+</WebAgentsProvider>
+```
+
+The chat needs `/api/chat` as always ([Add a chat](/guides/chat)); nothing changes server-side.
+
+## What each block shows
+
+| Block | shadcn pattern | What it renders |
+|---|---|---|
+| `agent-chat` | Chat (Message Scroller), Message, Bubble, Prompt Input, Suggestion | The panel: the thread, starter prompts, the composer with Stop/Send, the download card for an on-device model, errors with Try again. |
+| `agent-tool` | Tool (Trace + Code Block) | One tool call: "Running add to cart…", "Ran add to cart", "Failed to run…", "Cancelled…", with input and output. A call **parked on the page** (an order waiting for the person's click) renders as an Item that says "Confirm on the page: Click "Place order" to confirm", with no approve/deny buttons: the click happens on the page, so a script can never confirm for the person. |
+| `agent-subagent` | Subagent (Trace + Badge) | A `delegate_to_<id>` call: the sub-agent's own tool calls nested under it, then its answer. |
+| `agent-reasoning` | Reasoning (Trace) | "Thinking" while it streams, "Thought" after, the text inside. |
+| `agent-model-selector` | Model Selector (Dropdown Menu) | Which assistant answers (Claude cloud, On-device), and which local model (with size and "on this device"). |
+
+Patterns not used, and why: **Confirmation** (approve/deny in chat) would re-create the problem the agent cursor
+solves: confirmations happen on the page; **Context** (tokens used) waits for usage data on the stream; **Chain of
+Thought**, **Task**, **Plan**, **Checkpoint** are good follow-ups for multi-step runs.
+
+## Build your own with `useAgentChat`
+
+```tsx
+import { useAgentChat } from "@webmcp-agents/chat";
+
+const chat = useAgentChat({ adapters, agent });
+
+// The conversation, as AI SDK UI messages: text, reasoning and dynamic-tool parts with AI SDK states.
+chat.messages;
+
+// AI SDK status names.
+chat.status; // "ready" | "submitted" | "streaming" | "error"
+
+// Drive it.
+chat.sendMessage({ text: "Add a mug" });
+chat.stop();
+chat.regenerate(); // resume the interrupted turn from its last finished tool call
+chat.clear();
+
+// What a plain UIMessage can't say about a tool part.
+chat.toolPhase(part);
+// → { phase: "running" | "parked" | "done" | "error" | "cancelled", prompt?: string, agent?: { id, messages } }
+
+// The adapter switcher and the adapter's state.
+chat.adapters;
+chat.adapter;
+chat.selectAdapter(id);
+chat.adapterStatus;
+chat.prepare?.(); // an on-device model's download, started by the person's click
+
+// Local models, suggestions, and the tools the model sees.
+chat.models;
+chat.selectModel?.(id);
+chat.suggestions;
+chat.tools;
+```
+
+Every AI SDK component that reads `UIMessage` parts works as is. The two things `UIMessage` cannot say, a call parked
+on the page and a sub-agent's nested run, come from `toolPhase(part)`: `phase: "parked"` with the `prompt` to show,
+and `agent: { id, messages }` with the nested run as `UIMessage`s.
+
+## Coming from `ai-elements`
+
+If your project has the old `components/ai-elements/*` files, they keep working; shadcn/ui's page lists the mapping
+(`conversation.tsx` → Chat, `tool.tsx` → Tool, `agent.tsx` → Subagent, …). The blocks here target the new names.
+
+## Reference
+
+[`useAgentChat`](/reference/chat/use-agent-chat), [`<AgentChat>`](/reference/chat/agent-chat) (the built-in widget),
+[Field Store on Next.js](/examples/nextjs) (the blocks in use).

@@ -1,0 +1,194 @@
+---
+title: Add a chat
+description: Put an assistant on the page that does things, not just answers. A frontier model runs on your server; every tool call runs in the browser, under the agent cursor.
+---
+
+`<AgentChat>` is a chat widget whose agent works the **live page** through its WebMCP tools. The model runs on your
+server (any frontier model through the Vercel AI SDK: Claude by default, or OpenAI, Gemini, DeepSeek, Grok, Mistral,
+OpenRouter, the AI Gateway), with the API key server-side. Every tool call runs **in the browser**, so the cursor plays
+exactly as it does for any agent, and anything gated on a click waits for the person.
+
+```bash
+pnpm add @webmcp-agents/chat
+pnpm add @ai-sdk/anthropic   # the SDK of your model's provider, server only (none for the AI Gateway)
+```
+
+<Steps>
+  <Step title="Add the widget">
+
+    Render it inside `<WebAgentsProvider>`, so the model sees the tools this page has on. Create the adapter once, at
+    module scope.
+
+    ```tsx src/App.tsx
+    import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+    import "@webmcp-agents/chat/chat.css";
+
+    const cloud = createCloudAdapter(); // POSTs to /api/chat
+
+    export default function App() {
+      return (
+        <WebAgentsProvider tools={catalog} global={["get_cart"]}>
+          <Shop />
+          <AgentChat adapter={cloud} />
+        </WebAgentsProvider>
+      );
+    }
+    ```
+
+  </Step>
+  <Step title="Serve /api/chat in development">
+
+    The Vite plugin serves the chat endpoint from the dev server:
+
+    ```ts vite.config.ts
+    import react from "@vitejs/plugin-react";
+    import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
+    import { defineConfig } from "vite";
+
+    export default defineConfig({ plugins: [react(), webAgentsChatDev()] });
+    ```
+
+    Put the key in `.env.local`:
+
+    ```bash .env.local
+    ANTHROPIC_API_KEY=sk-ant-…
+    ```
+
+    It's read on the server side only. **Never** give it a `VITE_` prefix: Vite ships those to the browser.
+
+  </Step>
+  <Step title="Serve /api/chat in production">
+
+    Any runtime with web `Request` / `Response` works:
+
+    ```ts api/chat.ts
+    import { createChatHandler } from "@webmcp-agents/chat/server";
+
+    const handler = createChatHandler();
+    export const GET = handler;
+    export const POST = handler;
+    ```
+
+    On Vercel, use [`createVercelChatRoute`](/reference/vercel-api/create-vercel-chat-route) instead: the same handler
+    behind an origin check, per-IP rate limits and a daily budget. See [Deploy to Vercel](/guides/deploy).
+
+  </Step>
+</Steps>
+
+Without a key, the widget shows "Chat isn't configured" and the rest of the page works as before.
+
+## How a turn runs
+
+The server runs **one model step per request**; tools run in the browser between steps.
+
+1. The widget sends the conversation and the page's current tools (names, descriptions, schemas) to `/api/chat`.
+2. The model answers with text, or with tool calls.
+3. The widget runs each tool call through `document.modelContext`, under the cursor, and shows it in the conversation.
+4. It waits for the page's tools to settle (a navigation registers new ones), then sends the results back for the
+   next step.
+
+A turn is capped at `maxSteps` tool steps; the request after the last one gets no tools, so the model sums up.
+
+## When something fails
+
+A failed tool never ends the run. The result goes back to the model with its [error code](/concepts/errors), and the
+system prompt says what to do with each code. The person's **Stop** cancels the call in progress (`cancelled`); a call
+the page cancelled, by navigating for example, is `interrupted`, so the agent checks the page and carries on.
+
+If the run itself fails (the model, the network), **Try again** resumes it from the last tool call that finished, so
+nothing is done twice.
+
+## Options
+
+| `<AgentChat>` prop | |
+|---|---|
+| `adapter` / `adapters` | one agent, or several with a switcher (for example Claude and [on-device](/guides/on-device-agent)) |
+| `layout` | `"docked"` (default): a full-height panel beside the page, which makes room so the agent never works under it. `"floating"`: a pop-over. Below 640 px it's a bottom sheet. |
+| `position` | `"bottom-right"` or `"bottom-left"` |
+| `suggestions` | starter prompts; by default built from the page's tools |
+| `storageKey` | the conversation survives route changes and reloads (sessionStorage); `false` keeps it in memory |
+
+| `createChatHandler` option | Default | |
+|---|---|---|
+| `model` | `WEB_AGENTS_MODEL`, else `anthropic/claude-opus-5-5` | `<provider>/<model>`, or any AI SDK `LanguageModel` |
+| `agents` | — | the page's agents ([Define an agent](/guides/agents)) |
+| `reasoning` | `"low"` | how hard the model thinks per step (`off` / `low` / `medium` / `high`) |
+| `maxOutputTokens` | `8192` | per step; a thinking model's reasoning counts against it |
+| `maxSteps` | `8` | tool steps per user turn |
+| `guard` / `beforeModel` | — | rate limits, origin checks, budgets |
+
+Full reference: [`<AgentChat>`](/reference/chat/agent-chat), [`createChatHandler`](/reference/chat/create-chat-handler).
+
+## Pick a model
+
+One string and one env var, server side. The provider's own SDK is used when its key is set (install it next to
+`@webmcp-agents/chat`); without it, the AI Gateway built into the AI SDK serves any `provider/model` id with one key.
+
+```bash .env.local
+# The default: Claude through its own SDK
+WEB_AGENTS_MODEL=anthropic/claude-opus-5-5
+ANTHROPIC_API_KEY=sk-ant-…
+
+# OpenAI (pnpm add @ai-sdk/openai)
+# WEB_AGENTS_MODEL=openai/gpt-5.5
+# OPENAI_API_KEY=sk-…
+
+# DeepSeek (pnpm add @ai-sdk/deepseek)
+# WEB_AGENTS_MODEL=deepseek/deepseek-v4
+# DEEPSEEK_API_KEY=…
+
+# Any model behind one key, through OpenRouter (pnpm add @openrouter/ai-sdk-provider)
+# WEB_AGENTS_MODEL=openrouter/anthropic/claude-opus-5.5
+# OPENROUTER_API_KEY=sk-or-…
+
+# Any model behind one key, through the AI Gateway (no provider package)
+# WEB_AGENTS_MODEL=google/gemini-3-pro
+# AI_GATEWAY_API_KEY=…
+```
+
+| Prefix | Package | Env var |
+|---|---|---|
+| `anthropic/` (or a bare `claude-…` id) | `@ai-sdk/anthropic` | `ANTHROPIC_API_KEY` |
+| `openai/` | `@ai-sdk/openai` | `OPENAI_API_KEY` |
+| `google/` | `@ai-sdk/google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `deepseek/` | `@ai-sdk/deepseek` | `DEEPSEEK_API_KEY` |
+| `xai/` | `@ai-sdk/xai` | `XAI_API_KEY` |
+| `mistral/` | `@ai-sdk/mistral` | `MISTRAL_API_KEY` |
+| `openrouter/<vendor>/<model>` | `@openrouter/ai-sdk-provider` | `OPENROUTER_API_KEY` |
+| any other `a/b` id | none (AI Gateway) | `AI_GATEWAY_API_KEY` |
+
+Without the right key the widget says "Chat isn't configured" and the server log names the variable. A
+[sub-agent](/guides/agents#a-model-per-agent) can run on a cheaper model than its parent.
+
+## Styling
+
+Theme it with custom properties on `.wa-chat`; `--wa-chat-accent` defaults to the cursor's `--agent`. Dark mode
+follows `prefers-color-scheme`, or `data-theme="dark"` on an ancestor. While docked, `<html>` gets
+`data-wa-chat-dock` and `--wa-chat-inset-left` / `--wa-chat-inset-right`: offset your own fixed UI (drawers, toasts)
+with them.
+
+## Security
+
+- The key never leaves the server, and the client bundle contains no provider SDK.
+- Every request is validated and size-capped. Tool descriptions are page text: they go into tool definitions only,
+  never the system prompt.
+- Browser requests from other sites are refused, so no other page can spend your key through a visitor's browser.
+- That is **not** abuse protection: anyone can still call the endpoint directly. A public deployment needs a `guard`
+  with rate limits and a budget. `@webmcp-agents/vercel-api` provides one.
+
+### Where secrets live
+
+| | Vite SPA (the examples) | Next.js / React Server Components | TanStack Start |
+|---|---|---|---|
+| The API key | `.env.local`, read by `webAgentsChatDev` in dev and by your `api/chat.ts` in production. Never `VITE_*`: the dev plugin refuses to start when a `VITE_*` name looks like a secret. | `process.env` in a route handler (`app/api/chat/route.ts`). Mark the module `server-only` and taint the value with React's `experimental_taintUniqueValue`, so a Server Component can't pass it to a client component by accident. | `process.env` in the server handler of the `/api/chat` route. Only `VITE_*` reaches the client, as in any Vite app. |
+| The model choice | `WEB_AGENTS_MODEL`, server side | same | same |
+| What the browser gets | the widget, the page's tool descriptors and the conversation. No SDK, no key. | same | same |
+
+React has no client-side API that hides a value: anything a client component renders or receives as a prop is in the
+browser. Keep keys and model configuration in the handler, and give the client only what it must render. Step by
+step per framework: [Vite](/frameworks/vite), [Next.js](/frameworks/nextjs), [TanStack Start](/frameworks/tanstack-start).
+
+## Your own agent
+
+`<AgentChat>` talks to an `AgentAdapter`. Implement `run(req)` to yield stream parts and call `req.callTool()` for each
+tool call, and any model can drive the page. See [adapter types](/reference/chat/adapter-types).

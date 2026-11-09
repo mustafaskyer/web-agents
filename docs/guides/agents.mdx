@@ -1,0 +1,170 @@
+---
+title: Define an agent
+description: One definition for what the assistant knows, which tools it may use and which helpers it can call. Shared by the cloud chat, the on-device chat and your server.
+---
+
+A page's tools say what *can* be done. An **agent** says how: the flow the tools form, what to ask for, what to avoid,
+and which tools belong to it. `defineWebAgent` is the one place you write that, the way `defineWebTool` is the one
+place you write a tool. The same definition is read by the browser (to filter the page's tools, run sub-agents under
+the cursor, and prompt the on-device model) and by your server (instructions, tool subset, model).
+
+```ts src/agents.ts
+import { defineWebAgent } from "@webmcp-agents/chat/agent";
+
+export const concierge = defineWebAgent({
+  id: "concierge",
+  instructions: [
+    "Skyline books flights in this order: search_flights, then list_results, then select_flight with an id",
+    "from the results, then fill_traveler_details, then book_flight (the user confirms on the page).",
+    "A relative date (tomorrow, next Friday)? Call get_time first.",
+    "No origin given? Call get_location first and say which airport you used.",
+  ],
+});
+```
+
+`src/agents.ts` holds plain data (no DOM, no secrets), so the same file is imported by your React tree, your
+`vite.config.ts` and your `api/chat.ts`.
+
+## Wire it up
+
+<Steps>
+  <Step title="The page">
+
+    ```tsx src/Root.tsx
+    import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+    import { createLocalAdapter } from "@webmcp-agents/local-agent";
+    import { concierge } from "./agents";
+
+    const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+
+    <AgentChat adapters={ADAPTERS} agent={concierge} />
+    ```
+
+    Headless: `useAgentSession(adapter, { agent: concierge })`.
+
+  </Step>
+  <Step title="The server">
+
+    The browser sends only the agent's **id**; the server reads the instructions from its own registry. Page text never
+    writes your system prompt.
+
+    ```ts vite.config.ts
+    import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
+    import { concierge } from "./src/agents";
+
+    export default defineConfig({ plugins: [react(), webAgentsChatDev({ agents: [concierge] })] });
+    ```
+
+    ```ts api/chat.ts
+    import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
+    import { concierge } from "../src/agents";
+
+    export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "flights", agents: [concierge] });
+    ```
+
+    Any runtime: `createChatHandler({ agents: [concierge] })`. A request naming an agent that isn't registered is refused
+    (400). Sub-agents are found through their parents, so register the top-level agents only.
+
+  </Step>
+</Steps>
+
+## A tool subset
+
+By default an agent sees every tool on the page. Narrow it with ids (page order is kept) or a function over the page's
+tool descriptors:
+
+```ts
+export const checkout = defineWebAgent({
+  id: "checkout",
+  instructions: "Review the cart with get_cart, apply the promo code if the user gave one, then call checkout.",
+  tools: ["get_cart", "open_cart", "apply_promo", "checkout"],
+});
+
+export const shopper = defineWebAgent({
+  id: "shopper",
+  instructions: STORE_INSTRUCTIONS,
+  tools: (tools) => tools.filter((t) => t.name !== "checkout" && t.name !== "apply_promo"),
+});
+```
+
+The filter runs in the browser (what the model is offered) **and** on the server (what it may call): a list is an
+allow-list, enforced on both sides.
+
+## Sub-agents
+
+Give an agent helpers with `agents`. Each sub-agent becomes a tool named `delegate_to_<id>` that takes a `task` (and
+optional `context`). When the parent calls it, the chat runs the sub-agent's own loop, on the same adapter, with its
+own tools, instructions and step budget, and hands the sub-agent's final answer back as the tool's result. The
+sub-agent's page tools still run under the cursor, and anything confirm-gated still waits for the person's click.
+
+```ts
+export const shopper = defineWebAgent({
+  id: "shopper",
+  instructions: STORE_INSTRUCTIONS,
+  tools: (tools) => tools.filter((t) => !["checkout", "apply_promo"].includes(t.name)),
+  agents: [checkout], // → the model sees `delegate_to_checkout`
+});
+```
+
+In the chat, the delegate call shows as a "Checkout agent" card with the sub-agent's own tool cards nested inside it.
+The sub-agent sees nothing of the parent's conversation except the task: write `description` on the sub-agent (it
+becomes the delegate tool's description) so the parent hands over a complete task.
+
+This is the AI SDK's "agent as a tool" pattern. On the server each request is run by an AI SDK `ToolLoopAgent` built
+from the definition; the delegate tool is a client-executed tool like any page tool, so one request is still one
+model step.
+
+## A model per agent
+
+An agent may name its own model, as a `"<provider>/<model>"` id. The handler's model is the default.
+
+```ts
+export const checkout = defineWebAgent({
+  id: "checkout",
+  model: "openai/gpt-5.5-mini", // a cheap model for a narrow job
+  // …
+});
+
+export const shopper = defineWebAgent({
+  id: "shopper",
+  model: "anthropic/claude-opus-5-5",
+  agents: [checkout],
+  // …
+});
+```
+
+It is a string, never a key: the server resolves it with the provider's key from its env (see
+[`createChatHandler`](/reference/chat/create-chat-handler) for the providers and env vars).
+
+## Options
+
+| `defineWebAgent` | |
+|---|---|
+| `id` | 1–64 of `a-z A-Z 0-9 _ . -`. The browser sends it; the server looks it up. |
+| `instructions` | A string or lines. Appended to the system prompt under "About this site". |
+| `description` | For a sub-agent: what it does, one sentence (the parent's delegate tool description). |
+| `tools` | Tool ids, or `(tools) => tools`. Default: every page tool. |
+| `agents` | Sub-agents. Ids must be unique across the whole tree. |
+| `model` | `"<provider>/<model>"`. Default: the handler's. |
+| `maxSteps` | Model steps per user message; beats the adapter's and the handler's. |
+
+## Where secrets live
+
+- The agent definition holds no secret and is shared code.
+- The cloud path reads instructions from the server registry by id; the page sends only the id (a body carrying
+  anything else is stripped). The model id in `model` is resolved on the server with the server's keys.
+- The on-device path reads the definition in the browser: nothing to protect, nothing leaves the device.
+- Keys and the model/provider choice live in `createChatHandler` (`env`). Framework specifics:
+  [Vite](/frameworks/vite), [Next.js](/frameworks/nextjs) and [TanStack Start](/frameworks/tanstack-start).
+
+## What the model sees
+
+For `shopper` on the cloud: the default rules, "The user is on the page /product/mug", `shopper`'s instructions, and a
+one-line note on delegation; the page's tools minus `checkout` and `apply_promo`, plus `delegate_to_checkout`. For the
+sub-run: `checkout`'s instructions and its four tools, and one user message with the task.
+
+## Reference
+
+[`defineWebAgent`](/reference/chat/define-web-agent), [`toToolLoopAgent`](/reference/chat/to-tool-loop-agent),
+[`createChatHandler`](/reference/chat/create-chat-handler), [`<AgentChat>`](/reference/chat/agent-chat),
+[`useAgentSession`](/reference/chat/use-agent-session).
