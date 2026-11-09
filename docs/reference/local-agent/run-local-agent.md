@@ -5,8 +5,8 @@ run them on the page one at a time, feed the results back, repeat. It is the bod
 use it to build an adapter around your own provider.
 
 ```ts
-import { runLocalAgent } from "@web-agents/local-agent";
-import type { LocalLoopOptions } from "@web-agents/local-agent";
+import { runLocalAgent } from "@webmcp-agents/local-agent";
+import type { LocalLoopOptions } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature
@@ -76,8 +76,8 @@ An async generator of [`AgentStreamPart`](../chat/adapter-types.md#agentstreampa
 ## Example
 
 ```ts
-import type { AgentAdapter } from "@web-agents/chat";
-import { runLocalAgent } from "@web-agents/local-agent";
+import type { AgentAdapter } from "@webmcp-agents/chat";
+import { runLocalAgent } from "@webmcp-agents/local-agent";
 
 const myAdapter: AgentAdapter = {
   id: "my-local",

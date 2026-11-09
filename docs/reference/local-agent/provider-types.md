@@ -6,7 +6,7 @@ owns tools, validation and the conversation. Implement `LocalProvider` to plug i
 ```ts
 import type {
   CallFormat, ChatTurn, CompactTool, GenerateRequest, GenerateResult, LocalProvider, ProviderAvailability,
-} from "@web-agents/local-agent";
+} from "@webmcp-agents/local-agent";
 ```
 
 ## `LocalProvider`

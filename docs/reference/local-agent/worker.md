@@ -1,4 +1,4 @@
-# `@web-agents/local-agent/worker`
+# `@webmcp-agents/local-agent/worker`
 
 The transformers.js model worker. It is the only entry that loads `@huggingface/transformers` and ONNX Runtime, so a
 long generation never blocks the page's main thread or the agent cursor. You only import it when your bundler can't
@@ -6,9 +6,9 @@ follow the package's own `new Worker(new URL(…, import.meta.url))`.
 
 ```ts
 // as a URL
-new Worker(new URL("@web-agents/local-agent/worker", import.meta.url), { type: "module" });
+new Worker(new URL("@webmcp-agents/local-agent/worker", import.meta.url), { type: "module" });
 // or with Vite's ?worker suffix
-import LocalWorker from "@web-agents/local-agent/worker?worker";
+import LocalWorker from "@webmcp-agents/local-agent/worker?worker";
 ```
 
 ## Signature
@@ -33,14 +33,14 @@ None. Pass the worker to `createLocalAdapter({ worker })` or `createTransformers
 ```ts
 // vite.config.ts: the default path, the package creates its own worker
 export default defineConfig({
-  optimizeDeps: { exclude: ["@web-agents/local-agent", "@huggingface/transformers"] },
+  optimizeDeps: { exclude: ["@webmcp-agents/local-agent", "@huggingface/transformers"] },
   worker: { format: "es" },
 });
 ```
 
 ```ts
 // a bundler that can't follow the worker URL
-import LocalWorker from "@web-agents/local-agent/worker?worker";
+import LocalWorker from "@webmcp-agents/local-agent/worker?worker";
 
 const local = createLocalAdapter({ worker: () => new LocalWorker() });
 ```

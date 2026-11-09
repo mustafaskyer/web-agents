@@ -5,8 +5,8 @@ shapes, repairs common mistakes once, and never throws: anything it can't read s
 the streaming half: it passes prose through and holds back tool-call and thinking markup.
 
 ```ts
-import { createProseFilter, parseToolCalls } from "@web-agents/local-agent";
-import type { ParsedCall, ParseResult } from "@web-agents/local-agent";
+import { createProseFilter, parseToolCalls } from "@webmcp-agents/local-agent";
+import type { ParsedCall, ParseResult } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature

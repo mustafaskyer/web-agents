@@ -4,7 +4,7 @@ A `LocalProvider` backed by Chrome's built-in model (the Prompt API, `LanguageMo
 once Chrome has the model.
 
 ```ts
-import { createPromptApiProvider } from "@web-agents/local-agent";
+import { createPromptApiProvider } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature
@@ -34,7 +34,7 @@ A [`LocalProvider`](./provider-types.md#localprovider) with `id: "prompt-api"`, 
 ## Example
 
 ```ts
-import { createLocalAdapter, createPromptApiProvider } from "@web-agents/local-agent";
+import { createLocalAdapter, createPromptApiProvider } from "@webmcp-agents/local-agent";
 
 // Chrome's built-in model only: no download fallback
 const chromeOnly = createLocalAdapter({ providers: [createPromptApiProvider()], label: "Chrome AI" });

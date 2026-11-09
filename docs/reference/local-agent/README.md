@@ -2,23 +2,23 @@
 slug: local-agent
 ---
 
-# `@web-agents/local-agent`
+# `@webmcp-agents/local-agent`
 
-An on-device agent for [`@web-agents/chat`](../chat/README.md): the model runs in the visitor's browser. No server, no
+An on-device agent for [`@webmcp-agents/chat`](../chat/README.md): the model runs in the visitor's browser. No server, no
 API key, and nothing the user types leaves the device. It implements the same
 [adapter contract](../chat/adapter-types.md) as the cloud adapter, so `<AgentChat>` shows both behind a switcher.
 
 ## Install
 
 ```bash
-pnpm add @web-agents/local-agent @web-agents/chat
+pnpm add @webmcp-agents/local-agent @webmcp-agents/chat
 ```
 
-`@web-agents/chat` is a peer dependency. `@huggingface/transformers` is a dependency, loaded only inside the worker.
+`@webmcp-agents/chat` is a peer dependency. `@huggingface/transformers` is a dependency, loaded only inside the worker.
 
 ```tsx
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
 
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter()]; // once per page
 <AgentChat adapters={ADAPTERS} />                              // a switcher: Claude (cloud) | On-device
@@ -28,7 +28,7 @@ With Vite, let it see the worker unbundled:
 
 ```ts
 export default defineConfig({
-  optimizeDeps: { exclude: ["@web-agents/local-agent", "@huggingface/transformers"] },
+  optimizeDeps: { exclude: ["@webmcp-agents/local-agent", "@huggingface/transformers"] },
   worker: { format: "es" },
 });
 ```
@@ -37,8 +37,8 @@ export default defineConfig({
 
 | Import | What |
 |---|---|
-| `@web-agents/local-agent` | The adapter, providers, the agent loop and its helpers, provider types |
-| `@web-agents/local-agent/worker` | The transformers.js model worker |
+| `@webmcp-agents/local-agent` | The adapter, providers, the agent loop and its helpers, provider types |
+| `@webmcp-agents/local-agent/worker` | The transformers.js model worker |
 
 ## Providers (first available wins)
 
@@ -63,7 +63,7 @@ stay in the browser's Cache API, so a returning visitor loads from disk without 
 | `parseToolCalls`, `createProseFilter`, `ParsedCall`, `ParseResult` | [tool-call-parser.md](./tool-call-parser.md) |
 | `rankTools`, `compactSchema`, `validateArgs` | [tools.md](./tools.md) |
 | `LocalProvider`, `ProviderAvailability`, `CallFormat`, `CompactTool`, `ChatTurn`, `GenerateRequest`, `GenerateResult` | [provider-types.md](./provider-types.md) |
-| `@web-agents/local-agent/worker` | [worker.md](./worker.md) |
+| `@webmcp-agents/local-agent/worker` | [worker.md](./worker.md) |
 
 ## Limits
 
@@ -73,5 +73,5 @@ API is desktop-Chrome-only and still changes shape between versions; anything un
 
 ## See also
 
-- [`@web-agents/chat`](../chat/README.md)
+- [`@webmcp-agents/chat`](../chat/README.md)
 - [Tool error codes](../core/tool-error.md)

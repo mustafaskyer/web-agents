@@ -5,7 +5,7 @@ request, compact their schemas, and check a call's arguments before it touches t
 three.
 
 ```ts
-import { compactSchema, rankTools, validateArgs } from "@web-agents/local-agent";
+import { compactSchema, rankTools, validateArgs } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature

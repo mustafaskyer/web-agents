@@ -1,12 +1,12 @@
 # `createLocalAdapter`
 
-An `AgentAdapter` for `@web-agents/chat` that runs a model in the visitor's browser: Chrome's built-in model (Prompt
+An `AgentAdapter` for `@webmcp-agents/chat` that runs a model in the visitor's browser: Chrome's built-in model (Prompt
 API) or a small model run by transformers.js in a Web Worker. No server, no API key, and nothing the user types leaves
 the device.
 
 ```ts
-import { createLocalAdapter } from "@web-agents/local-agent";
-import type { LocalAdapterOptions } from "@web-agents/local-agent";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import type { LocalAdapterOptions } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature
@@ -66,8 +66,8 @@ browser version in localStorage.
 
 ```tsx
 // apps/ecommerce/src/Root.tsx
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
 
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: STORE_INSTRUCTIONS })];
 

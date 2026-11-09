@@ -7,7 +7,7 @@ sidebar:
 
 Each app (`apps/playground`, `apps/ecommerce`, `apps/flights`) is its own Vercel project. The static app is a Vite
 SPA; `api/chat.ts` is a Vercel Function (Node.js, web `Request`/`Response` handlers) that serves the chat through
-`@web-agents/vercel-api`: `@web-agents/chat`'s handler behind a same-origin check, per-IP rate limits and a daily
+`@webmcp-agents/vercel-api`: `@webmcp-agents/chat`'s handler behind a same-origin check, per-IP rate limits and a daily
 budget on model calls.
 
 ## 1. Create the projects
@@ -83,9 +83,9 @@ for i in $(seq 1 32); do curl -s -o /dev/null -w "%{http_code} " -XPOST $P/api/c
 ## Notes
 
 - The WebMCP polyfill loads in development only, so in browsers without native WebMCP the deployed demos have no
-  tools for the chat to call. To ship it in a demo, import `@web-agents/polyfill/auto` behind a
+  tools for the chat to call. To ship it in a demo, import `@webmcp-agents/polyfill/auto` behind a
   `VITE_WEBMCP_POLYFILL` check in each app's `main.tsx`.
-- The on-device assistant (`@web-agents/local-agent`) runs ONNX Runtime single-threaded. Cross-origin isolation
+- The on-device assistant (`@webmcp-agents/local-agent`) runs ONNX Runtime single-threaded. Cross-origin isolation
   (COOP `same-origin` + COEP `require-corp`) makes WASM several times faster but breaks third-party embeds, so the
   `vercel.json` files don't set it.
 - The build includes ONNX Runtime's ~27 MB WASM as a static asset; it's fetched only after a visitor chooses
@@ -120,7 +120,7 @@ curl -s $D/llms.txt | head -5
 # Publishing the packages
 
 `.github/workflows/release.yml` runs Changesets on `main`: pending changesets become a "Version Packages" PR, and
-merging it publishes the six public `@web-agents/*` packages to npm with provenance. One-time setup, by the
-maintainer: own the `@web-agents` scope on npm, then add an `NPM_TOKEN` repository secret (an automation token), or
+merging it publishes the six public `@webmcp-agents/*` packages to npm with provenance. One-time setup, by the
+maintainer: own the `@webmcp-agents` scope on npm, then add an `NPM_TOKEN` repository secret (an automation token), or
 configure npm trusted publishing for the repo. `pnpm turbo run check-exports` runs publint and are-the-types-wrong on
 every package.

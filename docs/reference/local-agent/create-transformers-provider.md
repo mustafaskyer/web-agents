@@ -5,8 +5,8 @@ adapter and on WASM otherwise. The worker starts on `prepare()` (the person's cl
 transformers.js loads only inside it, so generation never blocks the page or the agent cursor.
 
 ```ts
-import { createTransformersProvider, DEFAULT_CPU_MODEL, DEFAULT_GPU_MODEL, MODELS } from "@web-agents/local-agent";
-import type { TransformersProviderOptions } from "@web-agents/local-agent";
+import { createTransformersProvider, DEFAULT_CPU_MODEL, DEFAULT_GPU_MODEL, MODELS } from "@webmcp-agents/local-agent";
+import type { TransformersProviderOptions } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature
@@ -76,7 +76,7 @@ or one long prompt on a large model, have frozen a Mac until restart. So the pro
 ## Example
 
 ```ts
-import { createLocalAdapter, createPromptApiProvider, createTransformersProvider } from "@web-agents/local-agent";
+import { createLocalAdapter, createPromptApiProvider, createTransformersProvider } from "@webmcp-agents/local-agent";
 
 const local = createLocalAdapter({
   providers: [

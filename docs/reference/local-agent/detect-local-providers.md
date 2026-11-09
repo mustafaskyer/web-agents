@@ -4,7 +4,7 @@ Reports each on-device provider's availability right now, for example for a sett
 uses it to pick a provider.
 
 ```ts
-import { detectLocalProviders } from "@web-agents/local-agent";
+import { detectLocalProviders } from "@webmcp-agents/local-agent";
 ```
 
 ## Signature
