@@ -1,5 +1,5 @@
 ---
-slug: local-agent
+slug: reference/local-agent
 ---
 
 # `@webmcp-agents/local-agent`

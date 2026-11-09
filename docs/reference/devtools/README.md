@@ -1,5 +1,5 @@
 ---
-slug: devtools
+slug: reference/devtools
 ---
 
 # `@webmcp-agents/devtools`

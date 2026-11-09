@@ -1,0 +1,90 @@
+---
+title: Without React
+description: Use the agent cursor and typed tools on any page, with no framework, through @webmcp-agents/core and a tool registry.
+---
+
+Everything in `@webmcp-agents/react` is built on `@webmcp-agents/core`, which has no framework dependency. On a plain page,
+or with another framework, you call it directly.
+
+```bash
+pnpm add @webmcp-agents/core
+pnpm add -D @webmcp-agents/polyfill @webmcp-agents/devtools
+```
+
+## 1. Install the cursor first
+
+Install the visual layer **before any tool registers**. In sync mode (the default) it wraps
+`document.modelContext.registerTool` so it can hold each tool until the cursor reaches it; a tool registered before
+that runs without waiting for the cursor.
+
+```ts main.ts
+import { installAgentVisuals, onAgentEvent } from "@webmcp-agents/core";
+import "@webmcp-agents/core/cursor.css";
+
+if (import.meta.env.DEV) await import("@webmcp-agents/polyfill/auto");
+
+const visuals = installAgentVisuals({ spotlight: true });
+
+onAgentEvent((e) => console.debug("[agent]", e)); // start, fill, park, result, error, cancel, yield, resume
+```
+
+## 2. Define and register tools
+
+For a single tool, `registerWebTool` registers it and returns an unregister function:
+
+```ts
+import { defineWebTool, registerWebTool } from "@webmcp-agents/core";
+
+const toggleTheme = defineWebTool({
+  id: "toggle_theme",
+  description: "Switch the page between light and dark. Use when the user asks for dark or light mode.",
+  execute: () => document.documentElement.classList.toggle("dark") ? "Dark mode on." : "Light mode on.",
+});
+
+const unregister = registerWebTool(toggleTheme);
+```
+
+Give the control it acts on `toolname="toggle_theme"` (or set the tool's `target` selector) and the cursor will click
+it.
+
+For a whole app, a **registry** decides which tools are on. Each part of the page that wants a tool enables it and
+holds a disposer; the tool stays registered while anyone holds it:
+
+```ts
+import { createToolRegistry, matchPath } from "@webmcp-agents/core";
+import { catalog } from "./tools";
+
+const registry = createToolRegistry(catalog, { context: () => store });
+
+registry.enable(["get_cart", "search_products"]);           // always on
+
+let releaseRoute: (() => void) | undefined;
+function onRoute(pathname: string) {
+  releaseRoute?.();
+  releaseRoute = matchPath("/orders", pathname) ? registry.enable(["list_orders"]) : undefined;
+}
+```
+
+Releases are deferred and wait for the tool's calls in flight, so turning a tool off never cancels a call that's still
+answering. [Tool lifecycle](/concepts/tool-lifecycle) explains why that matters.
+
+## 3. Declarative forms need nothing
+
+A `<form toolname tooldescription>` is a tool as soon as it's in the DOM, in any framework. See
+[Tools](/concepts/tools#declarative-forms).
+
+## 4. Devtools
+
+```ts
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
+
+if (import.meta.env.DEV) installWebAgentsDevtools({ visuals, initialSettings: { spotlight: true } });
+```
+
+The panel renders with React inside its own shadow root, so React and React DOM are its peer dependencies even here.
+
+## Teardown
+
+`installAgentVisuals()` is ref-counted: every call returns a handle, and the last `destroy()` removes the DOM,
+listeners and timers and restores `registerTool`. Importing the package never touches the DOM, and on the server
+`installAgentVisuals()` returns a no-op handle, so it's safe in SSR code.

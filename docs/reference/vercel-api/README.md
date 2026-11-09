@@ -1,5 +1,5 @@
 ---
-slug: vercel-api
+slug: reference/vercel-api
 ---
 
 # `@webmcp-agents/vercel-api`
@@ -21,7 +21,7 @@ Env is read when the route is created (at the function's cold start), never at i
 
 ## Deployment
 
-Project settings, environment variables, Upstash Redis and the smoke test are in [../deploy.md](../deploy.md).
+Project settings, environment variables, Upstash Redis and the smoke test are in [Deploy to Vercel](../../guides/deploy.md).
 
 ## How a request flows
 

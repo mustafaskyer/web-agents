@@ -1,5 +1,5 @@
 ---
-slug: core
+slug: reference/core
 ---
 
 # `@webmcp-agents/core`

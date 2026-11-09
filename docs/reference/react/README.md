@@ -1,5 +1,5 @@
 ---
-slug: react
+slug: reference/react
 ---
 
 # `@webmcp-agents/react`

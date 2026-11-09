@@ -1,0 +1,183 @@
+---
+title: Quickstart
+description: Give a React page its first two WebMCP tools, install the agent cursor, and run a tool the way an agent would, in about five minutes.
+---
+
+You'll build a tiny page with a newsletter form and a "read the cart" tool, then call both from the devtools panel and
+watch the cursor do the work. This assumes a React 19 app on Vite; the [vanilla guide](/getting-started/without-react)
+covers everything else.
+
+:::note[Not on npm yet]
+The `@webmcp-agents/*` packages haven't had their first release. Until then, try everything here in the repository's
+[example apps](/examples/playground): clone it, run `pnpm install && pnpm dev`, and open `http://localhost:5173`.
+:::
+
+<Steps>
+  <Step title="Install the packages">
+
+    The cursor and the React bindings, plus two development-only helpers: a WebMCP polyfill for browsers without
+    the native API, and the devtools panel.
+
+    ```bash
+    pnpm add @webmcp-agents/core @webmcp-agents/react zod
+    pnpm add -D @webmcp-agents/polyfill @webmcp-agents/devtools
+    ```
+
+    `zod` is optional: tools take any [Standard Schema](https://standardschema.dev) (zod, valibot, arktype) or plain
+    JSON Schema.
+
+  </Step>
+  <Step title="Load the polyfill and the cursor styles">
+
+    In your entry file, before the app renders:
+
+    ```tsx src/main.tsx
+    import { createRoot } from "react-dom/client";
+    import App from "./App";
+    import "@webmcp-agents/core/cursor.css";
+
+    // Browsers without native WebMCP get document.modelContext. It steps aside where Chrome has the real one.
+    if (import.meta.env.DEV) {
+      await import("@webmcp-agents/polyfill/auto");
+    }
+
+    createRoot(document.getElementById("root")!).render(<App />);
+    ```
+
+  </Step>
+  <Step title="Write a tool in code">
+
+    A `WebTool` is one definition: an id, a description the agent reads, an input schema and an `execute`. Define it
+    at module level.
+
+    ```ts src/tools.ts
+    import { defineWebTool } from "@webmcp-agents/react";
+    import { z } from "zod";
+    import { cart } from "./cart";
+
+    export const getCart = defineWebTool({
+      id: "get_cart",
+      description: "Read the cart: items, quantities and the total. Use to answer questions about the cart.",
+      annotations: { readOnlyHint: true },
+      execute: () => cart.summary(),
+    });
+
+    export const listOrders = defineWebTool({
+      id: "list_orders",
+      description: "List past orders, newest first. Use for questions about earlier orders.",
+      inputSchema: z.object({ limit: z.number().int().min(1).optional().describe("How many to return, e.g. 5") }),
+      annotations: { readOnlyHint: true },
+      execute: ({ limit }) => cart.orders.slice(0, limit),
+    });
+
+    export const catalog = [getCart, listOrders];
+    ```
+
+  </Step>
+  <Step title="Write a tool as a form">
+
+    Any `<form>` becomes a tool with two attributes. The browser builds its schema from the fields and fills them in
+    for the agent; your submit handler answers through `respondWith`.
+
+    ```tsx src/Newsletter.tsx
+    import type { FormEvent } from "react";
+
+    export function Newsletter() {
+      function onSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const email = String(new FormData(e.currentTarget).get("email"));
+        const result = subscribe(email).then(() => `Subscribed ${email}.`);
+        const submit = e.nativeEvent as SubmitEvent;
+        if (submit.agentInvoked) submit.respondWith?.(result);
+      }
+
+      return (
+        <form toolname="subscribe_newsletter" tooldescription="Subscribe an email address to the newsletter." onSubmit={onSubmit}>
+          <input name="email" type="email" required toolparamdescription="The address to subscribe, e.g. ana@example.com" />
+          <button type="submit">Subscribe</button>
+        </form>
+      );
+    }
+    ```
+
+    There's no `toolautosubmit` attribute, so the browser fills the field and then **waits for the person to click
+    Subscribe**. That pause is the confirm gate. Add `toolautosubmit` for cheap, reversible actions.
+
+  </Step>
+  <Step title="Add the provider">
+
+    `<WebAgentsProvider>` registers the catalog's tools when they should be on and installs the agent cursor before
+    the first one registers. Add the devtools in development only.
+
+    ```tsx src/App.tsx
+    import { WebAgentsProvider } from "@webmcp-agents/react";
+    import { lazy, Suspense } from "react";
+    import { Newsletter } from "./Newsletter";
+    import { catalog } from "./tools";
+
+    const Devtools = import.meta.env.DEV
+      ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
+      : () => null;
+
+    export default function App() {
+      return (
+        <WebAgentsProvider tools={catalog} global={["get_cart"]} routes={{ "/orders": ["list_orders"] }}>
+          <Newsletter />
+          <Suspense>
+            <Devtools />
+          </Suspense>
+        </WebAgentsProvider>
+      );
+    }
+    ```
+
+    `get_cart` is on everywhere; `list_orders` only while the pathname is `/orders`. Declarative forms are on
+    whenever they're in the DOM.
+
+  </Step>
+  <Step title="Run a tool like an agent">
+
+    Start the dev server, then open the devtools panel (bottom right, or **Alt+Shift+A**). Expand
+    `subscribe_newsletter`, type an address and press **Run**.
+
+    The cursor glides to the field, types the address, moves to **Subscribe** and parks there with "Click Subscribe
+    to confirm". Click it yourself and the tool answers. The **Timeline** tab shows the call, what the cursor typed
+    and the result.
+
+    From the browser console works too:
+
+    ```js
+    await agent.run("get_cart");
+    await agent.list();
+    ```
+
+    Move your mouse while a tool is running: the cursor vanishes, and the tool still finishes.
+
+  </Step>
+</Steps>
+
+## What you'll see
+
+<video autoPlay loop muted playsInline data-no-zoom width="960">
+  <source src="../media/cursor/typing.webm" type="video/webm" />
+  <source src="../media/cursor/typing.mp4" type="video/mp4" />
+</video>
+
+*A tool call on the live page: the cursor travels to the form, types, clicks; the page reacts.*
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Tools" href="/concepts/tools" icon="hammer">
+    Forms or code, global or scoped, and when to ask for confirmation.
+  </Card>
+  <Card title="Writing tool descriptions" href="/guides/tool-descriptions" icon="pen-line">
+    What a model needs to read to pick the right tool in the right order.
+  </Card>
+  <Card title="Add a chat" href="/guides/chat" icon="message-square">
+    An assistant on the page that calls these tools for the person.
+  </Card>
+  <Card title="The agent cursor" href="/concepts/agent-cursor" icon="mouse-pointer-2">
+    Options, spotlight, styling and yielding to the user.
+  </Card>
+</CardGroup>

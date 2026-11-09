@@ -1,5 +1,5 @@
 ---
-slug: polyfill
+slug: reference/polyfill
 ---
 
 # `@webmcp-agents/polyfill`

@@ -87,4 +87,4 @@ if (!r.success) console.log(`retry in ${Math.ceil((r.reset - Date.now()) / 1000)
 
 - [guards.md](./guards.md): `rateLimitGuard`, `budgetGuard`
 - [create-vercel-chat-route.md](./create-vercel-chat-route.md)
-- [../deploy.md](../deploy.md): adding Upstash Redis
+- [Deploy to Vercel](../../guides/deploy.md): adding Upstash Redis
