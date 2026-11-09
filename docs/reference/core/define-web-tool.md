@@ -3,7 +3,7 @@
 Defines a tool once for every place a tool runs: the browser (`document.modelContext`), devtools, and a server agent. The config is a structural superset of Mastra's `createTool` config and the AI SDK's `tool()` input.
 
 ```ts
-import { defineWebTool } from "@web-agents/core";
+import { defineWebTool } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -104,10 +104,10 @@ A frozen `WebTool`: the config fields plus
 From the ecommerce app (`apps/ecommerce/src/tools/cartLines.ts`, simplified):
 
 ```ts
-import { defineWebTool } from "@web-agents/core";
+import { defineWebTool } from "@webmcp-agents/core";
 import { z } from "zod";
 
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: StoreContext; // { cart, ui, navigate }
   }

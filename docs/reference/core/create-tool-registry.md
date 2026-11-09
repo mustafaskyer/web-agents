@@ -1,9 +1,9 @@
 # `createToolRegistry`
 
-Decides which catalog tools are registered with WebMCP right now. Every part of the app that wants a tool on (a route, a mounted component, the app shell) enables it and gets a disposer; a tool stays registered while anyone holds it. `@web-agents/react`'s `<WebAgentsProvider>` builds on it.
+Decides which catalog tools are registered with WebMCP right now. Every part of the app that wants a tool on (a route, a mounted component, the app shell) enables it and gets a disposer; a tool stays registered while anyone holds it. `@webmcp-agents/react`'s `<WebAgentsProvider>` builds on it.
 
 ```ts
-import { createToolRegistry } from "@web-agents/core";
+import { createToolRegistry } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -48,7 +48,7 @@ A `ToolRegistry`:
 ## Example
 
 ```ts
-import { createToolRegistry, installAgentVisuals, matchPath } from "@web-agents/core";
+import { createToolRegistry, installAgentVisuals, matchPath } from "@webmcp-agents/core";
 import { catalog } from "./tools/catalog";
 
 let visuals: ReturnType<typeof installAgentVisuals> | undefined;

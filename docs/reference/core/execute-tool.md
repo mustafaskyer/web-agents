@@ -3,7 +3,7 @@
 Calls a page's WebMCP tool the way an agent would, from library UI such as devtools or a chat widget. It absorbs what differs between Chrome builds and the polyfill: the argument shape, string versus object results, navigation and cancellation.
 
 ```ts
-import { executeTool, normalizeToolResult } from "@web-agents/core";
+import { executeTool, normalizeToolResult } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -34,7 +34,7 @@ function normalizeToolResult(res: ModelContextToolResult | string): ModelContext
 
 `executeTool` resolves to the tool's result as a `ModelContextToolResult`, or `null` when the call navigated the page (Chrome resolves nothing then). It rejects when:
 
-- `document.modelContext` is missing (`document.modelContext is not available. Import @web-agents/polyfill/auto in development.`),
+- `document.modelContext` is missing (`document.modelContext is not available. Import @webmcp-agents/polyfill/auto in development.`),
 - the tool isn't registered (`Unknown tool "<name>"`),
 - `signal` aborts (an `AbortError`).
 
@@ -42,10 +42,10 @@ function normalizeToolResult(res: ModelContextToolResult | string): ModelContext
 
 ## Example
 
-A tool runner, like the one in `@web-agents/devtools`:
+A tool runner, like the one in `@webmcp-agents/devtools`:
 
 ```ts
-import { executeTool, isErrorText, toolErrorCode } from "@web-agents/core";
+import { executeTool, isErrorText, toolErrorCode } from "@webmcp-agents/core";
 
 const controller = new AbortController();
 const result = await executeTool("add_to_cart_mug-01", { qty: 3 }, { signal: controller.signal });

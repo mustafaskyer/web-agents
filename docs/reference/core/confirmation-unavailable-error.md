@@ -3,7 +3,7 @@
 The error a confirm-gated tool fails with when the person can't confirm because there is nothing to click on. The gate fails closed: the call errors rather than run unconfirmed or hang.
 
 ```ts
-import { ConfirmationUnavailableError } from "@web-agents/core";
+import { ConfirmationUnavailableError } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -25,7 +25,7 @@ An `Error` instance.
 ## Example
 
 ```ts
-import { ConfirmationUnavailableError } from "@web-agents/core";
+import { ConfirmationUnavailableError } from "@webmcp-agents/core";
 
 try {
   await runSomething();

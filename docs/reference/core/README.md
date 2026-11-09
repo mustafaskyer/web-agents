@@ -2,17 +2,17 @@
 slug: core
 ---
 
-# `@web-agents/core`
+# `@webmcp-agents/core`
 
-`@web-agents/core` shows the person using a page what a WebMCP agent is doing: a ghost cursor that glides to the tool, types the agent's values, clicks, and parks on a submit button while the browser waits for confirmation. The visual layer is driven only by WebMCP lifecycle events, so tools don't know it exists, and it gets out of the way the moment the user moves. The package also holds the tool model shared by the other `@web-agents/*` packages: `defineWebTool`, a ref-counted tool registry, deferred release helpers, error codes for tool results, a cross-browser `executeTool`, and the WebMCP types.
+`@webmcp-agents/core` shows the person using a page what a WebMCP agent is doing: a ghost cursor that glides to the tool, types the agent's values, clicks, and parks on a submit button while the browser waits for confirmation. The visual layer is driven only by WebMCP lifecycle events, so tools don't know it exists, and it gets out of the way the moment the user moves. The package also holds the tool model shared by the other `@webmcp-agents/*` packages: `defineWebTool`, a ref-counted tool registry, deferred release helpers, error codes for tool results, a cross-browser `executeTool`, and the WebMCP types.
 
 ```sh
-pnpm add @web-agents/core
+pnpm add @webmcp-agents/core
 ```
 
 ```ts
-import { installAgentVisuals, onAgentEvent } from "@web-agents/core";
-import "@web-agents/core/cursor.css";
+import { installAgentVisuals, onAgentEvent } from "@webmcp-agents/core";
+import "@webmcp-agents/core/cursor.css";
 ```
 
 ## Visual layer
@@ -23,7 +23,7 @@ import "@web-agents/core/cursor.css";
 | [`onAgentEvent`](./on-agent-event.md) | Subscribe to agent activity. Includes `AgentEvent`. |
 | [`waitingForUser`](./waiting-for-user.md) | Say that a tool is waiting for the person. |
 | [`UI_HOST_ATTR`](./ui-host-attr.md) | The attribute that marks library UI, so input there never yields the cursor. |
-| [`@web-agents/core/cursor.css`](./cursor-css.md) | The stylesheet for the cursor, ring, tag, spotlight and native agent states. |
+| [`@webmcp-agents/core/cursor.css`](./cursor-css.md) | The stylesheet for the cursor, ring, tag, spotlight and native agent states. |
 
 ## Tools
 

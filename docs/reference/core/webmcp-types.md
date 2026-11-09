@@ -11,7 +11,7 @@ import type {
   ModelContextToolInfo,
   ModelContextToolResult,
   ToolEvent,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -72,7 +72,7 @@ interface ModelContext extends EventTarget {
 
 ## Global augmentations
 
-Importing `@web-agents/core` (even for types) also declares:
+Importing `@webmcp-agents/core` (even for types) also declares:
 
 | Global | Addition |
 |---|---|
@@ -93,7 +93,7 @@ Importing `@web-agents/core` (even for types) also declares:
 ## Example
 
 ```ts
-import type { ModelContextToolResult } from "@web-agents/core";
+import type { ModelContextToolResult } from "@webmcp-agents/core";
 
 const textOf = (res: ModelContextToolResult): string => res.content.find((c) => c.type === "text")?.text ?? "";
 

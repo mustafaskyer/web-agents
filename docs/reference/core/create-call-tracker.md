@@ -3,7 +3,7 @@
 Creates a counter for a tool's calls, so its unregistration can wait for them. Pair it with [`deferRelease`](./defer-release.md) and pass it as `calls` to [`registerWebTool`](./register-web-tool.md).
 
 ```ts
-import { createCallTracker } from "@web-agents/core";
+import { createCallTracker } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -33,7 +33,7 @@ A `CallTracker`:
 ## Example
 
 ```ts
-import { createCallTracker, deferRelease, registerWebTool } from "@web-agents/core";
+import { createCallTracker, deferRelease, registerWebTool } from "@webmcp-agents/core";
 
 const calls = createCallTracker();
 const off = registerWebTool(placeOrder, { calls });

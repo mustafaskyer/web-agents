@@ -3,8 +3,8 @@
 Installs the visual layer: a ghost cursor, a focus ring, an optional spotlight and a yield-to-user watcher, all driven by WebMCP lifecycle events. Call it once, before tools register, so the page shows what the agent does without the tools knowing.
 
 ```ts
-import { installAgentVisuals } from "@web-agents/core";
-import "@web-agents/core/cursor.css";
+import { installAgentVisuals } from "@webmcp-agents/core";
+import "@webmcp-agents/core/cursor.css";
 ```
 
 ## Signature
@@ -81,8 +81,8 @@ An `AgentVisuals` handle:
 
 ```ts
 // main.tsx, before the app renders
-import { installAgentVisuals, onAgentEvent } from "@web-agents/core";
-import "@web-agents/core/cursor.css";
+import { installAgentVisuals, onAgentEvent } from "@webmcp-agents/core";
+import "@webmcp-agents/core/cursor.css";
 
 const visuals = installAgentVisuals({
   log: (entry) => console.debug("[agent-visuals]", entry),
@@ -111,5 +111,5 @@ visuals.setSpotlight(false);
 
 - [`onAgentEvent`](./on-agent-event.md)
 - [`UI_HOST_ATTR`](./ui-host-attr.md)
-- [`@web-agents/core/cursor.css`](./cursor-css.md)
+- [`@webmcp-agents/core/cursor.css`](./cursor-css.md)
 - [`defineWebTool`](./define-web-tool.md)

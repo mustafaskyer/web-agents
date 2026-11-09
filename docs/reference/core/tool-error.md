@@ -3,7 +3,7 @@
 Builds a failed tool result that says why with one code, twice: in the text every model reads (`Error [invalid_input]: …`) and in `structuredContent.error` (`{ code, retryable }`) for browsers, devtools and code that branches on it. `toolErrorCode` reads the code back from either place.
 
 ```ts
-import { RETRYABLE, toolError, toolErrorCode, type ToolErrorCode } from "@web-agents/core";
+import { RETRYABLE, toolError, toolErrorCode, type ToolErrorCode } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -57,7 +57,7 @@ function toolErrorCode(result: ModelContextToolResult | null | undefined): ToolE
 ## Example
 
 ```ts
-import { toolError, toolErrorCode } from "@web-agents/core";
+import { toolError, toolErrorCode } from "@webmcp-agents/core";
 
 const result = toolError("unavailable", 'No tool "place_order" on this page. Go to /checkout first.');
 toolErrorCode(result); // "unavailable"

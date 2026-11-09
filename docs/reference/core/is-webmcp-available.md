@@ -3,7 +3,7 @@
 Returns `true` when the page has `document.modelContext`, from native WebMCP or the polyfill. Use it to decide whether to show tool-related UI.
 
 ```ts
-import { isWebMCPAvailable } from "@web-agents/core";
+import { isWebMCPAvailable } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -22,17 +22,17 @@ None.
 
 ## Example
 
-`@web-agents/react` reads it in `useWebTool` through `useSyncExternalStore`:
+`@webmcp-agents/react` reads it in `useWebTool` through `useSyncExternalStore`:
 
 ```ts
-import { isWebMCPAvailable } from "@web-agents/core";
+import { isWebMCPAvailable } from "@webmcp-agents/core";
 
 const supported = useSyncExternalStore(subscribeNever, isWebMCPAvailable, () => false);
 ```
 
 ## Notes
 
-- It is a plain check with no events. Import `@web-agents/polyfill/auto` before calling it if you rely on the polyfill in development.
+- It is a plain check with no events. Import `@webmcp-agents/polyfill/auto` before calling it if you rely on the polyfill in development.
 
 ## See also
 

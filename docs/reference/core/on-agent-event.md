@@ -3,7 +3,7 @@
 Subscribes to everything the visual layer observes, in order: tool starts, field fills, parks, results, errors, cancels, and the cursor yielding to or resuming after the user. Devtools, chat widgets and tests build on it instead of on internals.
 
 ```ts
-import { onAgentEvent } from "@web-agents/core";
+import { onAgentEvent } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -48,7 +48,7 @@ An unsubscribe function.
 ## Example
 
 ```ts
-import { onAgentEvent } from "@web-agents/core";
+import { onAgentEvent } from "@webmcp-agents/core";
 
 const off = onAgentEvent((e) => {
   if (e.type === "park") showBanner(e.prompt); // e.g. 'Click "Place order" to confirm'

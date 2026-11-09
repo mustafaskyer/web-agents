@@ -1,9 +1,9 @@
 # `matchPath`
 
-Tests a pathname against a route pattern. It powers route-scoped tools: `<WebAgentsProvider routes={{ "/orders": ["list_orders"] }}>` in `@web-agents/react` enables a tool while its pattern matches.
+Tests a pathname against a route pattern. It powers route-scoped tools: `<WebAgentsProvider routes={{ "/orders": ["list_orders"] }}>` in `@webmcp-agents/react` enables a tool while its pattern matches.
 
 ```ts
-import { matchPath } from "@web-agents/core";
+import { matchPath } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -26,7 +26,7 @@ function matchPath(pattern: string, pathname: string): boolean;
 ## Example
 
 ```ts
-import { matchPath } from "@web-agents/core";
+import { matchPath } from "@webmcp-agents/core";
 
 matchPath("/products/:slug", "/products/ocean-tee");   // true
 matchPath("/products/:slug", "/products");             // false: :param needs one segment

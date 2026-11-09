@@ -3,7 +3,7 @@
 Runs `release` on a later macrotask unless cancelled first, and keeps waiting while `isBusy()` is true. Use it for anything that unregisters a tool from UI code: Chrome cancels a call whose tool changes, and React unmounts and remounts on purpose.
 
 ```ts
-import { deferRelease, RESPONSE_GRACE_MS } from "@web-agents/core";
+import { deferRelease, RESPONSE_GRACE_MS } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -38,7 +38,7 @@ const RESPONSE_GRACE_MS: 500;
 The pattern for a tool registered from an effect:
 
 ```ts
-import { createCallTracker, deferRelease, RESPONSE_GRACE_MS, registerWebTool } from "@web-agents/core";
+import { createCallTracker, deferRelease, RESPONSE_GRACE_MS, registerWebTool } from "@webmcp-agents/core";
 
 const calls = createCallTracker();
 const off = registerWebTool(tool, { calls });
@@ -54,7 +54,7 @@ pending.cancel();
 
 - The first check is always on a `setTimeout(…, 0)`, so a remount in the same tick can cancel it.
 - [`createCallTracker`](./create-call-tracker.md)'s `busy()` already includes `RESPONSE_GRACE_MS` after the last call, so the release waits for the call and the answer.
-- [`createToolRegistry`](./create-tool-registry.md) and `useWebTool` in `@web-agents/react` use this with `graceMs: RESPONSE_GRACE_MS`.
+- [`createToolRegistry`](./create-tool-registry.md) and `useWebTool` in `@webmcp-agents/react` use this with `graceMs: RESPONSE_GRACE_MS`.
 
 ## See also
 

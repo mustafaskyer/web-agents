@@ -3,7 +3,7 @@
 Small helpers for tool results and failures. `errorResult` turns a caught error into a coded `isError` result the agent can read and recover from. The others normalise return values, read error text, and tell cancellation apart from failure.
 
 ```ts
-import { errorResult, errorText, isAbortError, isErrorText, toToolResult } from "@web-agents/core";
+import { errorResult, errorText, isAbortError, isErrorText, toToolResult } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -44,7 +44,7 @@ function toToolResult(value: unknown): ModelContextToolResult;
 ## Example
 
 ```ts
-import { errorResult, isAbortError, toToolResult } from "@web-agents/core";
+import { errorResult, isAbortError, toToolResult } from "@webmcp-agents/core";
 
 async function call(input: unknown, signal: AbortSignal) {
   try {
@@ -59,7 +59,7 @@ async function call(input: unknown, signal: AbortSignal) {
 The ecommerce add-to-cart form uses `errorText` to show and answer the same message:
 
 ```ts
-import { errorText } from "@web-agents/core";
+import { errorText } from "@webmcp-agents/core";
 
 setError(errorText(err));
 return `Error: ${errorText(err)}`;
@@ -67,7 +67,7 @@ return `Error: ${errorText(err)}`;
 
 ## Notes
 
-- `isErrorText` exists because declarative forms can't set `isError`, so they answer with `Error: …` text. `@web-agents/devtools` treats a result as failed when `isError` is set or `isErrorText` matches its text.
+- `isErrorText` exists because declarative forms can't set `isError`, so they answer with `Error: …` text. `@webmcp-agents/devtools` treats a result as failed when `isError` is set or `isErrorText` matches its text.
 - `toToolResult` applies the same rules the polyfill applies to imperative tools.
 
 ## See also

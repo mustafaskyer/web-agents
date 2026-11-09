@@ -3,7 +3,7 @@
 The attribute name that marks the host element of a library UI, such as the devtools panel or the chat widget. Input inside such an element never makes the agent cursor yield, because the user is driving the agent from there.
 
 ```ts
-import { UI_HOST_ATTR } from "@web-agents/core";
+import { UI_HOST_ATTR } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -19,7 +19,7 @@ const UI_HOST_ATTR: "data-web-agents-ui";
 ## Example
 
 ```ts
-import { UI_HOST_ATTR } from "@web-agents/core";
+import { UI_HOST_ATTR } from "@webmcp-agents/core";
 
 const host = document.createElement("div");
 host.setAttribute(UI_HOST_ATTR, "chat");

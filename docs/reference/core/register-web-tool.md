@@ -3,7 +3,7 @@
 Registers a [`WebTool`](./define-web-tool.md) with `document.modelContext` and returns an unregister function. Use it for a one-off registration outside a registry; UI code should usually go through [`createToolRegistry`](./create-tool-registry.md) or the React hooks.
 
 ```ts
-import { registerWebTool } from "@web-agents/core";
+import { registerWebTool } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -31,7 +31,7 @@ An unregister function. It is idempotent.
 ## Example
 
 ```ts
-import { createCallTracker, defineWebTool, deferRelease, registerWebTool } from "@web-agents/core";
+import { createCallTracker, defineWebTool, deferRelease, registerWebTool } from "@webmcp-agents/core";
 
 const getCart = defineWebTool({
   id: "get_cart",
@@ -53,7 +53,7 @@ function dispose() {
 ## Notes
 
 - The tool is adapted with [`toModelContextTool`](./to-model-context-tool.md): failures become `isError` results, cancellation rejects.
-- Without `document.modelContext` it warns once (suggesting `@web-agents/polyfill/auto` in dev or a WebMCP-enabled Chrome) and returns a no-op, so the app still renders. On the server it returns a no-op without warning.
+- Without `document.modelContext` it warns once (suggesting `@webmcp-agents/polyfill/auto` in dev or a WebMCP-enabled Chrome) and returns a no-op, so the app still renders. On the server it returns a no-op without warning.
 - Registering an id that is already registered through this function replaces that registration. The replaced one's unregister becomes a no-op.
 - Unregistering aborts the registration's signal and calls `unregisterTool` when the browser has it.
 - Unregistering cancels the tool's in-flight calls in Chrome. From UI code, release through [`deferRelease`](./defer-release.md) with a [`CallTracker`](./create-call-tracker.md).

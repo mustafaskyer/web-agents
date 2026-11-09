@@ -3,7 +3,7 @@
 An error to throw from a tool's `execute` to pick the code the agent gets. Without it, a thrown error is coded `failed`.
 
 ```ts
-import { WebToolError } from "@web-agents/core";
+import { WebToolError } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -32,7 +32,7 @@ An `Error` instance with `code`.
 From the flights app (`apps/flights/src/tools/getBooking.ts`):
 
 ```ts
-import { defineWebTool, WebToolError } from "@web-agents/core";
+import { defineWebTool, WebToolError } from "@webmcp-agents/core";
 import { z } from "zod";
 
 export const getBooking = defineWebTool({

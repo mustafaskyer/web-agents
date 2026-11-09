@@ -3,7 +3,7 @@
 Says that a tool is waiting for the person (a choice, a confirmation) and what they should do. The chat shows the prompt on the call, and agents don't time the call out while the person is being asked.
 
 ```ts
-import { waitingForUser } from "@web-agents/core";
+import { waitingForUser } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -28,7 +28,7 @@ Nothing. It emits `{ type: "park", tool, prompt }` to every [`onAgentEvent`](./o
 From the ecommerce app's add-to-cart form, when a product needs a size the agent didn't give:
 
 ```ts
-import { waitingForUser } from "@web-agents/core";
+import { waitingForUser } from "@webmcp-agents/core";
 
 setAsking({ qty: qtyToAdd, settle });
 waitingForUser("add_to_cart", `Choose a ${axis.name.toLowerCase()} to add ${product.name}`);

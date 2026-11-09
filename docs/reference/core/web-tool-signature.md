@@ -3,7 +3,7 @@
 Returns a string of what WebMCP sees of a tool. When it changes, the tool must re-register; when it doesn't, it mustn't, because Chrome cancels the calls of a tool whose definition changes.
 
 ```ts
-import { webToolSignature } from "@web-agents/core";
+import { webToolSignature } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -25,7 +25,7 @@ const webToolSignature: (t: WebTool) => string;
 ## Example
 
 ```ts
-import { webToolSignature } from "@web-agents/core";
+import { webToolSignature } from "@webmcp-agents/core";
 
 if (webToolSignature(next) !== webToolSignature(current)) {
   // re-register: the agent-visible definition changed
@@ -36,7 +36,7 @@ if (webToolSignature(next) !== webToolSignature(current)) {
 
 - `execute` is not part of the signature. A new `execute` alone needs no re-registration.
 - A function `target` stringifies to `null` in `JSON.stringify`'s array output, so changing one function `target` for another does not change the signature.
-- [`createToolRegistry`](./create-tool-registry.md) uses it in `update(catalog)`, and `useWebTool` in `@web-agents/react` uses it too.
+- [`createToolRegistry`](./create-tool-registry.md) uses it in `update(catalog)`, and `useWebTool` in `@webmcp-agents/react` uses it too.
 
 ## See also
 

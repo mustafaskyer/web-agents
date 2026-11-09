@@ -3,7 +3,7 @@
 Adapts a [`WebTool`](./define-web-tool.md) to the `ModelContextTool` shape that `document.modelContext.registerTool` takes. It validates input, runs the confirmation gate, and turns failures into readable `isError` results. [`registerWebTool`](./register-web-tool.md) uses it; call it directly when you register with WebMCP yourself.
 
 ```ts
-import { toModelContextTool } from "@web-agents/core";
+import { toModelContextTool } from "@webmcp-agents/core";
 ```
 
 ## Signature
@@ -39,7 +39,7 @@ Each call through `execute(args, options)`:
 ## Example
 
 ```ts
-import { defineWebTool, toModelContextTool } from "@web-agents/core";
+import { defineWebTool, toModelContextTool } from "@webmcp-agents/core";
 
 const tool = defineWebTool({
   id: "clear_cart",

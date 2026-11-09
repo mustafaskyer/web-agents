@@ -1,14 +1,14 @@
-# `@web-agents/core/cursor.css`
+# `@webmcp-agents/core/cursor.css`
 
 The stylesheet for the visual layer: the ghost cursor, click ripple, name tag, focus ring, spotlight, the screen-reader live region, and the browser's native agent states. Import it once next to [`installAgentVisuals`](./install-agent-visuals.md); the layer creates the elements, the stylesheet makes them visible.
 
 ```ts
-import "@web-agents/core/cursor.css";
+import "@webmcp-agents/core/cursor.css";
 ```
 
 ## Signature
 
-A CSS file exported as `@web-agents/core/cursor.css` (the package lists `**/*.css` as having side effects).
+A CSS file exported as `@webmcp-agents/core/cursor.css` (the package lists `**/*.css` as having side effects).
 
 ## Custom properties
 
@@ -46,7 +46,7 @@ State classes: `is-visible`, `is-waiting`, `is-flashing`, and `is-yielded` (the 
 ## Example
 
 ```css
-/* app.css, after importing @web-agents/core/cursor.css */
+/* app.css, after importing @webmcp-agents/core/cursor.css */
 :root {
   --agent: #1d4ed8;
   --agent-strong: #1d4ed8;
