@@ -3,6 +3,7 @@
  * model (transformers.js in a worker, Chrome's Prompt API). A provider only
  * generates; the loop owns tools, validation and the conversation.
  */
+import type { ModelChoice } from "@webmcp-agents/chat";
 import type { JSONSchema } from "@webmcp-agents/core";
 
 /** Whether a provider can run, and what it needs first. */
@@ -74,6 +75,10 @@ export interface LocalProvider {
    * and less history until it does. Omitted: everything fits.
    */
   fits?(req: Pick<GenerateRequest, "system" | "messages" | "tools">): Promise<boolean>;
+  /** The models this provider offers, for the chat's picker (see `AgentAdapter.models`). */
+  models?(): readonly ModelChoice[];
+  /** Switch to one of `models()`: frees the current model; `availability()` then describes the new one. */
+  selectModel?(id: string): Promise<void>;
   /** Free the model (terminate the worker, destroy the session). */
   dispose?(): void;
 }

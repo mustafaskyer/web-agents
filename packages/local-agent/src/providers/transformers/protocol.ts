@@ -9,7 +9,9 @@ export type ToWorker =
   /** `bytes`: the model's known size, so per-file progress isn't read as done before every file has started. */
   | { id: number; type: "init"; model: string; dtype: Dtype; device: Device; bytes?: number }
   | { id: number; type: "generate"; req: Omit<GenerateRequest, "signal" | "onToken"> }
-  | { id: number; type: "abort" };
+  | { id: number; type: "abort" }
+  /** Are every one of the model's files already in the browser cache (for this dtype and device)? */
+  | { id: number; type: "cached?"; model: string; dtype: Dtype; device: Device };
 
 /** Worker → main thread. */
 export type FromWorker =
@@ -17,4 +19,5 @@ export type FromWorker =
   | { id: number; type: "ready"; device: Device }
   | { id: number; type: "token"; delta: string }
   | { id: number; type: "done"; result: GenerateResult }
+  | { id: number; type: "cached"; value: boolean }
   | { id: number; type: "error"; error: string; name?: string };

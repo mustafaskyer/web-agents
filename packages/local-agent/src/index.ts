@@ -11,15 +11,20 @@
 import type { AdapterStatus, AgentAdapter, AgentRunRequest, AgentStreamPart } from "@webmcp-agents/chat";
 import { type LocalLoopOptions, runLocalAgent } from "./loop";
 import { createPromptApiProvider } from "./providers/prompt-api/provider";
-import { createTransformersProvider, type TransformersProviderOptions } from "./providers/transformers/provider";
+import { BUSY, createTransformersProvider, type TransformersProviderOptions } from "./providers/transformers/provider";
 import type { LocalProvider, ProviderAvailability } from "./types";
 
 /** Options for `createLocalAdapter`. */
+/** `instructions` and `maxSteps` are fallbacks: the page's WebAgent (`<AgentChat agent>`) wins when it sets them. */
 export interface LocalAdapterOptions extends Pick<LocalLoopOptions, "maxSteps" | "stepTimeoutMs" | "instructions"> {
   /** Engines to try, in order. Default: Chrome's Prompt API, then transformers.js. */
   providers?: LocalProvider[];
-  /** transformers.js model id (default: Qwen3 0.6B ONNX; "onnx-community/Qwen3-1.7B-ONNX" needs more memory). */
+  /** transformers.js model id to start with (default: Qwen3 0.6B ONNX; "onnx-community/Qwen3-1.7B-ONNX" needs more memory). */
   model?: string;
+  /** Models the person may pick from in the chat, each with a brief and its size. Default: just `model`. */
+  models?: TransformersProviderOptions["models"];
+  /** Quantization. Default: q4f16 on WebGPU with f16 shaders, q4 otherwise. */
+  dtype?: TransformersProviderOptions["dtype"];
   /** The transformers.js worker, when your bundler can't resolve the package's own (see the README). */
   worker?: TransformersProviderOptions["worker"];
   /** Shown in the chat's adapter switcher. Default "On-device". */
@@ -42,11 +47,16 @@ export async function detectLocalProviders(
 
 /** An AgentAdapter that runs a model in this browser. Create it once per page. */
 export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter {
-  const providers = opts.providers ?? [createPromptApiProvider(), createTransformersProvider({ model: opts.model, worker: opts.worker })];
+  const providers = opts.providers ?? [
+    createPromptApiProvider(),
+    createTransformersProvider({ model: opts.model, models: opts.models, dtype: opts.dtype, worker: opts.worker }),
+  ];
   let status: AdapterStatus = STATUS_LOADING;
   let provider: LocalProvider | null = null;
   let detecting: Promise<void> | null = null;
   let preparing: Promise<void> | null = null;
+  /** A reply is being generated (no model switch meanwhile). */
+  let running = false;
   /** The provider's model is in the browser cache but not loaded: "ready", loaded by the first run. */
   let lazy = false;
   const listeners = new Set<() => void>();
@@ -95,6 +105,22 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
         listeners.delete(listener);
       };
     },
+    models() {
+      return provider?.models?.() ?? [];
+    },
+    async selectModel(id) {
+      await detect();
+      const p = provider;
+      if (!p?.selectModel) throw new Error("This assistant runs one model.");
+      if (running || status.state === "downloading" || (status.state === "loading" && status.progress !== undefined)) throw new Error(BUSY);
+      await p.selectModel(id);
+      // start over for the new model: it may need a download, or be on the device already
+      detecting = null;
+      preparing = null;
+      lazy = false;
+      set(STATUS_LOADING);
+      await detect();
+    },
     prepare(signal?: AbortSignal) {
       preparing ??= (async () => {
         try {
@@ -102,9 +128,11 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
           const p = provider;
           if (!p || (status.state === "ready" && !lazy) || status.state === "unavailable" || signal?.aborted) return;
           const before = status;
-          set({ state: "downloading", progress: 0 });
+          // a model already on this device is read from disk, never "downloaded" again: say so
+          const state = lazy ? "loading" : "downloading";
+          set({ state, progress: 0 });
           try {
-            await p.prepare((progress) => set({ state: "downloading", progress }), signal);
+            await p.prepare((progress) => set({ state, progress }), signal);
             lazy = false;
             set({ state: "ready" });
           } catch (err) {
@@ -138,22 +166,27 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
       const current = provider;
       // a message-start waits for its first part: a provider that fails to start leaves no empty bubble behind
       let held: AgentStreamPart | null = null;
-      for await (const part of runLocalAgent(current, req, {
-        maxSteps: opts.maxSteps,
-        stepTimeoutMs: opts.stepTimeoutMs,
-        toolsInline: current.toolsInline,
-        instructions: opts.instructions,
-      })) {
-        // Chrome's model reported "available" but can't start: drop it and answer with the next provider instead
-        if (part.type === "error" && current.broken) break;
-        if (part.type === "message-start") {
+      running = true;
+      try {
+        for await (const part of runLocalAgent(current, req, {
+          maxSteps: opts.maxSteps,
+          stepTimeoutMs: opts.stepTimeoutMs,
+          toolsInline: current.toolsInline,
+          instructions: opts.instructions,
+        })) {
+          // Chrome's model reported "available" but can't start: drop it and answer with the next provider instead
+          if (part.type === "error" && current.broken) break;
+          if (part.type === "message-start") {
+            if (held) yield held;
+            held = part;
+            continue;
+          }
           if (held) yield held;
-          held = part;
-          continue;
+          held = null;
+          yield part;
         }
-        if (held) yield held;
-        held = null;
-        yield part;
+      } finally {
+        running = false;
       }
       if (!current.broken) {
         if (held) yield held;
@@ -179,8 +212,15 @@ export function createLocalAdapter(opts: LocalAdapterOptions = {}): AgentAdapter
 export { runLocalAgent } from "./loop";
 export type { LocalLoopOptions } from "./loop";
 export { createPromptApiProvider } from "./providers/prompt-api/provider";
-export { createTransformersProvider, DEFAULT_CPU_MODEL, DEFAULT_GPU_MODEL, MODELS } from "./providers/transformers/provider";
-export type { TransformersProviderOptions } from "./providers/transformers/provider";
+export {
+  BUSY,
+  createTransformersProvider,
+  DEFAULT_CPU_MODEL,
+  DEFAULT_GPU_MODEL,
+  DEFAULT_MODEL,
+  MODELS,
+} from "./providers/transformers/provider";
+export type { ModelInfo, TransformersProviderOptions } from "./providers/transformers/provider";
 export { createProseFilter, parseToolCalls } from "./tool-call-parser";
 export type { ParsedCall, ParseResult } from "./tool-call-parser";
 export { compactSchema, rankTools, validateArgs } from "./tools";

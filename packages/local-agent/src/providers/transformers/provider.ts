@@ -3,28 +3,65 @@
  * worker. The worker starts on prepare() (an explicit click), never on import.
  *
  * Default model: Qwen3 0.6B, q4f16 on WebGPU and q4 on WASM. The 1.7B model (1.4 GB in one ONNX file) failed to
- * create a session in testing (`std::bad_alloc`: out of WASM memory while loading), so it's opt-in via `model`.
+ * create a session in testing (`std::bad_alloc`: out of WASM memory while loading), so it's opt-in via `model` /
+ * `models`. Whether a model is already on the device is asked of transformers.js itself (an exact per-file check of
+ * its cache), so a returning visitor is never shown a Download button, and a cache read is never shown as a download.
  */
+import type { ModelChoice } from "@webmcp-agents/chat";
 import type { GenerateRequest, GenerateResult, LocalProvider, ProviderAvailability } from "../../types";
 import { claimPage, estimateTokens, LARGE_MODEL_BYTES, lockBrowser, releasePage, tooBigForDevice } from "./guard";
 import type { Device, Dtype, FromWorker, ToWorker } from "./protocol";
 
-/** Verified on the model cards (onnx-community, 2026-11): weights + tokenizer, in bytes. */
+/** What a model is for and what it costs, per dtype in bytes (verified on the model cards, onnx-community / LiquidAI, 2026-11). */
+export interface ModelInfo {
+  /** Short name for a picker, e.g. "Qwen3 0.6B". */
+  label: string;
+  /** One sentence on when to pick it. */
+  brief: string;
+  /** Weights + tokenizer, in bytes, per dtype. */
+  q4f16: number;
+  q4: number;
+}
+
+/** The models this provider knows the size and character of. Any transformers.js text-generation model id also works. */
 export const MODELS = {
   // LiquidAI (2026-11): q4f16 760 MB in one data file, q4 850 MB; + ~3.5 MB graph and tokenizer
-  "LiquidAI/LFM2.5-1.2B-Instruct-ONNX": { q4f16: 763_800_000, q4: 853_600_000 },
-  "onnx-community/Qwen3-1.7B-ONNX": { q4f16: 1_440_000_000, q4: 2_160_000_000 },
-  "onnx-community/Qwen3-0.6B-ONNX": { q4f16: 585_000_000, q4: 934_000_000 },
-} as const;
-/** With WebGPU. 1.7B is better at tool calls but needs more memory than many devices give a page (opt in via `model`). */
-export const DEFAULT_GPU_MODEL = "onnx-community/Qwen3-0.6B-ONNX";
-/** On the CPU (WASM). */
-export const DEFAULT_CPU_MODEL = "onnx-community/Qwen3-0.6B-ONNX";
+  "LiquidAI/LFM2.5-1.2B-Instruct-ONNX": {
+    label: "LFM2.5 1.2B",
+    brief: "Strong tool calling in a mid-size model. Needs 8 GB of memory.",
+    q4f16: 763_800_000,
+    q4: 853_600_000,
+  },
+  "onnx-community/Qwen3-1.7B-ONNX": {
+    label: "Qwen3 1.7B",
+    brief: "Better reasoning on longer requests. Needs 8 GB of memory and WebGPU.",
+    q4f16: 1_440_000_000,
+    q4: 2_160_000_000,
+  },
+  "onnx-community/Qwen3-0.6B-ONNX": {
+    label: "Qwen3 0.6B",
+    brief: "Fastest. Good at short tool calls. The default.",
+    q4f16: 585_000_000,
+    q4: 934_000_000,
+  },
+} as const satisfies Record<string, ModelInfo>;
+
+/** The default on any device: small enough for most machines, with tool calling that works. */
+export const DEFAULT_MODEL = "onnx-community/Qwen3-0.6B-ONNX";
+/** @deprecated Same as `DEFAULT_MODEL`: one default on every device since the 1.7B model proved too large for many. */
+export const DEFAULT_GPU_MODEL = DEFAULT_MODEL;
+/** @deprecated Same as `DEFAULT_MODEL`. */
+export const DEFAULT_CPU_MODEL = DEFAULT_MODEL;
 
 /** Options for `createTransformersProvider`. */
 export interface TransformersProviderOptions {
-  /** A transformers.js text-generation model id. Default: Qwen3 0.6B (`DEFAULT_GPU_MODEL` / `DEFAULT_CPU_MODEL`). */
+  /** The model to start with: a transformers.js text-generation model id. Default `DEFAULT_MODEL` (Qwen3 0.6B). */
   model?: string;
+  /**
+   * The models the person may pick from in the chat (shown with each one's brief and size). Default: just `model`.
+   * The last choice is remembered per browser (localStorage `web-agents:local-model:choice`).
+   */
+  models?: readonly string[];
   /** Default: q4f16 on WebGPU with f16 shaders, q4 otherwise. */
   dtype?: Dtype;
   /**
@@ -40,39 +77,30 @@ export interface TransformersProviderOptions {
   maxInputTokens?: number;
 }
 
-const READY_KEY = "web-agents:local-model";
+const CHOICE_KEY = "web-agents:local-model:choice";
+/** How long a cache check may take before the model counts as not cached (it must never hold the chat's status). */
+export const CACHE_CHECK_MS = 4000;
 const OUT_OF_MEMORY = "this device doesn't have enough memory for the model. Try the cloud assistant, or a smaller model.";
+/** Switching models mid-reply would tear down the worker under the running generation. */
+export const BUSY = "Error [busy]: Wait for the current reply to finish before switching models.";
 
-/** localStorage that never throws (blocked storage, sandboxed frames, quota): it's only a hint. */
-const hint = {
+/** localStorage that never throws (blocked storage, sandboxed frames, quota): it only remembers a choice. */
+const choice = {
   get(): string | null {
     try {
-      return localStorage.getItem(READY_KEY);
+      return localStorage.getItem(CHOICE_KEY);
     } catch {
       return null;
     }
   },
   set(model: string): void {
     try {
-      localStorage.setItem(READY_KEY, model);
+      localStorage.setItem(CHOICE_KEY, model);
     } catch {
-      // the model still loaded; next visit just won't say it's cached
+      // the model still switched; next visit just starts from the default
     }
   },
 };
-
-/**
- * Whether the model's files are still in transformers.js's browser cache: the hint alone could be stale (site data
- * cleared), and a "cached" model loads without asking.
- */
-async function inBrowserCache(model: string): Promise<boolean> {
-  try {
-    const cache = await caches.open("transformers-cache");
-    return (await cache.keys()).some((r) => r.url.includes(`/${model}/`) && /\.onnx_data|\.onnx$/.test(r.url));
-  } catch {
-    return false;
-  }
-}
 
 /** Omit over each member of a union. */
 type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
@@ -88,6 +116,10 @@ async function detectDevice(): Promise<{ device: Device; f16: boolean }> {
   }
 }
 
+const info = (m: string): ModelInfo | undefined => (MODELS as Record<string, ModelInfo>)[m];
+/** A readable name for a model id the table doesn't know: the last path segment without the ONNX suffix. */
+const labelOf = (m: string): string => info(m)?.label ?? (m.split("/").pop() ?? m).replace(/-ONNX$/i, "");
+
 /** A provider that runs a small model with transformers.js in a Web Worker. */
 export function createTransformersProvider(opts: TransformersProviderOptions = {}): LocalProvider {
   let detected: { device: Device; f16: boolean } | null = null;
@@ -95,16 +127,22 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
   let nextId = 1;
   const pending = new Map<number, (m: FromWorker) => void>();
 
+  // ---------- which model ----------
+  const offered: readonly string[] = opts.models?.length ? opts.models : [opts.model ?? DEFAULT_MODEL];
+  const remembered = choice.get();
+  let selected: string =
+    opts.model && offered.includes(opts.model) ? opts.model : remembered && offered.includes(remembered) ? remembered : offered[0]!;
+  /** The last cache check per model: `models()` is synchronous. */
+  const cachedAt = new Map<string, boolean>();
+
   let chosenDtype: Dtype | null = null;
-  const choice = async () => {
+  const setup = async () => {
     detected ??= await detectDevice();
     const { device, f16 } = detected;
-    const chosen = opts.model ?? (device === "webgpu" ? DEFAULT_GPU_MODEL : DEFAULT_CPU_MODEL);
     // without shader-f16 an f16 model fails at its first token ("requires f16 but the device does not support it")
     const dtype: Dtype = opts.dtype ?? (device === "webgpu" && f16 ? "q4f16" : "q4");
-    model = chosen;
     chosenDtype = dtype;
-    return { device, model: chosen, dtype };
+    return { device, model: selected, dtype };
   };
 
   const spawn = (): Worker => {
@@ -130,9 +168,28 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
     return id;
   };
 
+  /**
+   * Ask the worker whether the model's files are all in transformers' cache. Any failure, or no answer within
+   * `CACHE_CHECK_MS` (the check may consult the network for an uncached model), counts as "not cached".
+   */
+  const isCached = (model: string, dtype: Dtype, device: Device): Promise<boolean> =>
+    new Promise((resolve) => {
+      let done = false;
+      const settle = (value: boolean): void => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        pending.delete(id);
+        cachedAt.set(model, value);
+        resolve(value);
+      };
+      const timer = setTimeout(() => settle(false), CACHE_CHECK_MS);
+      const id = send({ type: "cached?", model, dtype, device }, (m) => settle(m.type === "cached" ? m.value : false));
+    });
+
   let loaded = false;
   let everLoaded = false;
-  let model = opts.model;
+  let busy = false;
   let unlock: (() => void) | null = null;
   const self = {};
   const terminate = (): void => {
@@ -146,19 +203,18 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
   };
   // A page kept in the back/forward cache would keep its model in GPU memory: free it; it reloads from cache on return.
   if (typeof addEventListener === "function") addEventListener("pagehide", () => worker && terminate());
+  const sizeOf = (m: string, dtype: Dtype): number | undefined => info(m)?.[dtype];
   const inputBudget = (): number => {
-    const bytes = model && chosenDtype ? (sizeOf(model, chosenDtype) ?? 0) : 0;
+    const bytes = chosenDtype ? (sizeOf(selected, chosenDtype) ?? 0) : 0;
     return opts.maxInputTokens ?? (bytes > LARGE_MODEL_BYTES ? 1536 : 3072);
   };
-  const sizeOf = (m: string, dtype: Dtype): number | undefined =>
-    (MODELS[m as keyof typeof MODELS] as Record<Dtype, number> | undefined)?.[dtype];
 
   return {
     id: "transformers",
     label: "On-device",
-    // Liquid's LFM2 models write pythonic calls; known once the device (and so the default model) is
+    // Liquid's LFM2 models write pythonic calls
     get callFormat() {
-      return model && /\bLFM2/i.test(model) ? "pythonic" : "tags";
+      return /\bLFM2/i.test(selected) ? "pythonic" : "tags";
     },
 
     async availability(): Promise<ProviderAvailability> {
@@ -166,27 +222,22 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
         return { state: "unavailable", reason: "This browser can't run models (no Web Workers or WebAssembly)." };
       }
       if (loaded) return { state: "available" };
-      const { device, model, dtype } = await choice();
+      const { device, model, dtype } = await setup();
       const tooBig = tooBigForDevice(sizeOf(model, dtype));
       if (tooBig) return { state: "unavailable", reason: tooBig };
+      // the picker shows "on this device" per model, so check every offered one (cheap: cache lookups, no download)
+      await Promise.all(offered.map((m) => isCached(m, dtype, device)));
       return {
         state: "needs-download",
         bytes: sizeOf(model, dtype),
-        cached: hint.get() === model && (await inBrowserCache(model)),
-        // the browser caches the files: a returning visitor "downloads" from disk in seconds
-        note:
-          [
-            device === "wasm" ? "No WebGPU here: a smaller, slower model runs on the CPU." : "",
-            hint.get() === model ? "Already on this device: loads from the browser cache." : "",
-          ]
-            .filter(Boolean)
-            .join(" ") || undefined,
+        cached: cachedAt.get(model) ?? false,
+        note: device === "wasm" ? "No WebGPU here: a smaller, slower model runs on the CPU." : undefined,
       };
     },
 
     async prepare(onProgress, signal) {
       if (loaded) return;
-      const { device, model, dtype } = await choice();
+      const { device, model, dtype } = await setup();
       const tooBig = tooBigForDevice(sizeOf(model, dtype));
       if (tooBig) throw new Error(tooBig);
       if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
@@ -214,7 +265,7 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
             signal?.removeEventListener("abort", onAbort);
             loaded = true;
             everLoaded = true;
-            hint.set(model);
+            cachedAt.set(model, true);
             void navigator.storage?.persist?.(); // keep the model when the browser clears storage
             resolve();
           } else if (m.type === "error") {
@@ -232,26 +283,54 @@ export function createTransformersProvider(opts: TransformersProviderOptions = {
       if (!loaded && everLoaded) await this.prepare(() => {}, req.signal);
       if (!loaded) throw new Error("The model isn't loaded yet: download it first.");
       const { signal, onToken, ...rest } = req;
-      return new Promise((resolve, reject) => {
-        const id = send({ type: "generate", req: rest }, (m) => {
-          if (m.type === "token") onToken?.(m.delta);
-          else if (m.type === "done" || m.type === "error") {
-            pending.delete(id);
-            signal.removeEventListener("abort", onAbort);
-            if (m.type === "done") resolve(m.result);
-            else reject(m.name === "AbortError" ? new DOMException(m.error, "AbortError") : new Error(m.error));
+      busy = true;
+      try {
+        return await new Promise((resolve, reject) => {
+          const id = send({ type: "generate", req: rest }, (m) => {
+            if (m.type === "token") onToken?.(m.delta);
+            else if (m.type === "done" || m.type === "error") {
+              pending.delete(id);
+              signal.removeEventListener("abort", onAbort);
+              if (m.type === "done") resolve(m.result);
+              else reject(m.name === "AbortError" ? new DOMException(m.error, "AbortError") : new Error(m.error));
+            }
+          });
+          function onAbort(): void {
+            worker?.postMessage({ id, type: "abort" } satisfies ToWorker);
           }
+          signal.addEventListener("abort", onAbort, { once: true });
         });
-        function onAbort(): void {
-          worker?.postMessage({ id, type: "abort" } satisfies ToWorker);
-        }
-        signal.addEventListener("abort", onAbort, { once: true });
-      });
+      } finally {
+        busy = false;
+      }
     },
 
     async fits({ system, messages, tools }) {
       const text = system + messages.map((m) => m.content).join("\n") + JSON.stringify(tools);
       return estimateTokens(text) <= inputBudget();
+    },
+
+    models(): readonly ModelChoice[] {
+      const dtype = chosenDtype ?? "q4f16";
+      return offered.map((id) => ({
+        id,
+        label: labelOf(id),
+        brief: info(id)?.brief ?? "A transformers.js model.",
+        bytes: sizeOf(id, dtype),
+        cached: cachedAt.get(id),
+        recommended: id === DEFAULT_MODEL,
+        selected: id === selected,
+      }));
+    },
+
+    async selectModel(id) {
+      if (!offered.includes(id)) throw new Error(`Unknown model "${id}": offer it in createLocalAdapter({ models }) first.`);
+      if (busy) throw new Error(BUSY);
+      if (id === selected) return;
+      terminate(); // frees the old model (GPU memory) before the new one is even checked
+      everLoaded = false;
+      selected = id;
+      choice.set(id);
     },
 
     dispose() {

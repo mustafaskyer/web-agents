@@ -33,6 +33,12 @@ function kit(words = ["Hello", " world"], { failLoad = false, slow = false } = {
   });
 }
 
+/** The fake kit, plus a cache answer. */
+function kitWithCache(cached: boolean): () => Promise<PipelineKit> {
+  const base = kit();
+  return async () => ({ ...(await base()), isPipelineCached: async () => cached });
+}
+
 const collect = () => {
   const out: FromWorker[] = [];
   return { out, post: (m: FromWorker) => out.push(m) };
@@ -40,6 +46,26 @@ const collect = () => {
 const req = { system: "s", messages: [{ role: "user" as const, content: "hi" }], tools: [] };
 
 describe("worker protocol", () => {
+  it("answers cached? from the kit's cache check, and false when the kit has none or fails", async () => {
+    const { out, post } = collect();
+    await handleMessage(
+      new TransformersEngine(kitWithCache(true)),
+      { id: 7, type: "cached?", model: "m", dtype: "q4", device: "wasm" },
+      post,
+    );
+    expect(out).toEqual([{ id: 7, type: "cached", value: true }]);
+    out.length = 0;
+    await handleMessage(new TransformersEngine(kit()), { id: 8, type: "cached?", model: "m", dtype: "q4", device: "wasm" }, post);
+    expect(out).toEqual([{ id: 8, type: "cached", value: false }]);
+    out.length = 0;
+    const failing = new TransformersEngine(async () => ({
+      ...(await kit()()),
+      isPipelineCached: async () => Promise.reject(new Error("offline")),
+    }));
+    await handleMessage(failing, { id: 9, type: "cached?", model: "m", dtype: "q4", device: "wasm" }, post);
+    expect(out).toEqual([{ id: 9, type: "cached", value: false }]);
+  });
+
   it("init posts progress then ready; generate posts tokens then done", async () => {
     const engine = new TransformersEngine(kit());
     const { out, post } = collect();

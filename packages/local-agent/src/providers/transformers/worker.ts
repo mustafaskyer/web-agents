@@ -8,7 +8,7 @@ import { handleMessage } from "./handle-message";
 import type { FromWorker, ToWorker } from "./protocol";
 
 const engine = new TransformersEngine(async () => {
-  const { env, InterruptableStoppingCriteria, pipeline, TextStreamer } = await import("@huggingface/transformers");
+  const { env, InterruptableStoppingCriteria, ModelRegistry, pipeline, TextStreamer } = await import("@huggingface/transformers");
   env.useBrowserCache = true; // the Cache API keeps the model across visits
   env.allowLocalModels = false;
   return {
@@ -16,6 +16,8 @@ const engine = new TransformersEngine(async () => {
     createStreamer: (tokenizer, onText) =>
       new TextStreamer(tokenizer as never, { skip_prompt: true, skip_special_tokens: true, callback_function: onText }),
     createStopper: () => new InterruptableStoppingCriteria(),
+    // exact per-file check in transformers' own cache (dtype and device decide which files a load would fetch)
+    isPipelineCached: (model, { dtype, device }) => ModelRegistry.is_pipeline_cached("text-generation", model, { dtype, device }),
   };
 });
 

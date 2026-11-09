@@ -20,6 +20,8 @@ export interface PipelineKit {
   createPipeline(model: string, options: { device: Device; dtype: Dtype; progress_callback(info: unknown): void }): Promise<TextGenerator>;
   createStreamer(tokenizer: unknown, onText: (text: string) => void): unknown;
   createStopper(): { interrupt(): void; reset(): void };
+  /** Whether every file the pipeline needs is in the browser cache. Omitted: unknown, treated as not cached. */
+  isPipelineCached?(model: string, options: { dtype: Dtype; device: Device }): Promise<boolean>;
 }
 
 const MAX_NEW_TOKENS = 384;
@@ -101,6 +103,16 @@ export class TransformersEngine {
     if (this.#aborted) throw new DOMException("Generation cancelled", "AbortError");
     const last = output?.[0]?.generated_text?.at?.(-1);
     return { text: typeof last?.content === "string" ? last.content : "" };
+  }
+
+  /** True when the model would load from the browser cache without a network download. Never throws. */
+  async isCached(model: string, dtype: Dtype, device: Device): Promise<boolean> {
+    try {
+      const kit = await this.kit();
+      return (await kit.isPipelineCached?.(model, { dtype, device })) ?? false;
+    } catch {
+      return false;
+    }
   }
 
   /** Stop the running generation: it rejects with an AbortError and emits no more tokens. */

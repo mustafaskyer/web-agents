@@ -20,6 +20,9 @@ export async function handleMessage(engine: TransformersEngine, msg: ToWorker, p
       case "abort":
         engine.abort();
         return;
+      case "cached?":
+        post({ id: msg.id, type: "cached", value: await engine.isCached(msg.model, msg.dtype, msg.device) });
+        return;
       default:
         post({ id: (msg as { id?: number }).id ?? -1, type: "error", error: `Unknown message type "${(msg as { type?: string }).type}"` });
     }
