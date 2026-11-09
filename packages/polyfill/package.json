@@ -1,5 +1,5 @@
 {
-  "name": "@web-agents/polyfill",
+  "name": "@webmcp-agents/polyfill",
   "version": "0.1.0",
   "type": "module",
   "description": "A document.modelContext (WebMCP) polyfill with declarative form tools, for development and browsers without native support.",
@@ -14,22 +14,22 @@
   ],
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./auto": {
-      "@web-agents/source": "./src/auto.ts",
+      "@webmcp-agents/source": "./src/auto.ts",
       "types": "./dist/auto.d.ts",
       "import": "./dist/auto.js"
     },
     "./package.json": "./package.json"
   },
   "peerDependencies": {
-    "@web-agents/core": "workspace:^"
+    "@webmcp-agents/core": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@web-agents/core": {
+    "@webmcp-agents/core": {
       "optional": true
     }
   },
@@ -41,7 +41,7 @@
     "check-exports": "publint && attw --pack . --profile esm-only"
   },
   "devDependencies": {
-    "@web-agents/core": "workspace:*",
+    "@webmcp-agents/core": "workspace:*",
     "tsdown": "^0.23.7"
   },
   "repository": {

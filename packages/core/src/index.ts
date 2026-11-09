@@ -1,8 +1,8 @@
 /**
- * @web-agents/core: make a WebMCP agent's activity visible on the page.
+ * @webmcp-agents/core: make a WebMCP agent's activity visible on the page.
  *
- *   import { installAgentVisuals } from "@web-agents/core";
- *   import "@web-agents/core/cursor.css";
+ *   import { installAgentVisuals } from "@webmcp-agents/core";
+ *   import "@webmcp-agents/core/cursor.css";
  */
 import "./webmcp"; // global WebMCP types (document.modelContext, SubmitEvent.agentInvoked, …)
 

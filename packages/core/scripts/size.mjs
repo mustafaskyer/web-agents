@@ -1,9 +1,9 @@
 /**
- * Bundle-size budget for @web-agents/core, min+gz, measured as a consumer's
+ * Bundle-size budget for @webmcp-agents/core, min+gz, measured as a consumer's
  * bundler would see it: each check re-exports some names from src/index.ts,
  * so tree-shaking keeps only what that import pulls in.
  *
- *   pnpm --filter @web-agents/core size
+ *   pnpm --filter @webmcp-agents/core size
  */
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

@@ -1,5 +1,5 @@
 {
-  "name": "@web-agents/core",
+  "name": "@webmcp-agents/core",
   "version": "0.1.0",
   "type": "module",
   "description": "Show users what a WebMCP agent is doing: ghost cursor, field replay, confirmation parking.",
@@ -13,12 +13,12 @@
   ],
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./cursor.css": {
-      "@web-agents/source": "./src/cursor.css",
+      "@webmcp-agents/source": "./src/cursor.css",
       "default": "./dist/cursor.css"
     },
     "./package.json": "./package.json"

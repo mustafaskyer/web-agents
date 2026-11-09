@@ -46,7 +46,7 @@ export async function executeTool(
   { signal }: ExecuteToolOptions = {},
 ): Promise<ModelContextToolResult | null> {
   const mc = typeof document === "undefined" ? undefined : document.modelContext;
-  if (!mc) throw new Error("document.modelContext is not available. Import @web-agents/polyfill/auto in development.");
+  if (!mc) throw new Error("document.modelContext is not available. Import @webmcp-agents/polyfill/auto in development.");
   if (signal?.aborted) throw abortError(signal);
   const tool = (await mc.getTools()).find((t) => t.name === name);
   if (!tool) throw new Error(`Unknown tool "${name}"`);

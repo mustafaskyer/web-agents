@@ -24,7 +24,7 @@ import { abortError, errorResult, isAbortError, toToolResult } from "./result";
 /**
  * Augment to type `ctx.context` (the provider's `context` prop / the registry's `context` option):
  *
- *   declare module "@web-agents/core" { interface Register { context: CartApi } }
+ *   declare module "@webmcp-agents/core" { interface Register { context: CartApi } }
  */
 // biome-ignore lint/suspicious/noEmptyInterface: an augmentation point, empty until the app fills it
 export interface Register {}
@@ -288,7 +288,7 @@ export function registerWebTool(
     if (!warnedUnavailable && typeof document !== "undefined") {
       warnedUnavailable = true;
       console.warn(
-        '[web-agents] document.modelContext is unavailable; import "@web-agents/polyfill/auto" in dev or use a WebMCP-enabled Chrome.',
+        '[web-agents] document.modelContext is unavailable; import "@webmcp-agents/polyfill/auto" in dev or use a WebMCP-enabled Chrome.',
       );
     }
     return () => {};

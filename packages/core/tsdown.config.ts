@@ -5,7 +5,7 @@ export default defineConfig({
   format: "esm",
   platform: "browser",
   dts: true,
-  // Shipped as a separate file: consumers `import "@web-agents/core/cursor.css"` (tsdown CSS bundling is experimental).
+  // Shipped as a separate file: consumers `import "@webmcp-agents/core/cursor.css"` (tsdown CSS bundling is experimental).
   copy: [{ from: "src/cursor.css", to: "dist" }],
   publint: true,
 });

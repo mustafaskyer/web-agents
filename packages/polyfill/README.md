@@ -1,11 +1,11 @@
-# @web-agents/polyfill
+# @webmcp-agents/polyfill
 
 A `document.modelContext` (WebMCP) polyfill for development and browsers without native
 support. It steps aside when the browser has the real API.
 
 ```ts
-import "@web-agents/polyfill/auto"; // or:
-import { installWebMCPPolyfill } from "@web-agents/polyfill";
+import "@webmcp-agents/polyfill/auto"; // or:
+import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
 const modelContext = installWebMCPPolyfill();
 ```
 
@@ -22,4 +22,4 @@ const modelContext = installWebMCPPolyfill();
 - Non-standard `cancelTool(name)`, so dev tooling can cancel a call it didn't start.
 
 Event order differs from Chrome: the polyfill fires `toolactivated → fill → submit`,
-native Chrome `fill → submit → toolactivated`. `@web-agents/core` handles both.
+native Chrome `fill → submit → toolactivated`. `@webmcp-agents/core` handles both.

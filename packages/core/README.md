@@ -1,4 +1,4 @@
-# @web-agents/core
+# @webmcp-agents/core
 
 Show the person using a page what a WebMCP agent is doing: a ghost cursor that glides to
 the tool, types the agent's values, clicks, and parks on a submit button while the browser
@@ -6,12 +6,12 @@ waits for confirmation. It is driven entirely by WebMCP lifecycle events, so **t
 know it exists**, and it gets out of the way the moment the user moves.
 
 ```sh
-pnpm add @web-agents/core
+pnpm add @webmcp-agents/core
 ```
 
 ```ts
-import { installAgentVisuals, onAgentEvent } from "@web-agents/core";
-import "@web-agents/core/cursor.css";
+import { installAgentVisuals, onAgentEvent } from "@webmcp-agents/core";
+import "@webmcp-agents/core/cursor.css";
 
 // Before your app renders, so imperative tools register through it.
 const visuals = installAgentVisuals({ spotlight: true });
@@ -77,7 +77,7 @@ A `WebTool` is one tool definition for every place a tool runs: the browser
 Mastra's `createTool` config and the AI SDK's `tool()` input).
 
 ```ts
-import { createToolRegistry, defineWebTool, registerWebTool } from "@web-agents/core";
+import { createToolRegistry, defineWebTool, registerWebTool } from "@webmcp-agents/core";
 import { z } from "zod";
 
 const addToCart = defineWebTool({
@@ -101,13 +101,13 @@ const off = registerWebTool(addToCart);
   installed, the cursor parks there with "Click "…" to confirm". Input is validated before asking,
   and with nothing clickable to confirm on, the call fails (`ConfirmationUnavailableError`) rather
   than run unconfirmed.
-- Type `ctx.context` once for the app: `declare module "@web-agents/core" { interface Register { context: CartApi } }`.
+- Type `ctx.context` once for the app: `declare module "@webmcp-agents/core" { interface Register { context: CartApi } }`.
 
 `createToolRegistry(catalog, { beforeRegister?, context? })` decides which catalog tools are
 registered: `enable(ids)` is ref-counted and returns a disposer. Releases are deferred a macrotask
 (a release plus a re-enable in the same tick never touches WebMCP) and wait until the tool's calls
 have settled plus `RESPONSE_GRACE_MS` (Chrome cancels a call whose tool is unregistered).
-`update(catalog)` re-registers only tools whose definition changed. `@web-agents/react` builds on it.
+`update(catalog)` re-registers only tools whose definition changed. `@webmcp-agents/react` builds on it.
 
 ## Error codes
 
@@ -191,7 +191,7 @@ held.
 **Look.** A black multiplayer-style arrow with a white edge, so it reads on light and
 dark surfaces. There's no label by default; pass `name: "…"` to show a tag beside it.
 Tool status goes to a polite live region for screen readers. Colours are CSS custom
-properties at the top of `@web-agents/core/cursor.css` (`--agent`, `--agent-ink`, `--agent-strong`).
+properties at the top of `@webmcp-agents/core/cursor.css` (`--agent`, `--agent-ink`, `--agent-strong`).
 
 **Spotlight (opt-in).** `installAgentVisuals({ spotlight: true })` blurs and dims the page
 except the tool the cursor is working in (the nearest `[toolname]` element, e.g. a whole
@@ -256,7 +256,7 @@ Or from DevTools: `await agent.run("add_to_cart_tee-02", { qty: 2 })`.
 - Imperative tools are synchronised by wrapping `registerTool`. This is the one place the
   layer patches anything, and only in `sync` mode.
 - The polyfill mirrors the native pseudo-classes as `data-tool-form-active` /
-  `data-tool-submit-active`; `@web-agents/core/cursor.css` styles both so the same stylesheet works with
+  `data-tool-submit-active`; `@webmcp-agents/core/cursor.css` styles both so the same stylesheet works with
   real Chrome.
 - The API is still in preview: it moved from `navigator.modelContext` to
   `document.modelContext`, and event targets moved from `window` to `document.modelContext`

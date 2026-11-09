@@ -11,8 +11,8 @@
  *
  * It installs nothing when the browser already provides document.modelContext.
  *
- *   import { installWebMCPPolyfill } from "@web-agents/polyfill";
- *   installWebMCPPolyfill();            // or: import "@web-agents/polyfill/auto";
+ *   import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
+ *   installWebMCPPolyfill();            // or: import "@webmcp-agents/polyfill/auto";
  */
 import type {
   ModelContext,
@@ -21,7 +21,7 @@ import type {
   ModelContextToolInfo,
   ModelContextToolResult,
   ToolEvent,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 
 type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
