@@ -8,7 +8,7 @@
  * recorded, not later), so each request repeats the last one's prefix: the
  * model's signed reasoning stays valid and the prompt cache keeps hitting.
  */
-import { LIMITS, newId } from "../shared";
+import { displayName, LIMITS, newId } from "../shared";
 import type { AdapterStatus, AgentAdapter, AgentMessage, AgentRunRequest, AgentStreamPart } from "../types";
 import { outputText, readParts, toolOutputForModel } from "./wire";
 
@@ -16,6 +16,8 @@ import { outputText, readParts, toolOutputForModel } from "./wire";
 export interface CloudAdapterOptions {
   /** The chat endpoint. Default "/api/chat". */
   api?: string;
+  /** The adapter's id (the switcher remembers the choice by it). Default "cloud"; set one per endpoint when a page offers several. */
+  id?: string;
   /**
    * Tool steps per user message. One more request follows the last step, and the server answers it without tools,
    * so the model sums up. Default 8; keep it equal to the handler's `maxSteps`.
@@ -25,7 +27,10 @@ export interface CloudAdapterOptions {
   headers?: Record<string, string> | (() => Record<string, string>);
   /** Injectable for tests and custom transports. Default `globalThis.fetch`. */
   fetch?: typeof fetch;
-  /** Shown in the adapter switcher. Default "Claude (cloud)". */
+  /**
+   * Shown in the adapter switcher. Default: the model the endpoint reports, e.g. "Claude Opus 5.5 (cloud)" or
+   * "GPT-5.5 (cloud)" ("Cloud" until the first check answers).
+   */
   label?: string;
 }
 
@@ -77,7 +82,11 @@ function window(history: AgentMessage[]): AgentMessage[] {
   return history.slice(start);
 }
 
-/** An agent backed by `/api/chat` (Claude on your server); tools run on the page. Create it once per page. */
+/** The history as the server takes it: a sub-agent's nested run stays in the browser (the server sees the call and its result). */
+const forServer = (history: AgentMessage[]): AgentMessage[] =>
+  history.map((m) => ({ ...m, parts: m.parts.map((p) => (p.type === "tool" && p.agent ? { ...p, agent: undefined } : p)) }));
+
+/** An agent backed by `/api/chat` (a frontier model on your server); tools run on the page. Create it once per page. */
 export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter {
   const api = opts.api ?? "/api/chat";
   const maxSteps = opts.maxSteps ?? 8;
@@ -89,6 +98,8 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
 
   // ---------- status: a GET, re-tried after a failure ----------
   let status: AdapterStatus = { state: "loading" };
+  /** The endpoint's model and provider, from GET: the default label is built from them. */
+  let served: { model?: string; provider?: string } = {};
   let checking = false;
   let checkedAt = 0;
   const listeners = new Set<() => void>();
@@ -102,7 +113,8 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
     checking = true;
     doFetch(api, { headers: headers() })
       .then(async (res) => {
-        const body = (await res.json().catch(() => null)) as { enabled?: boolean } | null;
+        const body = (await res.json().catch(() => null)) as { enabled?: boolean; model?: string; provider?: string } | null;
+        if (body) served = { model: body.model, provider: body.provider };
         setStatus(res.ok && body?.enabled ? { state: "ready" } : { state: "unavailable", reason: MESSAGES.chat_disabled! });
       })
       .catch(() => setStatus({ state: "unavailable", reason: MESSAGES.network! }))
@@ -113,8 +125,16 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
   };
 
   return {
-    id: "cloud",
-    label: opts.label ?? "Claude (cloud)",
+    id: opts.id ?? "cloud",
+    // a getter: the switcher re-renders on status changes, and the model name arrives with the first one
+    get label() {
+      if (opts.label) return opts.label;
+      if (!served.model) return "Cloud";
+      // Anthropic through its own SDK keeps the historical label
+      return served.provider === "anthropic" && served.model.startsWith("anthropic/claude")
+        ? "Claude (cloud)"
+        : `${displayName(served.model)} (cloud)`;
+    },
     status() {
       if (typeof window !== "undefined") check();
       return status;
@@ -134,9 +154,11 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
       const { signal } = req;
       const history: AgentMessage[] = structuredClone(req.messages);
       const aborted = { type: "finish", reason: "aborted" } as const;
+      // the agent's own budget wins; the server applies the same rule
+      const steps = req.agent?.maxSteps ?? maxSteps;
 
       // maxSteps tool steps, then one more request: the server gives it no tools, so the model answers.
-      for (let step = 1; step <= maxSteps + 1; step++) {
+      for (let step = 1; step <= steps + 1; step++) {
         if (signal.aborted) return yield aborted;
 
         // ---------- 1. one model step ----------
@@ -147,9 +169,10 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
             headers: headers(),
             signal,
             body: JSON.stringify({
-              messages: window(history),
+              messages: forServer(window(history)),
               tools: req.tools, // read fresh: the page's tools change between steps
               page: typeof location === "undefined" ? undefined : { url: location.href },
+              agent: req.agent?.id, // only the id: the server holds the instructions
             }),
           });
         } catch {
@@ -175,7 +198,14 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
             } else if (part.type === "reasoning") {
               assistant.parts.push({ type: "reasoning", text: part.text, providerMetadata: part.providerMetadata });
             } else if (part.type === "tool-call") {
-              assistant.parts.push({ type: "tool", id: part.id, name: part.name, input: part.input, state: "running" });
+              assistant.parts.push({
+                type: "tool",
+                id: part.id,
+                name: part.name,
+                input: part.input,
+                state: "running",
+                providerMetadata: part.providerMetadata,
+              });
               calls.push(part);
             } else if (part.type === "tool-error") {
               // unparseable input: answered with the error, never run
@@ -191,7 +221,7 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
           return yield { type: "error", error: MESSAGES.network!, code: "network" };
         }
         if (calls.length === 0) return yield { type: "finish", reason: "stop" };
-        if (step > maxSteps) break; // the summary request still called tools: stop here
+        if (step > steps) break; // the summary request still called tools: stop here
 
         // ---------- 3. run the tool calls on the page, in order ----------
         for (const call of calls) {

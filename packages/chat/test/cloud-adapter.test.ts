@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCloudAdapter } from "../src/adapter/cloud";
+import { defineWebAgent, type WebAgent } from "../src/agent";
 import { createChatHandler } from "../src/server/handler";
 import type { AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor } from "../src/types";
 import { scriptedModel, type Step } from "./mock-model";
@@ -10,15 +11,15 @@ const tools: ToolDescriptor[] = [
 ];
 
 /** The adapter wired to the real handler, through an in-memory fetch. */
-function setup(steps: Step[], opts: { maxSteps?: number } = {}) {
+function setup(steps: Step[], opts: { maxSteps?: number; agents?: WebAgent[] } = {}) {
   const model = scriptedModel(steps);
-  const handler = createChatHandler({ model, maxSteps: opts.maxSteps });
+  const handler = createChatHandler({ model, maxSteps: opts.maxSteps, agents: opts.agents });
   const bodies: { messages: AgentMessage[]; tools: ToolDescriptor[] }[] = [];
   const fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") bodies.push(JSON.parse(String(init.body)));
     return handler(new Request(new URL(String(url), "http://x"), init));
   });
-  const adapter = createCloudAdapter({ fetch, ...opts });
+  const adapter = createCloudAdapter({ fetch, maxSteps: opts.maxSteps });
   return { adapter, fetch, bodies, model };
 }
 
@@ -158,6 +159,70 @@ describe("createCloudAdapter", () => {
     expect(adapter.status!()).toMatchObject({ state: "unavailable" });
     adapter.status!();
     expect(fetch).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  describe("with a WebAgent", () => {
+    const checkout = defineWebAgent({ id: "checkout", instructions: "c", maxSteps: 1 });
+    const shopper = defineWebAgent({ id: "shopper", instructions: ["Sells mugs.", "Open first."], agents: [checkout] });
+
+    it("sends only the agent's id, never its instructions, and drops nested runs from the history", async () => {
+      const model = scriptedModel([{ text: "ok" }]);
+      const handler = createChatHandler({ model, agents: [shopper] });
+      const bodies: Record<string, unknown>[] = [];
+      const fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST") bodies.push(JSON.parse(String(init.body)));
+        return handler(new Request(new URL(String(url), "http://x"), init));
+      });
+      const adapter = createCloudAdapter({ fetch });
+      const earlier: AgentMessage = {
+        id: "a0",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool",
+            id: "d1",
+            name: "delegate_to_checkout",
+            input: { task: "x" },
+            state: "done",
+            output: { content: [{ type: "text", text: "Placed." }] },
+            agent: { id: "checkout", messages: [{ id: "n1", role: "assistant", parts: [{ type: "text", text: "Placed." }] }] },
+          },
+        ],
+      };
+      await collect(adapter, { messages: [user, earlier, { ...user, id: "u2" }], agent: shopper });
+      expect(bodies[0]!.agent).toBe("shopper");
+      const text = JSON.stringify(bodies[0]);
+      expect(text).not.toContain("Sells mugs");
+      expect(text).not.toContain('"agent":{"id"');
+      expect((bodies[0]!.messages as AgentMessage[])[1]!.parts[0]).toMatchObject({ name: "delegate_to_checkout", state: "done" });
+    });
+
+    it("the agent's maxSteps bounds the loop", async () => {
+      const steps = [1, 2, 3].map((i) => ({ calls: [{ id: `c${i}`, name: "add_to_cart", input: { qty: i } }] }));
+      const { adapter, bodies } = setup([...steps, { text: "done" }], { maxSteps: 8, agents: [checkout] });
+      const { parts } = await collect(adapter, { agent: checkout });
+      expect(bodies).toHaveLength(2); // 1 tool step (the agent's budget), then the summary request the server answers without tools
+      expect(parts.at(-1)?.type).toBe("finish");
+    });
+  });
+
+  it("labels itself with the endpoint's model once the check answers", async () => {
+    const adapter = createCloudAdapter({
+      fetch: vi.fn(async () => Response.json({ enabled: true, model: "openai/gpt-5.5", provider: "openai" })),
+    });
+    vi.stubGlobal("window", {});
+    expect(adapter.label).toBe("Cloud");
+    adapter.status!();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(adapter.label).toBe("GPT-5.5 (cloud)");
+    const claude = createCloudAdapter({
+      fetch: vi.fn(async () => Response.json({ enabled: true, model: "anthropic/claude-opus-5-5", provider: "anthropic" })),
+    });
+    claude.status!();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(claude.label).toBe("Claude (cloud)");
+    expect(createCloudAdapter({ label: "Mine", id: "mine" })).toMatchObject({ id: "mine", label: "Mine" });
     vi.unstubAllGlobals();
   });
 });

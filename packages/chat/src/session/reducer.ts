@@ -22,7 +22,8 @@ export interface SessionState {
 /** What can happen to a session. */
 export type SessionAction =
   | { type: "send"; id: string; text: string }
-  | { type: "part"; part: AgentStreamPart }
+  /** `within`: the id of the `delegate_to_*` call whose sub-agent run this part belongs to (rendered nested). */
+  | { type: "part"; part: AgentStreamPart; within?: string }
   /** A core agent event about a running tool, matched by tool name (calls run one at a time). */
   | { type: "toolPhase"; name: string; state: "running" | "awaiting-confirmation"; prompt?: string }
   | { type: "stop" }
@@ -36,13 +37,36 @@ export const initialSession: SessionState = { messages: [], status: "idle" };
 type ToolPart = Extract<AgentPart, { type: "tool" }>;
 const OPEN: readonly ToolCallState[] = ["running", "awaiting-confirmation"];
 
-/** Replace the tool part(s) matching `match` in every message. */
+/** Every tool part, nested sub-agent runs included, in document order. */
+export function allToolParts(messages: readonly AgentMessage[]): ToolPart[] {
+  const out: ToolPart[] = [];
+  for (const m of messages) {
+    for (const p of m.parts) {
+      if (p.type !== "tool") continue;
+      out.push(p);
+      if (p.agent) out.push(...allToolParts(p.agent.messages));
+    }
+  }
+  return out;
+}
+
+/** Replace the tool part(s) matching `match` in every message, nested sub-agent runs included. */
 function updateTools(messages: AgentMessage[], match: (p: ToolPart) => boolean, patch: (p: ToolPart) => Partial<ToolPart>): AgentMessage[] {
   let changed = false;
   const next = messages.map((m) => {
-    if (!m.parts.some((p) => p.type === "tool" && match(p))) return m;
+    const parts = m.parts.map((p) => {
+      if (p.type !== "tool") return p;
+      let out: ToolPart = p;
+      if (p.agent) {
+        const nested = updateTools(p.agent.messages, match, patch);
+        if (nested !== p.agent.messages) out = { ...out, agent: { ...p.agent, messages: nested } };
+      }
+      if (match(p)) out = { ...out, ...patch(p) };
+      return out;
+    });
+    if (parts.every((p, i) => p === m.parts[i])) return m;
     changed = true;
-    return { ...m, parts: m.parts.map((p) => (p.type === "tool" && match(p) ? { ...p, ...patch(p) } : p)) };
+    return { ...m, parts };
   });
   return changed ? next : messages;
 }
@@ -137,6 +161,25 @@ function applyPart(state: SessionState, part: AgentStreamPart): SessionState {
   }
 }
 
+/**
+ * Apply a sub-agent's stream part to the nested run of the delegate call `within`: the same state machine on the
+ * call's own messages. A nested `finish` or `error` ends only the nested run; the parent's status stays as is.
+ */
+function applyWithin(state: SessionState, within: string, part: AgentStreamPart): SessionState {
+  const target = allToolParts(state.messages).find((p) => p.id === within);
+  if (!target) return state;
+  const agentId = target.agent?.id ?? target.name.replace(/^delegate_to_/, "");
+  const nested = applyPart({ messages: target.agent?.messages ?? [], status: "streaming" }, part).messages;
+  return {
+    ...state,
+    messages: updateTools(
+      state.messages,
+      (p) => p.id === within,
+      () => ({ agent: { id: agentId, messages: nested } }),
+    ),
+  };
+}
+
 /** The session state machine: stream parts, tool phases from the agent cursor, stop, retry, reset. */
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
@@ -146,12 +189,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         messages: [...state.messages, { id: action.id, role: "user", parts: [{ type: "text", text: action.text }] }],
       };
     case "part":
-      return applyPart(state, action.part);
+      return action.within ? applyWithin(state, action.within, action.part) : applyPart(state, action.part);
     case "toolPhase": {
-      // the newest open call of that tool
-      const open = state.messages
-        .flatMap((m) => m.parts)
-        .filter((p): p is ToolPart => p.type === "tool" && p.name === action.name && OPEN.includes(p.state));
+      // the newest open call of that tool (a sub-agent's nested calls included)
+      const open = allToolParts(state.messages).filter((p) => p.name === action.name && OPEN.includes(p.state));
       const target = open.at(-1);
       if (!target || (target.state === action.state && target.prompt === action.prompt)) return state;
       return {

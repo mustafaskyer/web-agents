@@ -28,11 +28,34 @@ export const outputText = (output: ToolOutput | undefined): string =>
 
 type UIPart = UIMessage["parts"][number];
 
-function toUIPart(part: AgentPart): UIPart | null {
-  if (part.type === "text") return part.text ? { type: "text", text: part.text } : null;
-  if (part.type === "reasoning") return { type: "reasoning", text: part.text, providerMetadata: part.providerMetadata as never };
-  const base = { type: "dynamic-tool" as const, toolName: part.name, toolCallId: part.id, input: part.input ?? {} };
+/** Options for `toUIMessages`. */
+export interface ToUIMessagesOptions {
+  /**
+   * For rendering rather than for the model: open calls stay `input-available` (the model side marks them
+   * interrupted), text and reasoning carry a `state`, and messages left empty are kept. Default false.
+   */
+  forRendering?: boolean;
+  /** With `forRendering`: the run is still streaming, so the last text / reasoning part is `streaming`. */
+  streaming?: boolean;
+}
+
+function toUIPart(part: AgentPart, opts: ToUIMessagesOptions, last: boolean): UIPart | null {
+  const state = opts.forRendering ? (opts.streaming && last ? "streaming" : "done") : undefined;
+  if (part.type === "text") return part.text || opts.forRendering ? { type: "text", text: part.text, ...(state && { state }) } : null;
+  if (part.type === "reasoning") {
+    return { type: "reasoning", text: part.text, providerMetadata: part.providerMetadata as never, ...(state && { state }) };
+  }
+  const base = {
+    type: "dynamic-tool" as const,
+    toolName: part.name,
+    toolCallId: part.id,
+    input: part.input ?? {},
+    // Gemini's thought signatures and OpenAI's item ids ride on the call, like Claude's on its reasoning
+    ...(part.providerMetadata && { callProviderMetadata: part.providerMetadata as never }),
+  };
   if (part.state === "done" && part.output) return { ...base, state: "output-available", output: toolOutputForModel(part.output) };
+  if (opts.forRendering && (part.state === "running" || part.state === "awaiting-confirmation"))
+    return { ...base, state: "input-available" };
   const errorText =
     part.state === "cancelled"
       ? CANCELLED
@@ -42,11 +65,19 @@ function toUIPart(part: AgentPart): UIPart | null {
   return { ...base, state: "output-error", errorText };
 }
 
-/** The conversation as AI SDK UI messages (for `convertToModelMessages`). Messages left empty (a reply stopped before it began) are skipped. */
-export function toUIMessages(messages: readonly AgentMessage[]): UIMessage[] {
-  return messages
-    .map((m) => ({ id: m.id, role: m.role, parts: m.parts.map(toUIPart).filter((p): p is UIPart => p !== null) }))
-    .filter((m) => m.parts.length > 0);
+/**
+ * The conversation as AI SDK UI messages: for `convertToModelMessages` by default (messages left empty, a reply stopped
+ * before it began, are skipped), or for rendering with `forRendering` (see `useAgentChat`).
+ */
+export function toUIMessages(messages: readonly AgentMessage[], opts: ToUIMessagesOptions = {}): UIMessage[] {
+  const out = messages.map((m, i) => ({
+    id: m.id,
+    role: m.role,
+    parts: m.parts
+      .map((p, j) => toUIPart(p, opts, i === messages.length - 1 && j === m.parts.length - 1))
+      .filter((p): p is UIPart => p !== null),
+  }));
+  return opts.forRendering ? out : out.filter((m) => m.parts.length > 0);
 }
 
 /** Split a server-sent-events body into the JSON chunks of the UI message stream. */
@@ -107,7 +138,16 @@ export async function* readParts(body: ReadableStream<Uint8Array>, messageId: st
         break;
       }
       case "tool-input-available":
-        if (!chunk.providerExecuted) yield { type: "tool-call", messageId, id: chunk.toolCallId, name: chunk.toolName, input: chunk.input };
+        if (!chunk.providerExecuted) {
+          yield {
+            type: "tool-call",
+            messageId,
+            id: chunk.toolCallId,
+            name: chunk.toolName,
+            input: chunk.input,
+            providerMetadata: chunk.providerMetadata as never,
+          };
+        }
         break;
       case "tool-input-error":
         // The model produced input that doesn't parse: it's still a call the model expects an answer to.

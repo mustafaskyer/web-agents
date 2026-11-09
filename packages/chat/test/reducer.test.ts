@@ -101,4 +101,53 @@ describe("sessionReducer", () => {
     expect(again.messages.map((m) => m.id)).toEqual(["u1"]);
     expect(again.error).toBeUndefined();
   });
+
+  describe("sub-agent runs (within)", () => {
+    const delegate = play([
+      { type: "message-start", messageId: "a1" },
+      { type: "tool-call", messageId: "a1", id: "d1", name: "delegate_to_checkout", input: { task: "Check out" } },
+    ]);
+    const within = (s: SessionState, part: AgentStreamPart) => sessionReducer(s, { type: "part", part, within: "d1" });
+
+    it("nests a sub-agent's parts under the delegate call, keyed by its id", () => {
+      let s = within(delegate, { type: "message-start", messageId: "n1" });
+      s = within(s, { type: "tool-call", messageId: "n1", id: "c9", name: "checkout", input: {} });
+      s = within(s, { type: "text-delta", messageId: "n1", delta: "Placed." });
+      const call = tools(s)[0]!;
+      expect(call.agent).toEqual({
+        id: "checkout",
+        messages: [
+          {
+            id: "n1",
+            role: "assistant",
+            parts: [
+              { type: "tool", id: "c9", name: "checkout", input: {}, state: "running" },
+              { type: "text", text: "Placed." },
+            ],
+          },
+        ],
+      });
+      expect(s.status).toBe("streaming"); // the parent is still running
+    });
+
+    it("tool results, phases and stop reach nested calls; a nested finish leaves the parent streaming", () => {
+      let s = within(delegate, { type: "message-start", messageId: "n1" });
+      s = within(s, { type: "tool-call", messageId: "n1", id: "c9", name: "checkout", input: {} });
+      s = sessionReducer(s, { type: "toolPhase", name: "checkout", state: "awaiting-confirmation", prompt: "Click Place order" });
+      expect(tools(s)[0]!.agent!.messages[0]!.parts[0]).toMatchObject({ state: "awaiting-confirmation", prompt: "Click Place order" });
+      s = sessionReducer(s, { type: "part", part: { type: "tool-result", id: "c9", output: { content: [{ type: "text", text: "ok" }] } } });
+      expect(tools(s)[0]!.agent!.messages[0]!.parts[0]).toMatchObject({ state: "done" });
+      s = within(s, { type: "finish", reason: "stop" });
+      expect(s.status).toBe("streaming");
+      s = within(delegate, { type: "message-start", messageId: "n2" });
+      s = within(s, { type: "tool-call", messageId: "n2", id: "c10", name: "checkout", input: {} });
+      s = sessionReducer(s, { type: "stop" });
+      expect(tools(s)[0]).toMatchObject({ state: "cancelled" });
+      expect(tools(s)[0]!.agent!.messages[0]!.parts[0]).toMatchObject({ state: "cancelled" });
+    });
+
+    it("a part for an unknown delegate id changes nothing", () => {
+      expect(sessionReducer(delegate, { type: "part", part: { type: "message-start", messageId: "x" }, within: "nope" })).toBe(delegate);
+    });
+  });
 });
