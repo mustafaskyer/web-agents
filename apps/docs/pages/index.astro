@@ -1,0 +1,47 @@
+---
+// The site's home: the landing page at /, with the docs under /docs (blume.config.ts `basePath`). It is a custom
+// page with its own document instead of Blume's PageLayout, because the landing has its own floating navbar and its
+// own stylesheet (landing.css: shadcn tokens, which share names with Blume's and would collide in one sheet). What
+// makes it the same site is taken from Blume: the fonts, the favicon, and the theme the reader chose in the docs.
+import data from "blume:data";
+import Favicon from "blume/components/layout/Favicon.astro";
+import Fonts from "blume/components/layout/Fonts.astro";
+import SocialMeta from "../components/social-meta.astro";
+import { THEME_INIT_SCRIPT } from "blume/components/layout/head-scripts.ts";
+import "@webmcp-agents/core/cursor.css";
+import "../landing.css";
+import { codeToHtml } from "shiki";
+import Landing from "../components/landing/landing.tsx";
+import { STEPS } from "../components/landing/steps-data.ts";
+
+const { config } = data;
+// The steps' snippets, highlighted once at build time with the docs' own code themes. Both themes ride along as CSS
+// variables on each token (landing.css picks one by data-theme), so the island ships no highlighter.
+const steps = await Promise.all(
+  STEPS.map((step) =>
+    codeToHtml(step.code, { lang: "tsx", themes: { light: config.codeThemes.light, dark: config.codeThemes.dark }, defaultColor: false }),
+  ),
+);
+const title = "WebMCP Agents · Agents understand your website";
+const description =
+  "Built on WebMCP: one API for web agents, tools and workflows, with a visible cursor that shows how agents use your website, without guessing.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <SocialMeta title={title} description={description} site={config.site} path="/" />
+    <Favicon favicon={config.favicon} appleIcon={config.appleIcon} />
+    <Fonts cssVars={data.fontCssVars} />
+    {/* Before the first paint: the theme the reader chose here or in the docs, else the system's. */}
+    <script is:inline data-mode={config.theme.mode} set:html={THEME_INIT_SCRIPT} />
+  </head>
+  <body class="min-h-full bg-background text-foreground antialiased">
+    <Landing client:load year={new Date().getFullYear()} steps={steps} />
+  </body>
+</html>

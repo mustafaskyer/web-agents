@@ -1,0 +1,884 @@
+/*
+ * The landing page's stylesheet (pages/index.astro): shadcn's tokens and the OpenDesigns blocks' utilities. It is a
+ * second Tailwind entry beside the one Blume generates for the docs, on purpose: both name their tokens --background,
+ * --muted, --accent…, with different meanings.
+ */
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@source "./components";
+@source "./pages";
+
+/* The theme is Blume's: data-theme on <html>, shared with the docs. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  /* Geist and Geist Mono, self-hosted by Blume (blume.config.ts `theme.fonts`) and declared in the page's head. */
+  --font-sans: var(--blume-ff-geist, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: var(--blume-ff-geist-mono, ui-monospace), ui-monospace, "SF Mono", Menlo, monospace;
+  /* The agent cursor in the page's blue (cursor.css reads these). */
+  --agent: #2563eb;
+  --agent-strong: #2563eb;
+  --agent-soft: rgb(37 99 235 / 0.16);
+  --agent-wait: #2563eb;
+  --agent-wait-soft: rgb(37 99 235 / 0.2);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ---------- landing: a clip in a browser frame on a well ---------- */
+.demo-well {
+  margin: 0;
+  padding: clamp(0.75rem, 3vw, 2.5rem);
+  border-radius: calc(var(--radius) * 2.5);
+  background:
+    radial-gradient(120% 90% at 20% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 60%),
+    var(--muted);
+  border: 1px solid var(--border);
+}
+.demo-frame {
+  overflow: hidden;
+  border-radius: calc(var(--radius) * 1.5);
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 24px 60px -24px rgb(0 0 0 / 0.35);
+}
+.demo-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 80%, var(--muted));
+}
+.demo-frame__dots {
+  display: inline-flex;
+  gap: 0.375rem;
+}
+.demo-frame__dots i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+.demo-frame__address {
+  flex: 1;
+  margin-inline: auto;
+  max-width: 28rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font: 0.75rem/1.4 var(--font-geist-mono, ui-monospace, monospace);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-frame__video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  background: var(--background);
+}
+.demo-well__caption {
+  margin-top: 1rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* ---------- landing: hero slots ---------- */
+.velora-grid-copy-content {
+  position: relative;
+}
+.velora-grid-aside {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 68rem;
+  margin: calc(var(--spacing, 0.25rem) * 14) auto 0;
+}
+
+/* ---------- landing: three steps ---------- */
+.steps {
+  display: grid;
+  gap: 2.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+.step__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .step {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 3rem;
+    align-items: start;
+  }
+}
+.step__number {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font: 600 0.8125rem/1 var(--font-geist-mono, ui-monospace, monospace);
+  color: var(--muted-foreground);
+}
+.step__title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+.step__text {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+.step__code-wrap {
+  position: relative;
+  min-width: 0;
+}
+.step__copy-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .step__copy-button:hover {
+    background: var(--muted);
+  }
+}
+.step__copy-button:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: 2px;
+}
+.step__code {
+  margin: 0.25rem 0 0;
+  min-width: 0;
+  border-radius: calc(var(--radius) * 1.5);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.step__code pre {
+  margin: 0;
+  padding: 1rem 1.125rem;
+  overflow-x: auto;
+  background: transparent;
+  font: 0.8125rem/1.65 var(--font-geist-mono, ui-monospace, monospace);
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.step__code code {
+  font: inherit;
+}
+/* Shiki writes both themes on every token as --shiki-light / --shiki-dark (the docs' github pair): pick one. */
+.step__code .shiki,
+.step__code .shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style, normal);
+}
+:root[data-theme="dark"] .step__code .shiki,
+:root[data-theme="dark"] .step__code .shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style, normal);
+}
+
+/* ---------- landing: the word an agent keeps retyping in the title ---------- */
+.typed-words {
+  /* A field the agent types into. Its width is set from the text inside it (typed-words.tsx) and eased, so the
+     centred title glides as a word grows or shrinks; the text is clipped while the field catches up. */
+  display: inline-flex;
+  box-sizing: content-box;
+  min-width: 0.3em;
+  vertical-align: baseline;
+  padding: 0 0.16em 0.04em;
+  border-radius: 0.2em;
+  background: color-mix(in oklab, var(--agent) 9%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--agent) 32%, transparent);
+  color: var(--agent);
+  white-space: nowrap;
+  overflow: clip;
+  transition: width 120ms cubic-bezier(0.3, 0, 0.3, 1);
+}
+:root[data-theme="dark"] .typed-words {
+  color: oklch(0.74 0.14 262);
+}
+.typed-words__text {
+  flex: none;
+  padding-inline-end: 0.04em; /* the caret keeps clear of the field's edge */
+}
+/* Where the title cannot stay on one line, it breaks right after the field: the lines below never depend on the word. */
+.title-break {
+  display: none;
+}
+@media (max-width: 600px) {
+  .title-break {
+    display: inline;
+  }
+}
+.typed-words__caret {
+  display: inline-block;
+  width: 0.055em;
+  height: 0.82em;
+  margin-inline-start: 0.05em;
+  border-radius: 1px;
+  background: currentColor;
+  vertical-align: -0.06em;
+  animation: typed-words-blink 1.05s steps(1, end) infinite;
+}
+@keyframes typed-words-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typed-words {
+    transition: none;
+  }
+  .typed-words__caret {
+    display: none;
+  }
+}
+
+/* ---------- landing: the hero (title, description, the tools to try: the page's centerpiece) ---------- */
+#top .velora-grid-hero {
+  padding-top: clamp(2rem, 9vh, 7rem);
+  padding-bottom: clamp(2.5rem, 9vh, 6rem);
+}
+#top .velora-grid-copy-content {
+  gap: clamp(0.875rem, 2vh, 1.5rem);
+  max-inline-size: 64rem; /* the title on one line at desktop widths */
+}
+#top .velora-grid-title {
+  font-size: clamp(2.25rem, 4.6vw, 3.75rem);
+  line-height: 1.05;
+}
+#top .velora-grid-description {
+  font-size: clamp(1rem, 1.15vw, 1.125rem);
+  max-inline-size: 56ch;
+}
+
+/* ---------- the outline a tool draws round what it points at (outline.ts) ---------- */
+.agent-outline {
+  position: absolute;
+  z-index: 40;
+  overflow: visible;
+  pointer-events: none;
+}
+.agent-outline rect {
+  fill: none;
+  stroke: var(--agent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0; /* visible only while the animation runs */
+}
+
+/* ---------- landing: try it as an agent would ---------- */
+.try-it {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  /* as wide as the floating header, wider than the copy column it sits in (which centres it) */
+  width: min(60rem, calc(100vw - 3rem));
+  min-width: 0;
+  margin-top: clamp(0.5rem, 2vh, 1.5rem);
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 2.5);
+  background:
+    radial-gradient(120% 120% at 50% 0%, color-mix(in oklab, var(--agent) 7%, transparent), transparent 65%),
+    color-mix(in oklab, var(--muted) 55%, var(--background));
+}
+.try-it__groups {
+  display: grid;
+  gap: 0.625rem;
+  width: 100%;
+  min-width: 0;
+}
+.try-it__group {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.try-it__label {
+  justify-self: end;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.try-it__status {
+  margin: 0;
+  min-height: 1.25rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+.try-it__status code,
+.try-it__chip code {
+  font-family: var(--font-geist-mono);
+}
+.try-it__status code {
+  color: var(--foreground);
+}
+/* a call, coloured like code: the tool's name, its punctuation, its keys and strings */
+.try-it__chip .tok-fn {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.try-it__chip .tok-p {
+  color: var(--muted-foreground);
+}
+.try-it__chip .tok-key {
+  color: oklch(0.5 0.16 262);
+}
+.try-it__chip .tok-str {
+  color: oklch(0.5 0.13 150);
+}
+:root[data-theme="dark"] .try-it__chip .tok-key {
+  color: oklch(0.76 0.12 262);
+}
+:root[data-theme="dark"] .try-it__chip .tok-str {
+  color: oklch(0.78 0.14 150);
+}
+.try-it__status[data-state="error"] {
+  color: var(--destructive);
+}
+.try-it__cancel {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--foreground);
+}
+.try-it__chips {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 2px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.try-it__chips::-webkit-scrollbar {
+  display: none;
+}
+.try-it__chips li {
+  flex: none;
+}
+/* centred while the row fits, scrolled from its first chip when it does not */
+.try-it__chips li:last-child {
+  padding-right: 0.25rem;
+}
+.try-it__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.75rem 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--background) 86%, transparent);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+@media (hover: hover) {
+  .try-it__chip:hover {
+    border-color: color-mix(in oklab, var(--agent) 55%, var(--border));
+    background: color-mix(in oklab, var(--agent) 6%, var(--background));
+  }
+}
+.try-it__chip:active {
+  transform: translateY(1px);
+}
+.try-it__chip:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: 2px;
+}
+.try-it__dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+.try-it__chip[data-state="running"],
+.try-it__chip[data-state="parked"] {
+  border-color: var(--agent);
+  background: color-mix(in oklab, var(--agent) 9%, var(--background));
+}
+.try-it__chip[data-state="running"] .try-it__dot,
+.try-it__chip[data-state="parked"] .try-it__dot {
+  background: var(--agent);
+  animation: try-it-pulse 1s ease-in-out infinite;
+}
+.try-it__chip[data-state="done"] .try-it__dot {
+  background: oklch(0.65 0.17 150);
+}
+.try-it__chip[data-state="error"] .try-it__dot {
+  background: var(--destructive);
+}
+@keyframes try-it-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .try-it__chip,
+  .try-it__dot {
+    animation: none !important;
+    transition: none;
+  }
+}
+@media (min-width: 768px) {
+  /* wide screens wrap a group's chips instead of scrolling them */
+  .try-it__chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+@media (max-width: 767px) {
+  /* a phone stacks each group's label over its row, and scrolls the row sideways */
+  .try-it {
+    justify-items: stretch;
+    width: calc(100vw - 2rem);
+  }
+  .try-it__group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+  }
+  .try-it__label {
+    justify-self: start;
+  }
+  .try-it__status {
+    white-space: normal;
+    text-align: center;
+    min-height: 2.5rem;
+  }
+}
+
+/* ---------- landing: the install command and its copy button ---------- */
+.install-command {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 2.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.install-command code {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--muted);
+  font-family: var(--font-geist-mono);
+  overflow-wrap: anywhere;
+}
+.install-command__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.install-command__copy:hover {
+  background: var(--muted);
+}
+
+/* ---------- landing: the docs search in the FAQ's guide card ---------- */
+.docs-search {
+  display: grid;
+  gap: 0.75rem;
+}
+.docs-search__form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 0.375rem 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.docs-search__form:focus-within {
+  border-color: var(--ring);
+}
+.docs-search__form input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+}
+.docs-search__form input::-webkit-search-cancel-button {
+  display: none;
+}
+.docs-search__form button {
+  flex: none;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.docs-search__results {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.docs-search__results a {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: calc(var(--radius) * 1.2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.docs-search__results a:hover {
+  background: var(--background);
+}
+.docs-search__results strong {
+  font-weight: 500;
+}
+.docs-search__results span,
+.docs-search__empty {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+.docs-search__results span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.docs-search__empty {
+  margin: 0;
+}
+
+/* ---------- the Demos page (/demos) ---------- */
+.demos {
+  width: 100%;
+  max-width: 72rem; /* the floating header's width */
+  margin: 0 auto;
+  padding: clamp(5.5rem, 12vh, 8rem) 1.5rem 5rem;
+}
+.demos__intro {
+  max-width: 44rem;
+  margin: 0 auto 1rem;
+  text-align: center;
+}
+.demos__title {
+  font-weight: 600;
+  font-size: clamp(2.25rem, 4.6vw, 3.25rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.demos__lede {
+  margin-top: 1rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.demos__lede a,
+.demo__links a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--foreground) 30%, transparent);
+  text-underline-offset: 3px;
+}
+.demos__jump {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.demos__jump a {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+@media (hover: hover) {
+  .demos__jump a:hover {
+    background: var(--muted);
+  }
+}
+.demo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* the frame's one-line address must not widen the page */
+  gap: 1.5rem;
+  padding-top: clamp(3rem, 8vh, 5rem);
+  scroll-margin-top: 4.5rem; /* under the floating header */
+}
+.demo__head {
+  max-width: 44rem;
+}
+.demo__app {
+  color: var(--muted-foreground);
+  font: 500 0.75rem/1 var(--font-geist-mono, ui-monospace, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.demo__title {
+  margin-top: 0.625rem;
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.demo__text {
+  margin-top: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.demo .demo-well {
+  min-width: 0;
+  /* header-wide, unless the window is too short to show the whole frame (2:1 clip, its bar and the well's padding) */
+  width: 100%;
+  max-width: min(100%, calc(200vh - 13rem));
+  margin-inline: auto;
+  padding: clamp(0.5rem, 1.8vw, 1.5rem);
+}
+.demo__detail {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .demo__detail {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+}
+.demo__label {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+.demo__calls {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.demo__aside {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.75rem;
+}
+.demo__note {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.demo__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+.demos__next {
+  max-width: 44rem;
+  margin: clamp(4rem, 10vh, 6rem) auto 0;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.demos__next-title {
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+}
+@media (max-width: 899px) {
+  .demo__aside {
+    padding-top: 0;
+  }
+}
