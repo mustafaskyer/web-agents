@@ -1,0 +1,54 @@
+---
+title: Tool lifecycle
+description: Why tools are never unregistered synchronously, how StrictMode, route changes and calls in flight are handled, and what to do with forms that navigate or hide themselves.
+---
+
+WebMCP has one rule that shapes everything here: **Chrome cancels a call whose tool changes or disappears while it's
+running.** Unregister a tool, or re-register it with a different definition, and the agent's call in progress fails.
+
+UI code changes tools all the time. React's StrictMode mounts, unmounts and mounts again. A route change unmounts one
+page and mounts the next. A cart drawer closes. Done naively, each of those would churn `registerTool` /
+`unregisterTool` and cancel calls the agent is waiting on.
+
+## Nothing is released synchronously
+
+The [registry](/reference/core/create-tool-registry), `<WebAgentsProvider>` and `useWebTool` all release tools the
+same way:
+
+1. **Wait a macrotask.** A release followed by a re-enable in the same tick (StrictMode's remount, or a route swap that
+   keeps the tool) never reaches WebMCP at all.
+2. **Wait for calls in flight.** Each tool's calls are counted ([`createCallTracker`](/reference/core/create-call-tracker)),
+   confirmation waits included. The release waits until they've settled.
+3. **Wait for the answer to land.** Then another 500 ms (`RESPONSE_GRACE_MS`) so the result reaches the agent before
+   the tool goes.
+
+So a tool that turns itself off (`clear_cart` emptying the cart, which disables `clear_cart`) still answers. And
+`update(catalog)` re-registers only the tools whose definition actually changed.
+
+:::warning[Never unregister from UI code directly]
+If you build your own integration, release through [`deferRelease`](/reference/core/defer-release) and a call tracker,
+or through the registry. Calling `unregisterTool` from an effect cleanup will cancel calls.
+:::
+
+## Keep the catalog stable
+
+`<WebAgentsProvider tools={catalog}>` compares definitions, so a new array with the same tools is cheap. But a tool
+whose description is rebuilt on every render re-registers every render. Define tools at module level, or `useMemo`
+them; `useWebTool` already re-registers only when what the agent sees changes (id, description, schema, annotations,
+`requireConfirmation`, `target`), and always calls the latest render's `execute`.
+
+## Forms that hide or navigate
+
+The same rule applies to declarative forms: the form _is_ the tool.
+
+- **A form that hides itself** after its own action (a promo form that disappears once a code is applied) must stay
+  rendered until the agent has its answer. Use [`useToolAnswer`](/reference/react/use-tool-answer).
+- **A form that navigates away** (checkout leading to a confirmation page) should answer first and navigate after the
+  grace period. The example apps do this in `src/lib/afterAnswer.ts`.
+- **A page whose own tool empties it** (checkout clearing the cart) keeps rendering its form until then.
+
+## Navigation and the next step
+
+When a tool navigates, the new page's tools register a moment later. An agent that asks for the tool list too early
+sees the old page. The chat handles this by waiting until `toolchange` has been quiet for about 150 ms after each tool
+call before its next model request. If you write your own [agent adapter](/reference/chat/adapter-types), do the same.

@@ -1,0 +1,173 @@
+---
+title: Tools
+description: The two ways to write a WebMCP tool (a form or a WebTool), how to turn tools on globally, per route or per component, and when to make the person confirm.
+---
+
+A tool is something the agent can do on the page. You write it one of two ways, and both get the cursor.
+
+| | Declarative form | `WebTool` |
+|---|---|---|
+| Written as | a `<form toolname …>` | `defineWebTool({ id, description, inputSchema, execute })` |
+| Schema from | the form's controls | a Standard Schema (zod, valibot, arktype) or JSON Schema |
+| On while | the form is in the DOM | the provider or a registry enables it |
+| The cursor | types into the real fields, clicks submit | clicks the `toolname` element (or `target`), if there is one |
+| Best for | actions the person also does with that form | reads, navigation, anything without a form |
+
+## Declarative forms
+
+Two attributes make a form a tool. The browser derives the input schema from its controls, fills them for the agent and
+fires `submit` with `agentInvoked` set; your handler answers with `respondWith`.
+
+```tsx
+<form
+  toolname="apply_promo"
+  tooldescription="Apply a promo code the user gave you to the cart."
+  toolautosubmit=""
+  onSubmit={onSubmit}
+>
+  <input name="code" required toolparamdescription="The promo code, e.g. WELCOME10" />
+  <button type="submit">Apply</button>
+</form>
+```
+
+```tsx
+function onSubmit(e: FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  const result = applyPromo(String(new FormData(e.currentTarget).get("code")));
+  const submit = e.nativeEvent as SubmitEvent;
+  if (submit.agentInvoked) submit.respondWith?.(Promise.resolve(result));
+}
+```
+
+| Attribute | On | |
+|---|---|---|
+| `toolname` | `<form>` | The tool's name, unique on the page: `[a-zA-Z0-9_.-]`, up to 128 characters. |
+| `tooldescription` | `<form>` | What the agent reads to decide when to call it. See [Writing tool descriptions](/guides/tool-descriptions). |
+| `toolautosubmit` | `<form>` | Submit without waiting for the person. Leave it out to make them confirm. |
+| `toolparamdescription` | a control | Describes that parameter. Without it, the control's `<label>` is used. |
+
+`@webmcp-agents/react` types these attributes for JSX ([JSX attributes](/reference/react/jsx-attributes)).
+
+:::tip[A form that hides itself]
+If submitting removes the form (a promo form that disappears once a code is applied), Chrome would cancel the call
+before the agent gets its answer. Keep it rendered until then with
+[`useToolAnswer`](/reference/react/use-tool-answer): `const { answering, answer } = useToolAnswer()`, render while
+`answering`, and answer with `answer(event, result)`.
+:::
+
+## WebTools
+
+A `WebTool` is one definition for everywhere a tool runs: the browser, the devtools and a server agent. Its config
+is a structural superset of Mastra's `createTool` and the AI SDK's `tool()`.
+
+```ts
+import { defineWebTool, WebToolError } from "@webmcp-agents/react"; // or @webmcp-agents/core
+import { z } from "zod";
+
+export const openProduct = defineWebTool({
+  id: "open_product",
+  title: "Open a product",
+  description:
+    "Open one product's page and answer its price, sizes and stock. Use after search_products. Next: add_to_cart.",
+  inputSchema: z.object({
+    slug: z.string().describe('The slug as search_products lists it, e.g. "ocean-tee"'),
+  }),
+  annotations: { readOnlyHint: false },
+  execute: ({ slug }, ctx) => {
+    const product = ctx.context!.products.find((p) => p.slug === slug);
+    if (!product) throw new WebToolError("invalid_input", `No product "${slug}". Try search_products.`);
+    ctx.context!.navigate(`/product/${slug}`);
+    return `${product.name}: ${product.price}, sizes ${product.sizes.join(", ")}.`;
+  },
+});
+```
+
+- **Input is validated** against the schema before `execute` runs. Bad input and thrown errors reach the agent as
+  readable error results with a [code](/concepts/errors).
+- **`ctx`** carries `signal` (aborted when the call is cancelled), `source` (`"webmcp"`, `"chat"`, `"devtools"` or
+  `"test"`) and `context`, the app state the provider passes in.
+- **`target`** is rarely needed. See [where the cursor goes](#where-the-cursor-goes).
+- **`annotations`** (`readOnlyHint`, `destructiveHint`, …) tell agents and the devtools what the tool does.
+
+### Where the cursor goes
+
+1. **Put `toolname="<id>"` on the element the tool acts on**, and you are done: the cursor flies there and clicks
+   it when the tool runs (`<button toolname="open_cart">`). No `target` needed.
+2. **A tool with no element on the page runs at once, unseen.** Reads like `get_cart` need nothing on screen. The
+   timeline and devtools still show the call. One exception: `requireConfirmation` needs an element to click, so
+   with none the call fails with `ConfirmationUnavailableError`.
+3. **Several elements, one per call?** Give `target` a function of the input that picks the row:
+   ``target: ({ id }) => `[data-flight-id="${id}"] button` ``. A selector that matches nothing (or a function returning
+   `undefined`) falls back to `[toolname="<id>"]`, so a stale target never hides the cursor.
+
+### Typing `ctx.context`
+
+Module-level tools can't close over React state, so the provider hands them app state as `ctx.context`. Type it once
+for the whole app:
+
+```ts
+declare module "@webmcp-agents/core" {
+  interface Register {
+    context: { products: Product[]; navigate: (to: string) => void };
+  }
+}
+```
+
+## Turning tools on
+
+A page shouldn't offer "place order" when the cart is empty, or "filter results" when there are no results. Every
+`WebTool` in the catalog is off until something enables it:
+
+```tsx
+<WebAgentsProvider
+  tools={catalog}                                    // every WebTool the app may expose
+  global={["search_products", "get_cart"]}           // on everywhere
+  routes={{ "/product/:slug": ["open_reviews"] }}    // on while the route matches
+  context={store}                                    // ctx.context
+>
+```
+
+| Scope | How | Example |
+|---|---|---|
+| Global | `global={[…]}` | `get_cart`, `search_products` |
+| Route | `routes={{ "/orders": […] }}`; patterns take `:param` and a trailing `*` | `list_orders` on `/orders` |
+| Component | `<EnableTools names={[…]} />` or `useEnableTools([…])` while mounted | `update_cart_item` while the cart drawer is open |
+| Component state | `useWebTool(tool, { enabled })` for a tool that closes over a component's state | `clear_cart` while the cart has items |
+
+Enabling is ref-counted: a tool stays on while anything holds it. Declarative forms need none of this: they're on while
+they're rendered.
+
+## Asking for confirmation
+
+Anything the person would regret (an order, a booking, a deletion) should wait for their click.
+
+- **A form:** leave out `toolautosubmit`. The browser fills the form and pauses on its submit button.
+- **A `WebTool`:** set `requireConfirmation: true`.
+
+```tsx
+const clearCart = useMemo(
+  () =>
+    defineWebTool({
+      id: "clear_cart",
+      description: "Empty the cart.",
+      requireConfirmation: true,
+      execute: () => cart.clear(),
+    }),
+  [cart],
+);
+useWebTool(clearCart, { enabled: cart.items.length > 0 });
+
+<button toolname="clear_cart" onClick={cart.clear}>Clear cart</button>
+```
+
+The call waits until the person clicks the tool's element; that trusted click runs the tool **instead of** the button's
+own `onClick`, so the action happens once. That holds for press libraries too: React Aria re-fires a click of its own
+when the real one never reached its `Button` or `Link`, and for a moment (300 ms) after the confirming click the gate
+swallows that scripted click as well. So do the action in `execute`, not by calling `click()` on the element. The input
+is validated before asking, so the person never approves a call that then fails. And it fails closed: if the element
+isn't on the page, is disabled, or goes away while waiting, the agent gets an error result rather than an unconfirmed
+run.
+
+For a tool that needs the person in some other way ("choose a size"), call
+[`waitingForUser(toolName, prompt)`](/reference/core/waiting-for-user): the chat shows the prompt, and the agent's tool
+time limit stops for it.

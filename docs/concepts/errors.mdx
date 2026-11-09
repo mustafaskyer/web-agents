@@ -1,0 +1,74 @@
+---
+title: Errors
+description: Every failed tool call carries one of seven error codes, readable by the model and by code, so the agent knows whether to retry, fix its input, or ask the person.
+---
+
+A tool's failure is not an exception that ends the run. It's a **result the agent reads**, and the same text the person
+sees on the page. Every failure says why with one code, in two places:
+
+- in the text every model reads: `Error [invalid_input]: Invalid input for add_to_cart: qty: Too small`
+- in `structuredContent.error` as `{ code, retryable }`, for the devtools, the chat and any code that branches on it.
+
+## The codes
+
+| Code | Means | The agent should |
+|---|---|---|
+| `cancelled` | the person stopped it | stop; retry only if asked |
+| `interrupted` | the page navigated, or the tool changed mid-call | check the page, then retry |
+| `timeout` | no answer in time (it may or may not have worked) | check the page, then retry or try another way |
+| `unavailable` | no such tool on this page right now | get to the page that has it |
+| `invalid_input` | the arguments were wrong | fix them and retry |
+| `needs_user` | the person has to choose or confirm | ask them |
+| `failed` | the tool couldn't do it | read the message |
+
+## Choosing the code in a WebTool
+
+Throw a `WebToolError` with a code and a message that says how to fix it:
+
+```ts
+import { WebToolError } from "@webmcp-agents/core";
+
+execute: ({ slug }) => {
+  const product = findProduct(slug);
+  if (!product) throw new WebToolError("invalid_input", `No product "${slug}". Try search_products.`);
+  if (!product.inStock) throw new WebToolError("failed", `${product.name} is out of stock.`);
+  // …
+};
+```
+
+Codes you don't choose are filled in for you: any other throw is `failed`, input that fails the schema is
+`invalid_input`, and a confirmation with nothing to click is `unavailable`.
+
+## In a declarative form
+
+A form answers with text. Start it with the code and the agent and the chat read it the same way:
+
+```ts
+submit.respondWith(Promise.resolve('Error [needs_user]: Pick a size first: S, M or L.'));
+```
+
+A plain `"Error: …"` without a code is read as `failed`.
+
+## Time limits and waiting for the person
+
+The chat stops a tool that hasn't answered in 30 s (`TOOL_TIMEOUT_MS`) with `timeout`, and cancels the call. That
+clock stops for good once the tool waits for the person, either on a confirmation or because the tool called
+[`waitingForUser`](/reference/core/waiting-for-user):
+
+```ts
+import { waitingForUser } from "@webmcp-agents/core";
+
+waitingForUser("pick_seat", "Choose a seat on the map");
+```
+
+## Reading codes in your own code
+
+```ts
+import { toolError, toolErrorCode } from "@webmcp-agents/core";
+
+const result = toolError("unavailable", "The cart is closed. Use open_cart first.");
+toolErrorCode(result); // "unavailable"
+```
+
+Reference: [`toolError`](/reference/core/tool-error), [`WebToolError`](/reference/core/web-tool-error),
+[`errorResult`](/reference/core/error-result).
