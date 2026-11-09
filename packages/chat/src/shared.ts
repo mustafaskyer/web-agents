@@ -10,6 +10,26 @@ export const isCancelled = (text: string): boolean => text.startsWith("Error [ca
 export const notOnPage = (tool: string): string =>
   `Error [unavailable]: Tool "${tool}" is not on this page right now. Use a tool you have to get to the page that has it.`;
 
+/**
+ * A readable model name from an id: "anthropic/claude-opus-5-5" → "Claude Opus 5.5", "openai/gpt-5.5" → "GPT-5.5",
+ * "openrouter/deepseek/deepseek-v4" → "DeepSeek V4 via OpenRouter". Client-safe (the cloud adapter labels itself with it).
+ */
+export function displayName(id: string): string {
+  const segments = id.split("/");
+  const via = segments.length > 2 && segments[0] === "openrouter" ? " via OpenRouter" : "";
+  const model = segments.at(-1) ?? id;
+  const name = model
+    // version digits joined by a dash read as a dot: claude-opus-5-5 → 5.5, gpt-5-mini stays
+    .replace(/(\d)-(\d)(?![\w.-]*\d-\d)/g, "$1.$2")
+    .split("-")
+    .filter(Boolean)
+    .map((w) => (/^gpt$/i.test(w) ? "GPT" : /^v\d/i.test(w) || /^\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ")
+    .replace(/^GPT (\S+)/, "GPT-$1")
+    .replace(/\bDeepseek\b/g, "DeepSeek");
+  return `${name}${via}`;
+}
+
 let counter = 0;
 /** A unique message id: `prefix-<time>-<n>`. */
 export const newId = (prefix: string): string => `${prefix}-${Date.now().toString(36)}-${(counter++).toString(36)}`;

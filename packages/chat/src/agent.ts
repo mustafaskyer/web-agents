@@ -1,0 +1,153 @@
+/**
+ * `defineWebAgent`: one agent definition, shared by the browser and the server, the way `defineWebTool` is one tool
+ * definition. A WebAgent is plain data (an id, instructions, which page tools it may use, its sub-agents, a model id):
+ *
+ *   - the browser filters the page's tools through it, runs sub-agents under the cursor, and feeds the on-device model;
+ *   - the server looks the agent up by id (the page sends only the id, never instructions) and turns it into an AI SDK
+ *     `ToolLoopAgent` for the request (`@webmcp-agents/chat/server`).
+ *
+ * Sub-agents follow the AI SDK pattern "an agent exposed as a tool": each one becomes a `delegate_to_<id>` tool the
+ * parent can call with a task. The chat runs the sub-agent's own loop and hands its answer back as the tool's result.
+ *
+ * No DOM, React, `ai` or zod here: this module is imported by the browser bundle, `vite.config.ts` and `api/chat.ts`.
+ */
+import type { ToolDescriptor } from "./types";
+
+/** Agent ids: the tool charset, kept short so `delegate_to_<id>` stays a valid tool name. */
+export const AGENT_ID = /^[a-zA-Z0-9_.-]{1,64}$/;
+/** The prefix of the tool a parent agent calls to hand a task to a sub-agent. */
+export const DELEGATE_PREFIX = "delegate_to_";
+
+/** What `defineWebAgent` takes. */
+export interface WebAgentConfig {
+  /** The agent's name, 1–64 of `a-z A-Z 0-9 _ . -` (e.g. "shopper"). The browser sends it; the server looks it up. */
+  id: string;
+  /** When this agent is a sub-agent: what it does, for the parent's `delegate_to_<id>` tool description. One sentence. */
+  description?: string;
+  /**
+   * What the agent knows about this site: the flow its tools form, what to ask for, what to avoid. One string or
+   * several lines. Appended to the system prompt on the server (cloud) or in the browser (on-device).
+   */
+  instructions: string | readonly string[];
+  /**
+   * Which of the page's tools this agent may use. A list of tool ids (page order is kept), or a function over the
+   * page's current tool descriptors. Default: every tool on the page.
+   */
+  tools?: readonly string[] | ((tools: ToolDescriptor[]) => ToolDescriptor[]);
+  /** Sub-agents: each becomes a `delegate_to_<id>` tool. Their ids must be unique across the whole tree. */
+  agents?: readonly WebAgent[];
+  /**
+   * The model for this agent, as a `"<provider>/<model>"` id (see `resolveModel`), e.g. a cheaper model for a
+   * sub-agent. A string, never a key. Default: the handler's model.
+   */
+  model?: string;
+  /** Model steps per user message for this agent; beats the adapter's and the handler's `maxSteps`. */
+  maxSteps?: number;
+}
+
+/** A defined agent: frozen data every runtime reads. */
+export interface WebAgent extends Readonly<Omit<WebAgentConfig, "instructions" | "agents">> {
+  readonly instructions: readonly string[];
+  readonly agents: readonly WebAgent[];
+}
+
+const isAgent = (value: unknown): value is WebAgent =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as WebAgent).id === "string" &&
+  Array.isArray((value as WebAgent).instructions) &&
+  Array.isArray((value as WebAgent).agents);
+
+/**
+ * Define an agent: validates, normalizes `instructions` to lines and freezes the result. Throws a `TypeError` that
+ * names the fix, like `defineWebTool`.
+ */
+export function defineWebAgent(config: WebAgentConfig): WebAgent {
+  const { id, description, tools, model, maxSteps } = config;
+  if (typeof id !== "string" || !AGENT_ID.test(id)) {
+    throw new TypeError(`WebAgent id ${JSON.stringify(id)} is invalid: use 1–64 letters, digits, "_", "." or "-" (e.g. "shopper").`);
+  }
+  const instructions = (typeof config.instructions === "string" ? [config.instructions] : [...(config.instructions ?? [])])
+    .map((line) => (typeof line === "string" ? line.trim() : ""))
+    .filter(Boolean);
+  if (instructions.length === 0)
+    throw new TypeError(`WebAgent "${id}" needs instructions: what the site is and how its tools fit together.`);
+  if (maxSteps !== undefined && (!Number.isInteger(maxSteps) || maxSteps < 1)) {
+    throw new TypeError(`WebAgent "${id}": maxSteps must be a positive integer, got ${JSON.stringify(maxSteps)}.`);
+  }
+  if (tools !== undefined && typeof tools !== "function" && !Array.isArray(tools)) {
+    throw new TypeError(`WebAgent "${id}": tools must be a list of tool ids or a function over the page's tools.`);
+  }
+  const agents = [...(config.agents ?? [])];
+  for (const sub of agents) {
+    // structural, not instanceof: dev resolves this module from source and dist at once, so two copies may coexist
+    if (!isAgent(sub)) throw new TypeError(`WebAgent "${id}": every entry of agents must come from defineWebAgent().`);
+  }
+  const agent: WebAgent = Object.freeze({
+    id,
+    description,
+    instructions: Object.freeze(instructions),
+    tools: Array.isArray(tools) ? Object.freeze([...tools]) : tools,
+    agents: Object.freeze(agents),
+    model,
+    maxSteps,
+  });
+  flattenWebAgents([agent]); // duplicate ids anywhere in the tree are a definition error, found here, not per request
+  return agent;
+}
+
+/** Every agent in the trees, by id (parents and sub-agents alike). Throws on a duplicate id. */
+export function flattenWebAgents(agents: readonly WebAgent[]): Map<string, WebAgent> {
+  const all = new Map<string, WebAgent>();
+  const visit = (agent: WebAgent): void => {
+    if (all.has(agent.id)) throw new TypeError(`WebAgent id "${agent.id}" is used twice: every agent and sub-agent needs its own id.`);
+    all.set(agent.id, agent);
+    for (const sub of agent.agents) visit(sub);
+  };
+  for (const agent of agents) visit(agent);
+  return all;
+}
+
+/** `delegate_to_<id>`: the tool a parent calls to hand a task to the sub-agent `id`. */
+export const delegateToolName = (agentId: string): string => `${DELEGATE_PREFIX}${agentId}`;
+/** True for a `delegate_to_<id>` tool name. */
+export const isDelegateTool = (toolName: string): boolean => toolName.startsWith(DELEGATE_PREFIX);
+
+/** The tool descriptor a parent sees for the sub-agent `sub`: a task, and what it should know. */
+export function delegateTool(sub: WebAgent): ToolDescriptor {
+  const what = sub.description?.trim() || `Hand a task to the ${sub.id} agent.`;
+  const own = Array.isArray(sub.tools) && sub.tools.length ? ` Its tools: ${sub.tools.join(", ")}.` : "";
+  return {
+    name: delegateToolName(sub.id),
+    description: `${what} It works this page with its own tools and answers with what it did and found. Give it one complete task; it sees nothing else of this conversation.${own}`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: 'A complete, self-contained task, e.g. "Check out with promo code WELCOME".' },
+        context: { type: "string", description: "Facts it needs: choices the user made, values already known." },
+      },
+      required: ["task"],
+    },
+  };
+}
+
+/** One line the model gets when it has sub-agents. */
+export const DELEGATION_NOTE =
+  "Tools named delegate_to_<agent> hand one self-contained task to a specialised agent that works this page itself and answers with what it did. Delegate the whole task at once, then relay its answer; don't redo its work.";
+
+/**
+ * The tools an agent sees: the page's tools through its `tools` filter, plus one delegate tool per sub-agent. Delegate
+ * tools arriving from outside are dropped (the server rebuilds them from its own registry), and a page tool named
+ * like a delegate loses to the delegate. With no agent, the page's tools as they are.
+ */
+export function selectTools(agent: WebAgent | undefined, tools: readonly ToolDescriptor[]): ToolDescriptor[] {
+  const page = tools.filter((t) => !isDelegateTool(t.name));
+  if (!agent) return page;
+  let own: ToolDescriptor[];
+  if (typeof agent.tools === "function") own = agent.tools([...page]);
+  else if (agent.tools) {
+    const allowed = new Set(agent.tools);
+    own = page.filter((t) => allowed.has(t.name));
+  } else own = page;
+  return [...own, ...agent.agents.map(delegateTool)];
+}

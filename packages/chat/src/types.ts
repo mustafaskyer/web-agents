@@ -5,6 +5,7 @@
  * the in-browser adapter (@webmcp-agents/local-agent) both implement it.
  */
 import type { JSONSchema, ModelContextToolResult } from "@webmcp-agents/core";
+import type { WebAgent } from "./agent";
 
 /** A page tool as the model sees it. */
 export interface ToolDescriptor {
@@ -23,8 +24,26 @@ export type AdapterStatus =
   /** `note`: a caveat for the download card, e.g. "No WebGPU here: a smaller, slower model runs on the CPU." */
   | { state: "needs-download"; bytes?: number; note?: string }
   | { state: "downloading"; progress: number }
-  | { state: "loading" }
+  /** Starting up: connecting, or a model already on this device being read from disk (`progress`, 0–1, when known). */
+  | { state: "loading"; progress?: number }
   | { state: "error"; error: string };
+
+/** A model an adapter can run, for a picker: what it is good at and what it costs to get. */
+export interface ModelChoice {
+  id: string;
+  /** Short name, e.g. "Qwen3 0.6B". */
+  label: string;
+  /** One sentence on when to pick it, e.g. "Fastest. Good at short tool calls." */
+  brief: string;
+  /** Download size in bytes, when known. */
+  bytes?: number;
+  /** Already on this device: no download. */
+  cached?: boolean;
+  /** The adapter's default. */
+  recommended?: boolean;
+  /** The one in use. */
+  selected?: boolean;
+}
 
 /** Where a tool call is: running, parked on a confirmation the person must click, or finished. */
 export type ToolCallState = "running" | "awaiting-confirmation" | "done" | "error" | "cancelled";
@@ -47,6 +66,10 @@ export type AgentPart =
       error?: string;
       /** While awaiting confirmation: what the person should click. */
       prompt?: string;
+      /** A sub-agent's run behind a `delegate_to_<id>` call: the agent's id and its own messages, rendered nested. */
+      agent?: { id: string; messages: AgentMessage[] };
+      /** Provider data that must travel with the call (Gemini thought signatures, OpenAI item ids), like reasoning's. */
+      providerMetadata?: Record<string, Record<string, unknown>>;
     };
 
 /** One turn of the conversation. */
@@ -61,7 +84,14 @@ export type AgentStreamPart =
   | { type: "message-start"; messageId: string }
   | { type: "text-delta"; messageId: string; delta: string }
   | { type: "reasoning"; messageId: string; text: string; providerMetadata?: Record<string, Record<string, unknown>> }
-  | { type: "tool-call"; messageId: string; id: string; name: string; input: unknown }
+  | {
+      type: "tool-call";
+      messageId: string;
+      id: string;
+      name: string;
+      input: unknown;
+      providerMetadata?: Record<string, Record<string, unknown>>;
+    }
   | { type: "tool-result"; id: string; output: ToolOutput }
   | { type: "tool-error"; id: string; error: string }
   | { type: "step-finish"; step: number }
@@ -81,6 +111,11 @@ export interface AgentRunRequest {
   signal: AbortSignal;
   /** Run a tool on the page (cursor and all). Never rejects: failures come back as `isError` results. */
   callTool(call: { id: string; name: string; input: unknown }): Promise<ToolOutput>;
+  /**
+   * The agent running this turn (`defineWebAgent`), when the page set one. `tools` is already filtered through it.
+   * Adapters that run in the browser read `instructions` and `maxSteps`; the cloud adapter sends only `id`.
+   */
+  agent?: WebAgent;
 }
 
 /** An agent the chat can talk to: the model ↔ tool loop behind a stream of parts. */
@@ -94,5 +129,9 @@ export interface AgentAdapter {
   subscribe?(listener: () => void): () => void;
   /** Opt-in heavy setup, e.g. a model download, started by the person's click. Aborting `signal` cancels it. */
   prepare?(signal?: AbortSignal): Promise<void>;
+  /** The models the person can pick from (the chat shows a picker when there is more than one). */
+  models?(): readonly ModelChoice[];
+  /** Switch to one of `models()`; the status then reports what the new model needs. Rejects while a run is in flight. */
+  selectModel?(id: string): Promise<void>;
   run(req: AgentRunRequest): AsyncIterable<AgentStreamPart>;
 }
