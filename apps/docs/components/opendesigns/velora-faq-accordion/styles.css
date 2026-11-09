@@ -1,0 +1,158 @@
+.velora-faq-section {
+  position: relative;
+  isolation: isolate;
+  min-inline-size: 0;
+  padding: calc(var(--spacing, 0.25rem) * 24) calc(var(--spacing, 0.25rem) * 6);
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  overflow-wrap: anywhere;
+}
+.velora-faq-section::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  block-size: 24rem;
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse at top, black, transparent 70%);
+  pointer-events: none;
+  content: "";
+}
+.velora-faq-inner {
+  min-inline-size: 0;
+  max-inline-size: 48rem;
+  margin-inline: auto;
+}
+.velora-faq-heading {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing, 0.25rem) * 5);
+  min-inline-size: 0;
+  text-align: center;
+}
+.velora-faq-eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.velora-faq-title {
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.velora-faq-description {
+  max-inline-size: 38rem;
+  margin: 0 auto;
+  color: var(--muted-foreground);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.velora-faq-notice {
+  max-inline-size: 36rem;
+  margin: 0 auto;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.velora-faq-questions {
+  min-inline-size: 0;
+  margin-block-start: calc(var(--spacing, 0.25rem) * 14);
+}
+.velora-faq-surface {
+  min-inline-size: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl, calc(var(--radius) + 4px));
+  background: var(--card);
+  color: var(--card-foreground);
+  padding-inline: calc(var(--spacing, 0.25rem) * 6);
+}
+.velora-faq-row-space {
+  min-inline-size: 0;
+  padding-block: calc(var(--spacing, 0.25rem) * 2);
+}
+.velora-faq-answer {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing, 0.25rem) * 4);
+  min-inline-size: 0;
+}
+.velora-faq-answer p {
+  margin: 0;
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+.velora-faq-answer-action {
+  min-inline-size: 0;
+}
+.velora-faq-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 6);
+  min-inline-size: 0;
+  margin-block-start: calc(var(--spacing, 0.25rem) * 10);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-xl, calc(var(--radius) + 4px));
+  background: var(--muted);
+  padding: calc(var(--spacing, 0.25rem) * 6);
+}
+.velora-faq-topics {
+  position: relative;
+  flex-shrink: 0;
+}
+.velora-faq-guide-copy {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: calc(var(--spacing, 0.25rem) * 2);
+  min-inline-size: 0;
+}
+.velora-faq-guide-copy h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.velora-faq-guide-copy p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.velora-faq-guide-action {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.velora-faq-guide-extra {
+  flex: 1 1 100%;
+  min-inline-size: 0;
+}
+@media (min-width: 40rem) {
+  .velora-faq-surface {
+    padding-inline: calc(var(--spacing, 0.25rem) * 8);
+  }
+}
+@media (max-width: 30rem) {
+  .velora-faq-section {
+    padding-inline: calc(var(--spacing, 0.25rem) * 4);
+  }
+  .velora-faq-surface {
+    padding-inline: calc(var(--spacing, 0.25rem) * 4);
+  }
+  .velora-faq-guide {
+    align-items: start;
+    flex-direction: column;
+  }
+  .velora-faq-guide-copy {
+    flex-basis: auto;
+  }
+}
