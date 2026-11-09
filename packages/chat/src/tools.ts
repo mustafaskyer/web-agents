@@ -13,7 +13,7 @@ import {
   onAgentEvent,
   toolError,
   toolErrorCode,
-} from "@web-agents/core";
+} from "@webmcp-agents/core";
 import { CANCELLED, notOnPage } from "./shared";
 import type { ToolDescriptor, ToolOutput } from "./types";
 

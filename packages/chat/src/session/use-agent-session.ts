@@ -4,7 +4,7 @@
  * and core agent events mark a call that's waiting for the person to confirm.
  * The conversation survives route changes and reloads (sessionStorage).
  */
-import { onAgentEvent } from "@web-agents/core";
+import { onAgentEvent } from "@webmcp-agents/core";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { newId } from "../shared";
 import { callModelContextTool, listToolDescriptors } from "../tools";

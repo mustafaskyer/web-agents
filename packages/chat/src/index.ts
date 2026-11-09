@@ -1,9 +1,9 @@
 /**
- * @web-agents/chat: a chat widget whose agent works the live page through its WebMCP tools.
+ * @webmcp-agents/chat: a chat widget whose agent works the live page through its WebMCP tools.
  *
- *   import { AgentChat, createCloudAdapter } from "@web-agents/chat";
- *   import "@web-agents/chat/chat.css";
- *   const cloud = createCloudAdapter();           // POSTs to /api/chat (see @web-agents/chat/server)
+ *   import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+ *   import "@webmcp-agents/chat/chat.css";
+ *   const cloud = createCloudAdapter();           // POSTs to /api/chat (see @webmcp-agents/chat/server)
  *   <AgentChat adapter={cloud} />
  */
 export { AgentChat } from "./components/AgentChat";

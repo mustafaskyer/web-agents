@@ -1,5 +1,5 @@
 /**
- * @web-agents/chat/vite: serve `/api/chat` from `vite dev`, so the widget works
+ * @webmcp-agents/chat/vite: serve `/api/chat` from `vite dev`, so the widget works
  * locally without a separate server. The API key is read from `.env` files
  * server-side (never a VITE_-prefixed variable: those are shipped to the browser).
  *

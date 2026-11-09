@@ -2,9 +2,9 @@
  * The contract between the chat widget and whatever agent drives it. An
  * adapter owns the model ↔ tool loop and reports what happens as a stream of
  * parts; the widget only renders them. The cloud adapter (this package) and
- * the in-browser adapter (@web-agents/local-agent) both implement it.
+ * the in-browser adapter (@webmcp-agents/local-agent) both implement it.
  */
-import type { JSONSchema, ModelContextToolResult } from "@web-agents/core";
+import type { JSONSchema, ModelContextToolResult } from "@webmcp-agents/core";
 
 /** A page tool as the model sees it. */
 export interface ToolDescriptor {

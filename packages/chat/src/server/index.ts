@@ -1,5 +1,5 @@
 /**
- * @web-agents/chat/server: the `/api/chat` handler (Node 22+, Vercel functions, `vite dev`).
+ * @webmcp-agents/chat/server: the `/api/chat` handler (Node 22+, Vercel functions, `vite dev`).
  *
  *   export default { fetch: createChatHandler() };          // or: export const POST = createChatHandler();
  */

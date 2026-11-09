@@ -1,4 +1,4 @@
-import { installAgentVisuals } from "@web-agents/core";
+import { installAgentVisuals } from "@webmcp-agents/core";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";

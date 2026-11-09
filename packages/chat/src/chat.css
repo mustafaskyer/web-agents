@@ -1,4 +1,4 @@
-/* @web-agents/chat. Every rule is scoped by a .wa-chat* class. No cascade layer: unlayered app resets
+/* @webmcp-agents/chat. Every rule is scoped by a .wa-chat* class. No cascade layer: unlayered app resets
    (`button { color: inherit }`) would beat any layered rule, while one class already outranks them.
    Theme with the --wa-chat-* properties; override a part with a class selector of your own. */
 .wa-chat {

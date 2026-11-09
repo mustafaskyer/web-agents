@@ -8,7 +8,7 @@
  * The panel lives in a body-level host carrying `data-web-agents-ui`, so typing
  * here never counts as "the user took over" for the agent cursor.
  */
-import { UI_HOST_ATTR } from "@web-agents/core";
+import { UI_HOST_ATTR } from "@webmcp-agents/core";
 import { type CSSProperties, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { useAgentSession } from "../session/use-agent-session";

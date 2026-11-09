@@ -1,19 +1,19 @@
-# @web-agents/chat
+# @webmcp-agents/chat
 
 A chat widget whose agent works the **live page** through its WebMCP tools (`document.modelContext`). The model
 runs on your server (Claude via the Vercel AI SDK) with the key server-side; every tool call runs **in the browser**,
-so the agent cursor from `@web-agents/core` plays exactly as it does for any agent, and anything a form gates on a
+so the agent cursor from `@webmcp-agents/core` plays exactly as it does for any agent, and anything a form gates on a
 click (orders, bookings) waits for the person.
 
 ```bash
-pnpm add @web-agents/chat @ai-sdk/anthropic   # @ai-sdk/anthropic: server only
+pnpm add @webmcp-agents/chat @ai-sdk/anthropic   # @ai-sdk/anthropic: server only
 ```
 
 ## Client
 
 ```tsx
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import "@web-agents/chat/chat.css";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import "@webmcp-agents/chat/chat.css";
 
 const cloud = createCloudAdapter(); // POSTs to /api/chat; create it once (module scope)
 
@@ -41,7 +41,7 @@ follows `prefers-color-scheme`, or `data-theme="dark"` on an ancestor.
 
 ```ts
 // api/chat.ts (Vercel) — any runtime with web Request/Response works the same way
-import { createChatHandler } from "@web-agents/chat/server";
+import { createChatHandler } from "@webmcp-agents/chat/server";
 const handler = createChatHandler();
 export const GET = handler;
 export const POST = handler;
@@ -65,7 +65,7 @@ export const POST = handler;
 
 ```ts
 // vite.config.ts
-import { webAgentsChatDev } from "@web-agents/chat/vite";
+import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
 export default defineConfig({ plugins: [react(), webAgentsChatDev()] });
 ```
 
@@ -87,7 +87,7 @@ Vite ships those to the browser.
 
 Implement `AgentAdapter` (`run(req)` yields `AgentStreamPart`s and calls `req.callTool()` for each tool call; read
 `req.tools` fresh before every model call). `callModelContextTool()` and `listToolDescriptors()` are exported for
-adapters that don't use the widget. `@web-agents/local-agent` (in-browser models) plugs in the same way.
+adapters that don't use the widget. `@webmcp-agents/local-agent` (in-browser models) plugs in the same way.
 
 ## When a tool fails
 

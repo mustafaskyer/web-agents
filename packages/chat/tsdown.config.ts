@@ -7,7 +7,7 @@ export default defineConfig({
   platform: "neutral",
   dts: true,
   deps: { neverBundle: [/^node:/] },
-  // Shipped as a separate file: consumers `import "@web-agents/chat/chat.css"` (like core's cursor.css).
+  // Shipped as a separate file: consumers `import "@webmcp-agents/chat/chat.css"` (like core's cursor.css).
   copy: [{ from: "src/chat.css", to: "dist" }],
   publint: true,
 });

@@ -1,5 +1,5 @@
 {
-  "name": "@web-agents/chat",
+  "name": "@webmcp-agents/chat",
   "version": "0.1.0",
   "type": "module",
   "description": "A chat widget whose agent operates the live page through its WebMCP tools: pluggable agents, a cloud adapter for Claude, a server handler and a Vite dev plugin.",
@@ -13,22 +13,22 @@
   ],
   "exports": {
     ".": {
-      "@web-agents/source": "./src/index.ts",
+      "@webmcp-agents/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./server": {
-      "@web-agents/source": "./src/server/index.ts",
+      "@webmcp-agents/source": "./src/server/index.ts",
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
     },
     "./vite": {
-      "@web-agents/source": "./src/vite/index.ts",
+      "@webmcp-agents/source": "./src/vite/index.ts",
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
     },
     "./chat.css": {
-      "@web-agents/source": "./src/chat.css",
+      "@webmcp-agents/source": "./src/chat.css",
       "default": "./dist/chat.css"
     },
     "./package.json": "./package.json"
@@ -55,7 +55,7 @@
     }
   },
   "dependencies": {
-    "@web-agents/core": "workspace:^",
+    "@webmcp-agents/core": "workspace:^",
     "ai": "^7.0.163",
     "zod": "^4.6.7"
   },
@@ -66,7 +66,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
-    "@web-agents/polyfill": "workspace:*",
+    "@webmcp-agents/polyfill": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.7",

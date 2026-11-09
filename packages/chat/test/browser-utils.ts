@@ -1,5 +1,5 @@
 /** Browser-test helpers (mirrors the devtools ones). */
-import { installWebMCPPolyfill } from "@web-agents/polyfill";
+import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
 
 export const modelContext = (): ModelContext => installWebMCPPolyfill() as ModelContext;
 
