@@ -6,7 +6,7 @@
  *
  * Env is read when the route is created (at the function's cold start), never at import time.
  */
-import { createChatHandler } from "@webmcp-agents/chat/server";
+import { createChatHandler, type WebAgent } from "@webmcp-agents/chat/server";
 import type { LanguageModel } from "ai";
 import { budgetGuard, composeGuards, originGuard, rateLimitGuard } from "./guards";
 import { createLimiter, type Env } from "./limiter";
@@ -22,8 +22,10 @@ export interface VercelChatRouteOptions {
   app: string;
   /** Default `process.env`. */
   env?: Env;
-  /** A model instance instead of the Claude id from env (tests, other AI SDK providers). */
-  model?: LanguageModel;
+  /** A model instance, or a `"<provider>/<model>"` id, instead of `WEB_AGENTS_MODEL` (default `anthropic/claude-sonnet-5-5`). */
+  model?: LanguageModel | string;
+  /** The page's agents (`defineWebAgent`): the same list the page passes to `<AgentChat>`. */
+  agents?: readonly WebAgent[];
 }
 
 const num = (value: string | undefined, fallback: number): number => {
@@ -34,16 +36,17 @@ const num = (value: string | undefined, fallback: number): number => {
 /**
  * The chat handler behind origin and per-IP guards, with a global daily budget on model calls. Public demos default to
  * Claude Sonnet 5.5 (cheaper, faster), 4096 output tokens (thinking counts against them) and 6 steps; every limit is
- * an env var (see docs/deploy.md).
+ * an env var (see docs/guides/deploy.md).
  */
-export function createVercelChatRoute({ app, env = process.env, model }: VercelChatRouteOptions) {
+export function createVercelChatRoute({ app, env = process.env, model, agents }: VercelChatRouteOptions) {
   // each tool step is one request: a 6-step turn is 7, so a burst limit must fit a few turns
   const perMinute = num(env.RATE_LIMIT_PER_MINUTE, 30);
   const perDay = num(env.RATE_LIMIT_PER_DAY, 300);
   const globalDaily = num(env.RATE_LIMIT_GLOBAL_DAILY, 3000);
   const handler = createChatHandler({
     env,
-    model: model ?? env.WEB_AGENTS_MODEL ?? "claude-sonnet-5-5",
+    model: model ?? env.WEB_AGENTS_MODEL ?? "anthropic/claude-sonnet-5-5",
+    agents,
     maxOutputTokens: num(env.WEB_AGENTS_MAX_OUTPUT_TOKENS, 4096),
     maxSteps: num(env.WEB_AGENTS_MAX_STEPS, 6),
     guard: composeGuards(

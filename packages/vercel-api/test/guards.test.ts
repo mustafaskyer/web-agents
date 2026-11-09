@@ -152,7 +152,12 @@ describe("createVercelChatRoute", () => {
 
   it("without a key: GET says offline, a same-origin POST gets 503; a foreign origin 403", async () => {
     const route = createVercelChatRoute({ app: "test", env: { VERCEL_ENV: "preview" } });
-    expect(await (await route.GET(get())).json()).toEqual({ enabled: false, model: "claude-sonnet-5-5" });
+    expect(await (await route.GET(get())).json()).toEqual({
+      enabled: false,
+      model: "anthropic/claude-sonnet-5-5",
+      provider: "anthropic",
+      agents: [],
+    });
     const body = JSON.stringify({ messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }], tools: [] });
     expect((await route.POST(post({ origin: "https://demo.example" }, body))).status).toBe(503);
     expect((await route.POST(post({ origin: "https://evil.example" }, body))).status).toBe(403);
