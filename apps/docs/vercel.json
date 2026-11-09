@@ -4,7 +4,7 @@
   "buildCommand": "turbo run build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../docs ../../pnpm-lock.yaml",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../docs ../../packages ../../pnpm-lock.yaml",
   "headers": [
     {
       "source": "/(.*).md",

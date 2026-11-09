@@ -1,0 +1,12 @@
+/*
+ * The docs wear the landing page's dark palette (landing.css, shadcn's neutral), so the two halves of the site read
+ * as one when a reader crosses between them. Light mode already matches. Blume appends this file to its stylesheet.
+ */
+:root[data-theme="dark"] {
+  --blume-background: oklch(0.145 0 0);
+  --blume-foreground: oklch(0.985 0 0);
+  --blume-muted: oklch(0.215 0 0);
+  --blume-muted-foreground: oklch(0.708 0 0);
+  --blume-border: oklch(1 0 0 / 10%);
+  --blume-code-background: oklch(0.18 0 0);
+}

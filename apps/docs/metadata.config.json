@@ -1,0 +1,13 @@
+{
+  "title": "WebMCP Agents",
+  "tagline": "Let AI agents use your website, and show every step they take.",
+  "colors": {
+    "background": "#0a0a0a",
+    "foreground": "#fafafa",
+    "accent": "#262626"
+  },
+  "logo": "./public/logo.svg",
+  "faviconSrc": "./public/logo.svg",
+  "outputDir": "public/metadata",
+  "font": "Inter"
+}
