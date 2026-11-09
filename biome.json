@@ -17,7 +17,7 @@
       "!apps/nextjs/components/ui",
       "!apps/nextjs/.next",
       "!apps/nextjs/next-env.d.ts",
-      "!apps/docs/public/r",
+      "!apps/docs/public",
       "!apps/nextjs/lib/highlighter.tsx",
       "!apps/nextjs/lib/utils.ts",
       "!apps/nextjs/app/globals.css",
