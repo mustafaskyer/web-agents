@@ -1,0 +1,435 @@
+[
+  {
+    "slug": "ocean-tee",
+    "name": "Ocean Tee",
+    "category": "apparel",
+    "price": 4800,
+    "description": "A heavyweight cotton tee dyed in small batches, so every one is a slightly different blue.",
+    "tags": ["t-shirt", "tee", "shirt", "top", "blue", "cotton"],
+    "details": {
+      "fit": "Relaxed, true to size",
+      "fabric": "240 gsm organic cotton",
+      "care": "Wash cold, hang dry"
+    },
+    "variants": {
+      "name": "Size",
+      "options": ["S", "M", "L"]
+    },
+    "stock": 12,
+    "images": [
+      {
+        "hue": 205,
+        "angle": 135,
+        "photo": "photo-1576566588028-4147f3842f27"
+      },
+      {
+        "hue": 190,
+        "angle": 45,
+        "photo": "photo-1521572163474-6864f9cf17ab"
+      }
+    ]
+  },
+  {
+    "slug": "linen-shirt",
+    "name": "Linen Shirt",
+    "category": "apparel",
+    "price": 9200,
+    "description": "Washed European linen with a soft collar. Gets better every summer.",
+    "tags": ["shirt", "button-up", "summer", "top"],
+    "details": {
+      "fit": "Boxy, size down for a closer fit",
+      "fabric": "100% washed linen",
+      "care": "Machine wash, tumble low"
+    },
+    "variants": {
+      "name": "Size",
+      "options": ["S", "M", "L", "XL"]
+    },
+    "stock": 7,
+    "images": [
+      {
+        "hue": 40,
+        "angle": 160,
+        "photo": "photo-1602810318383-e386cc2a3ccf"
+      },
+      {
+        "hue": 32,
+        "angle": 20,
+        "photo": "photo-1596755094514-f87e34085b2c"
+      }
+    ]
+  },
+  {
+    "slug": "field-hoodie",
+    "name": "Field Hoodie",
+    "category": "apparel",
+    "price": 11800,
+    "description": "Loopback fleece, a double-layer hood and no logo anywhere.",
+    "tags": ["hoodie", "sweatshirt", "sweater", "jumper", "warm"],
+    "details": {
+      "fit": "Regular",
+      "fabric": "420 gsm loopback cotton",
+      "care": "Wash cold inside out"
+    },
+    "variants": {
+      "name": "Color",
+      "options": ["Black", "Oat", "Moss"]
+    },
+    "stock": 9,
+    "images": [
+      {
+        "hue": 95,
+        "angle": 120,
+        "photo": "photo-1556821840-3a63f95609a7"
+      },
+      {
+        "hue": 80,
+        "angle": 210,
+        "photo": "photo-1620799140408-edc6dcb6d633"
+      }
+    ]
+  },
+  {
+    "slug": "wool-beanie",
+    "name": "Wool Beanie",
+    "category": "accessories",
+    "price": 3200,
+    "description": "Rib-knit merino that keeps its shape and never itches.",
+    "tags": ["hat", "beanie", "winter", "warm", "wool"],
+    "details": {
+      "fit": "One size",
+      "fabric": "100% merino wool",
+      "care": "Hand wash"
+    },
+    "variants": {
+      "name": "Color",
+      "options": ["Black", "Rust", "Sky"]
+    },
+    "stock": 20,
+    "images": [
+      {
+        "hue": 15,
+        "angle": 100,
+        "photo": "photo-1510598969022-c4c6c5d05769"
+      }
+    ]
+  },
+  {
+    "slug": "canvas-tote",
+    "name": "Canvas Tote",
+    "category": "accessories",
+    "price": 3800,
+    "description": "Waxed canvas with an inside pocket, big enough for a laptop and lunch.",
+    "tags": ["bag", "tote", "shopping bag", "carryall", "laptop bag", "handbag"],
+    "details": {
+      "fit": "40 × 38 × 12 cm",
+      "fabric": "18 oz waxed canvas",
+      "care": "Spot clean"
+    },
+    "stock": 15,
+    "images": [
+      {
+        "hue": 30,
+        "angle": 145,
+        "photo": "photo-1544816155-12df9643f363"
+      }
+    ]
+  },
+  {
+    "slug": "leather-cardholder",
+    "name": "Leather Cardholder",
+    "category": "accessories",
+    "price": 5400,
+    "description": "Four slots and a centre pocket, stitched by hand from vegetable-tanned leather.",
+    "tags": ["wallet", "card holder", "purse", "leather"],
+    "details": {
+      "fit": "10 × 7 cm",
+      "fabric": "Vegetable-tanned leather",
+      "care": "Condition twice a year"
+    },
+    "variants": {
+      "name": "Color",
+      "options": ["Tan", "Black"]
+    },
+    "stock": 0,
+    "images": [
+      {
+        "hue": 22,
+        "angle": 200,
+        "photo": "photo-1627123424574-724758594e93"
+      },
+      {
+        "hue": 18,
+        "angle": 30,
+        "photo": "photo-1606503825008-909a67e63c3d"
+      }
+    ]
+  },
+  {
+    "slug": "trail-cap",
+    "name": "Trail Cap",
+    "category": "accessories",
+    "price": 2900,
+    "description": "Six-panel nylon cap that packs flat and dries in minutes.",
+    "tags": ["hat", "cap", "baseball cap", "outdoor"],
+    "details": {
+      "fit": "Adjustable strap",
+      "fabric": "Ripstop nylon",
+      "care": "Rinse and air dry"
+    },
+    "stock": 18,
+    "images": [
+      {
+        "hue": 150,
+        "angle": 90,
+        "photo": "photo-1521369909029-2afed882baee"
+      },
+      {
+        "hue": 165,
+        "angle": 270,
+        "photo": "photo-1588850561407-ed78c282e89b"
+      }
+    ]
+  },
+  {
+    "slug": "stoneware-mug",
+    "name": "Stoneware Mug",
+    "category": "home",
+    "price": 2400,
+    "description": "Hand-thrown, with a speckled glaze and a thumb rest that fits.",
+    "tags": ["cup", "mug", "coffee", "tea", "kitchen"],
+    "details": {
+      "fit": "350 ml",
+      "fabric": "Stoneware",
+      "care": "Dishwasher safe"
+    },
+    "stock": 30,
+    "images": [
+      {
+        "hue": 260,
+        "angle": 135,
+        "photo": "photo-1514228742587-6b1558fcca3d"
+      },
+      {
+        "hue": 245,
+        "angle": 315,
+        "photo": "photo-1517256064527-09c73fc73e38"
+      }
+    ]
+  },
+  {
+    "slug": "pour-over-set",
+    "name": "Pour-over Set",
+    "category": "home",
+    "price": 6800,
+    "description": "A glass carafe and ceramic dripper for two slow cups.",
+    "tags": ["coffee", "coffee maker", "dripper", "kitchen"],
+    "details": {
+      "fit": "600 ml carafe",
+      "fabric": "Borosilicate glass, ceramic",
+      "care": "Hand wash"
+    },
+    "stock": 6,
+    "images": [
+      {
+        "hue": 330,
+        "angle": 150,
+        "photo": "photo-1611854779393-1b2da9d400fe"
+      },
+      {
+        "hue": 315,
+        "angle": 40,
+        "photo": "photo-1495474472287-4d71bcdd2085"
+      }
+    ]
+  },
+  {
+    "slug": "linen-throw",
+    "name": "Linen Throw",
+    "category": "home",
+    "price": 8900,
+    "description": "A stonewashed linen blanket for the sofa, the beach and everything in between.",
+    "tags": ["blanket", "throw", "sofa", "bedding"],
+    "details": {
+      "fit": "130 × 170 cm",
+      "fabric": "Stonewashed linen",
+      "care": "Machine wash warm"
+    },
+    "variants": {
+      "name": "Color",
+      "options": ["Sand", "Slate"]
+    },
+    "stock": 5,
+    "images": [
+      {
+        "hue": 45,
+        "angle": 110,
+        "photo": "photo-1522771739844-6a9f6d5f14af"
+      },
+      {
+        "hue": 210,
+        "angle": 250,
+        "photo": "photo-1584100936595-c0654b55a2e2"
+      }
+    ]
+  },
+  {
+    "slug": "beeswax-candle",
+    "name": "Beeswax Candle",
+    "category": "home",
+    "price": 2200,
+    "description": "Pure beeswax, cotton wick, forty hours of honey-scented light.",
+    "tags": ["candle", "light", "scent", "decor"],
+    "details": {
+      "fit": "8 × 10 cm",
+      "fabric": "Beeswax, cotton",
+      "care": "Trim the wick to 5 mm"
+    },
+    "stock": 24,
+    "images": [
+      {
+        "hue": 48,
+        "angle": 180,
+        "photo": "photo-1603006905003-be475563bc59"
+      },
+      {
+        "hue": 38,
+        "angle": 0,
+        "photo": "photo-1602874801007-bd458bb1b8b6"
+      }
+    ]
+  },
+  {
+    "slug": "nesting-bowls",
+    "name": "Nesting Bowls",
+    "category": "home",
+    "price": 5600,
+    "description": "Three hand-glazed stoneware bowls that stack into one: breakfast, snacks, a spot for keys.",
+    "tags": ["bowl", "bowls", "kitchen", "dishes", "tableware"],
+    "details": {
+      "fit": "14, 11 and 8 cm",
+      "fabric": "Stoneware",
+      "care": "Dishwasher safe"
+    },
+    "stock": 3,
+    "images": [
+      {
+        "hue": 28,
+        "angle": 95,
+        "photo": "photo-1610701596007-11502861dcfa"
+      }
+    ]
+  },
+  {
+    "slug": "dusk-wallpapers",
+    "name": "Dusk Wallpapers",
+    "category": "digital",
+    "price": 900,
+    "description": "Twelve gradient wallpapers for phone and desktop, in 6K.",
+    "tags": ["wallpaper", "background", "phone", "desktop", "digital download"],
+    "details": {
+      "fit": "Phone, tablet and desktop sizes",
+      "fabric": "PNG, 6K",
+      "care": "Instant download"
+    },
+    "stock": 999,
+    "images": [
+      {
+        "hue": 280,
+        "angle": 160,
+        "photo": "photo-1557683316-973673baf926"
+      },
+      {
+        "hue": 320,
+        "angle": 20,
+        "photo": "photo-1557682250-33bd709cbe85"
+      }
+    ]
+  },
+  {
+    "slug": "film-presets",
+    "name": "Film Presets",
+    "category": "digital",
+    "price": 2900,
+    "description": "Eight photo presets modelled on expired 35 mm stock.",
+    "tags": ["presets", "photo", "lightroom", "photography", "digital download"],
+    "details": {
+      "fit": "Lightroom and Capture One",
+      "fabric": ".xmp, .costyle",
+      "care": "Instant download"
+    },
+    "variants": {
+      "name": "Format",
+      "options": ["Lightroom", "Capture One"]
+    },
+    "stock": 999,
+    "images": [
+      {
+        "hue": 12,
+        "angle": 130,
+        "photo": "photo-1516035069371-29a1b244cc32"
+      },
+      {
+        "hue": 190,
+        "angle": 310,
+        "photo": "photo-1554080353-a576cf803bda"
+      }
+    ]
+  },
+  {
+    "slug": "field-sans",
+    "name": "Field Sans",
+    "category": "digital",
+    "price": 4900,
+    "description": "The typeface this store is named after: six weights, desktop and web licence.",
+    "tags": ["font", "typeface", "type", "digital download"],
+    "details": {
+      "fit": "6 weights, variable",
+      "fabric": "OTF, WOFF2",
+      "care": "Instant download"
+    },
+    "stock": 999,
+    "images": [
+      {
+        "hue": 0,
+        "angle": 180,
+        "photo": "photo-1455390582262-044cdead277a"
+      },
+      {
+        "hue": 220,
+        "angle": 90,
+        "photo": "photo-1561070791-2526d30994b5"
+      }
+    ]
+  },
+  {
+    "slug": "ocean-socks",
+    "name": "Ocean Socks",
+    "category": "apparel",
+    "price": 1600,
+    "description": "Cushioned crew socks in the same blue as the tee.",
+    "tags": ["socks", "blue", "cotton"],
+    "details": {
+      "fit": "EU 39–46",
+      "fabric": "Combed cotton, nylon",
+      "care": "Wash warm"
+    },
+    "variants": {
+      "name": "Size",
+      "options": ["S", "M", "L"]
+    },
+    "stock": 40,
+    "images": [
+      {
+        "hue": 200,
+        "angle": 60,
+        "photo": "photo-1582966772680-860e372bb558"
+      },
+      {
+        "hue": 210,
+        "angle": 240,
+        "photo": "photo-1586350977771-b3b0abd50c82"
+      }
+    ]
+  }
+]
