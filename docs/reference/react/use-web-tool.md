@@ -78,7 +78,7 @@ export function ClearCartButton() {
 - Works without a provider. Inside a [`<WebAgentsProvider>`](./web-agents-provider.md) it installs the provider's cursor before registering (so the tool is animated) and passes the provider's `context` as `ctx.context`. Without one, nothing installs the cursor and `ctx.context` is `undefined`.
 - Registering an id that is already registered replaces that registration (the newest wins). Don't give a `useWebTool` tool the same id as a catalog tool.
 - Without WebMCP, registration warns once (`document.modelContext is unavailable`) and does nothing, so the app still renders.
-- With `requireConfirmation`, a trusted click on the tool's element (`target`, default `[toolname="<id>"]`) runs the tool instead of the element's own `onClick`, so the action happens once.
+- With `requireConfirmation`, a trusted click on the tool's element (`target`, default `[toolname="<id>"]`) runs the tool instead of the element's own `onClick`, so the action happens once. That includes a React Aria `Button`'s `onPress` and a `Link`'s navigation: the click React Aria re-fires is swallowed too. React Aria components drop unknown attributes, so put `toolname` on an element inside or around them.
 
 ## See also
 

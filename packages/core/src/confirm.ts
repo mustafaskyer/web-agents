@@ -8,7 +8,8 @@
  * the user's behalf. Nothing to click on means no confirmation: the call
  * fails rather than run unconfirmed. The click is swallowed, so the element's own handler
  * doesn't run the action a second time: the tool's execute is the single
- * source of the action.
+ * source of the action. So is the scripted click a press library re-fires
+ * when it saw no click arrive (see `REFIRE_MS`).
  */
 import { emit } from "./events";
 import { abortError } from "./result";
@@ -25,6 +26,20 @@ export const confirmPrompt = (el: Element | null, fallback: string): string => `
 export class ConfirmationUnavailableError extends Error {
   override name = "ConfirmationUnavailableError";
 }
+
+/**
+ * How long after a confirming click a scripted click on the same element is swallowed too. Press libraries
+ * (React Aria's `usePress`) notice that the click never reached their element and call `el.click()` themselves
+ * about 80 ms after the pointerup; with the gate gone, that click would run the element's own action after all
+ * (a link navigates, `onPress` fires). 300 ms covers it with room for a busy main thread.
+ */
+const REFIRE_MS = 300;
+
+/** Keep a click from the page: no default action, no handlers. Window capture runs before React's root listeners. */
+const swallow = (e: Event): void => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+};
 
 /** True when a person can click it: on the page and not disabled. */
 const clickable = (el: Element | null): el is Element => !!el?.isConnected && !el.matches(":disabled");
@@ -58,12 +73,20 @@ export function waitForConfirmation(selector: string, signal: AbortSignal, toolI
     window.addEventListener(
       "click",
       (e) => {
-        if (!e.isTrusted || !(e.target instanceof Element) || !e.target.closest(selector)) return;
-        // Window capture runs before React's root listeners: the app's onClick never sees this click.
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        const hit = e.isTrusted && e.target instanceof Element && e.target.closest(selector);
+        if (!hit) return;
+        swallow(e); // the app's onClick never sees this click
         done();
         resolve();
+        // The re-fired click targets the library's own element: the tool's element, or one around or inside it.
+        window.addEventListener(
+          "click",
+          (again) => {
+            const at = again.target;
+            if (!again.isTrusted && at instanceof Node && (hit.contains(at) || at.contains(hit))) swallow(again);
+          },
+          { capture: true, signal: AbortSignal.timeout(REFIRE_MS) },
+        );
       },
       { capture: true, signal: settled.signal },
     );

@@ -39,6 +39,7 @@ try {
 - It is thrown for a tool with `requireConfirmation: true` (see [`defineWebTool`](./define-web-tool.md)) when the target element is missing or `:disabled` at call time, or stops being clickable while waiting.
 - [`toModelContextTool`](./to-model-context-tool.md) turns it into an `isError` result with code `unavailable`, so the agent reads the message.
 - Only a trusted click on the target confirms. A script calling `el.click()` cannot. The confirming click is swallowed, so the element's own click handler doesn't run the action a second time.
+- For 300 ms after the confirming click, a scripted click on the same element (or one around or inside it) is swallowed too. Press libraries such as React Aria call `el.click()` themselves when the real click never reached their element, which would otherwise fire `onPress` or follow the link after all. A tool's `execute` should do the action itself rather than `click()` its own element.
 
 ## See also
 
