@@ -1,4 +1,4 @@
-# Roadmap: `@web-agents` — WebMCP helpers, visuals, devtools and agents
+# Roadmap: `@webmcp-agents` — WebMCP helpers, visuals, devtools and agents
 
 Source: `TODO.md` (8 items + 1 issue + 1 priority). This file is the **single source of truth for
 shared decisions and public contracts**. Every phase plan (`01-…` → `07-…`) builds against it.
@@ -29,11 +29,11 @@ Execute each phase with: `/prime` → `/execute .agents/plans/0N-….md` → `/c
 
 | Decision | Choice | Why |
 |---|---|---|
-| npm scope | **`@web-agents/*`** (user decision) | — |
+| npm scope | **`@webmcp-agents/*`** (user decision) | — |
 | Monorepo | pnpm 11 workspaces + **Turborepo 2.11** | user request; pnpm already in use (`pnpm-lock.yaml`, `pnpm-workspace.yaml` exist) |
 | Package split | scoped multi-package (user decision) | isolation; heavy deps (AI SDK, transformers.js) never leak into core |
 | Library build | **tsdown 0.23** (Rolldown) | tsup is unmaintained ("consider tsdown instead"); with `"type": "module"` it emits `dist/*.js` + `*.d.ts` |
-| Dev resolution | custom export condition **`"@web-agents/source"`** → `src/*.ts` | apps & typecheck hit source (no `^build` in dev), published package stays compiled |
+| Dev resolution | custom export condition **`"@webmcp-agents/source"`** → `src/*.ts` | apps & typecheck hit source (no `^build` in dev), published package stays compiled |
 | Runtime | React **19.3** + Vite **8** + `@vitejs/plugin-react` 6 in apps; packages peer `react >=18` | upgrade while restructuring; Vite 8 = Rolldown, ESM-only |
 | TypeScript | **~6.0.3** (NOT 7) | TS 7 has no stable programmatic API until 7.1; breaks tooling |
 | Lint/format | **Biome 2.6** at the root | one fast tool; no ESLint needed now |
@@ -79,13 +79,13 @@ Always confirm versions with `npm view <pkg> version` before pinning; numbers ab
 │   ├── ecommerce/         ← YNS-style store (Phase 4)
 │   └── flights/           ← react-flights-style booking (Phase 4)
 ├── packages/
-│   ├── core/              @web-agents/core      visuals (cursor, motion, spotlight), events, WebTool, registry
-│   ├── polyfill/          @web-agents/polyfill  document.modelContext polyfill (dev / non-Chrome)
-│   ├── react/             @web-agents/react     <WebAgentsProvider>, useWebTool, useEnableTools, <EnableTools>, JSX attr types
-│   ├── devtools/          @web-agents/devtools  panel + TanStack plugin + schema runner
-│   ├── chat/              @web-agents/chat      <AgentChat>, AgentAdapter, cloud adapter, /server handler, /vite dev plugin
-│   ├── local-agent/       @web-agents/local-agent  in-browser adapter (Worker + transformers.js / Prompt API)
-│   └── vercel-api/        @web-agents/vercel-api (private) shared /api/chat for the apps: guard, rate limit (Phase 7)
+│   ├── core/              @webmcp-agents/core      visuals (cursor, motion, spotlight), events, WebTool, registry
+│   ├── polyfill/          @webmcp-agents/polyfill  document.modelContext polyfill (dev / non-Chrome)
+│   ├── react/             @webmcp-agents/react     <WebAgentsProvider>, useWebTool, useEnableTools, <EnableTools>, JSX attr types
+│   ├── devtools/          @webmcp-agents/devtools  panel + TanStack plugin + schema runner
+│   ├── chat/              @webmcp-agents/chat      <AgentChat>, AgentAdapter, cloud adapter, /server handler, /vite dev plugin
+│   ├── local-agent/       @webmcp-agents/local-agent  in-browser adapter (Worker + transformers.js / Prompt API)
+│   └── vercel-api/        @webmcp-agents/vercel-api (private) shared /api/chat for the apps: guard, rate limit (Phase 7)
 ├── .agents/plans/
 ├── biome.json  turbo.json  pnpm-workspace.yaml  tsconfig.base.json  vitest.config.ts  package.json
 └── CLAUDE.md              ← generated with /create-rules at the end of Phase 1
@@ -99,7 +99,7 @@ Dependency direction (no cycles, enforced by review): `polyfill` → none; `core
 
 ## Public contracts (all phases must match these names)
 
-### `@web-agents/core` (Phase 1 creates, Phase 2 extends)
+### `@webmcp-agents/core` (Phase 1 creates, Phase 2 extends)
 
 ```ts
 // visuals — Phase 1
@@ -169,7 +169,7 @@ export interface WebToolContext {
   toolCallId?: string;
   context?: RegisteredContext;              // app state from the provider's `context` prop / registry option
 }
-export interface Register {}                // augment: declare module "@web-agents/core" { interface Register { context: CartApi } }
+export interface Register {}                // augment: declare module "@webmcp-agents/core" { interface Register { context: CartApi } }
 type RegisteredContext = Register extends { context: infer C } ? C : unknown;
 export interface WebTool<I = unknown, O = unknown> extends Readonly<Omit<WebToolConfig<I, O>, "execute">> {
   readonly kind: "web-tool";
@@ -192,7 +192,7 @@ export function registerWebTool(tool: WebTool, opts?: ToModelContextToolOptions 
   // no document.modelContext → warns once, returns a no-op; re-registering an id replaces the old registration,
   // whose unregister then becomes a no-op (a stale deferred release can't remove the newer tool)
 
-// deferred release — Phase 2 (shared by the registry and @web-agents/react)
+// deferred release — Phase 2 (shared by the registry and @webmcp-agents/react)
 export const RESPONSE_GRACE_MS = 500;
 export function deferRelease(release: () => void, opts?: { isBusy?: () => boolean; graceMs?: number }): { cancel(): void };
 export interface CallTracker { track<T>(call: () => T | Promise<T>): Promise<T>; busy(): boolean }  // busy: running or < grace since settle
@@ -217,14 +217,14 @@ export interface ToolRegistry {
 }
 ```
 
-### `@web-agents/polyfill` (Phase 1)
+### `@webmcp-agents/polyfill` (Phase 1)
 
 ```ts
 export function installWebMCPPolyfill(): ModelContext | undefined;   // no-op returning the native one if present; undefined on the server
-// side-effect entry: import "@web-agents/polyfill/auto";
+// side-effect entry: import "@webmcp-agents/polyfill/auto";
 ```
 
-### `@web-agents/react` (Phase 2)
+### `@webmcp-agents/react` (Phase 2)
 
 ```tsx
 <WebAgentsProvider
@@ -247,7 +247,7 @@ useAgentEvents(listener);                  // subscribe to core events
 // + JSX attribute augmentation (toolname, tooldescription, toolautosubmit, toolparamdescription)
 ```
 
-### `@web-agents/devtools` (Phase 3)
+### `@webmcp-agents/devtools` (Phase 3)
 
 ```ts
 export function installWebAgentsDevtools(options?: DevtoolsOptions): () => void;  // vanilla floating panel (idempotent)
@@ -261,13 +261,13 @@ export interface DevtoolsOptions {
 export function createDevtoolsStore(options?: DevtoolsStoreOptions): DevtoolsStore;  // useSyncExternalStore store, serialisable snapshots
 export { SchemaForm, defaultValueFor, parseSchema, toAgentRunCode, toExecuteToolCode };  // reusable (Phase 5 tool cards)
 export function installAgentConsole(o?): () => void;   // deprecated alias
-// "@web-agents/devtools/react":   <WebAgentsDevtools {...DevtoolsOptions} />, useDevtoolsStore(options),
+// "@webmcp-agents/devtools/react":   <WebAgentsDevtools {...DevtoolsOptions} />, useDevtoolsStore(options),
 //                                 webAgentsDevtoolsPlugin(options) → { id: "web-agents", name: "Web Agents", render }
-// peers: react, react-dom (required); @web-agents/react, @tanstack/react-devtools (optional; /react entry)
+// peers: react, react-dom (required); @webmcp-agents/react, @tanstack/react-devtools (optional; /react entry)
 // window.agent = { run(name, args), list() } is kept for back-compat (set by the store, restored on destroy).
 ```
 
-### `@web-agents/chat` (Phase 5) / `@web-agents/local-agent` (Phase 6)
+### `@webmcp-agents/chat` (Phase 5) / `@webmcp-agents/local-agent` (Phase 6)
 
 ```ts
 export interface AgentAdapter {
@@ -289,15 +289,15 @@ export interface AgentRunRequest {
 //                 | finish { reason: "stop" | "max-steps" | "aborted" } | error { code?: chat_disabled | rate_limited | bad_request | network }
 // <AgentChat adapter={…} /> or <AgentChat adapters={[cloud, local]} /> (switcher); title, defaultOpen, position, suggestions, storageKey, layout ("docked" default, resizable | "floating")
 // createCloudAdapter({ api: "/api/chat", maxSteps: 8, headers, fetch }); useAgentSession(adapter); listToolDescriptors(); callModelContextTool()
-// "@web-agents/chat/server": createChatHandler({ model, system?, effort?, maxOutputTokens?, maxSteps?, guard?, env? }): (req: Request) => Promise<Response>
+// "@webmcp-agents/chat/server": createChatHandler({ model, system?, effort?, maxOutputTokens?, maxSteps?, guard?, env? }): (req: Request) => Promise<Response>
 //    GET → { enabled, model }; POST → one model step as an AI SDK UI message stream; 503 chat_disabled without a key;
 //    guard(req) may return a Response (e.g. 429) to short-circuit; cross-site browser requests are refused (403), POST must be
 //    application/json. Defaults: claude-opus-5-5, effort "low", 8192 output tokens (thinking counts), fallbacks: "default".
 //    Caps in LIMITS (1 MB body, 160 messages, 48 tools, 8 KB schemas). maxSteps tool steps, then one tool-less request.
 //    Only the page's same-origin path reaches the system prompt. NOT abuse protection: public deploys need a rate-limiting guard (Phase 7).
-// "@web-agents/chat/vite":   webAgentsChatDev({ path?, handler? }) — mounts /api/chat in `vite dev`, key from .env files
-// "@web-agents/chat/chat.css": the widget's styles (unlayered, every rule scoped by a .wa-chat* class)
-// "@web-agents/local-agent" (Phase 6): createLocalAdapter({ providers?, model?, worker?: Worker | (() => Worker), maxSteps = 4,
+// "@webmcp-agents/chat/vite":   webAgentsChatDev({ path?, handler? }) — mounts /api/chat in `vite dev`, key from .env files
+// "@webmcp-agents/chat/chat.css": the widget's styles (unlayered, every rule scoped by a .wa-chat* class)
+// "@webmcp-agents/local-agent" (Phase 6): createLocalAdapter({ providers?, model?, worker?: Worker | (() => Worker), maxSteps = 4,
 //    stepTimeoutMs = 60_000, label = "On-device" }) → AgentAdapter with status/subscribe/prepare(signal). Providers, first
 //    available wins: createPromptApiProvider() (Chrome LanguageModel, JSON-constrained tool calls), then
 //    createTransformersProvider({ model?, dtype?, worker? }) (Qwen3 0.6B: q4f16 on WebGPU ~585 MB, q4 on WASM ~934 MB;
@@ -321,10 +321,10 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 
 ## Quality bar (TODO "priorities": performance, animation, UI/UX, DX) — applies to every phase
 
-- **Performance budgets** (`pnpm --filter @web-agents/core size`, part of `pnpm check`; Vite/Rolldown minify + gzip -9,
+- **Performance budgets** (`pnpm --filter @webmcp-agents/core size`, part of `pnpm check`; Vite/Rolldown minify + gzip -9,
   measured through a re-export so tree-shaking applies): **visuals-only import (`installAgentVisuals`, `onAgentEvent`)
   ≤ 9 KB min+gz** (8.96 KB after Phase 3: only ~0.04 KB of headroom left) and **whole package ≤ 13 KB** (12.4 KB after Phase 3).
-  Decision (Phase 3): no `@web-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
+  Decision (Phase 3): no `@webmcp-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
   shrink what a visuals-only page pays, and it would churn every import for no gain. The per-import budget keeps the
   cursor lean; the whole-package budget caps WebTool/registry/executeTool growth. Revisit if a non-bundled (CDN) build ships;
   no work when idle (rAF loop stops, no polling while the tab is hidden); per-frame DOM reads happen before writes;
@@ -356,7 +356,7 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 - tsdown CSS handling is experimental → core ships `cursor.css` as a copied asset, not a bundled import.
 - TanStack Devtools is 0.x → plugin lives in a separate entry; the standalone panel is the primary surface.
 - A public demo with an Anthropic key needs rate limiting, token caps and an origin check. Done in Phase 7:
-  `@web-agents/vercel-api` (private) — `createVercelChatRoute({ app, env?, model? })` → `{ GET, POST, OPTIONS }`;
+  `@webmcp-agents/vercel-api` (private) — `createVercelChatRoute({ app, env?, model? })` → `{ GET, POST, OPTIONS }`;
   `guard`: `originGuard()` (POST needs the request's own Origin) + `rateLimitGuard` (per IP, 30/min + 300/day, 429 with
   retry-after); `beforeModel`: `budgetGuard` (3000 model calls/day → 503 `{error:"unavailable",reason:"daily_budget"}`,
   storage down → `reason:"busy"`). Upstash Redis when `KV_REST_API_*` / `UPSTASH_REDIS_REST_*` exist (errors and

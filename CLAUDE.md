@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`web-agents` is a pnpm + Turborepo monorepo of `@web-agents/*` packages for [WebMCP](https://developer.chrome.com/docs/ai/webmcp)
+`web-agents` is a pnpm + Turborepo monorepo of `@webmcp-agents/*` packages for [WebMCP](https://developer.chrome.com/docs/ai/webmcp)
 pages (`document.modelContext`). The core idea: make an agent's tool calls **visible** to the person using the page
 (ghost cursor, field replay, a parked "confirm" state) without the tools knowing the visual layer exists, and never
 compete with the user (the cursor yields the moment they interact). Roadmap and per-phase implementation plans live in
@@ -32,16 +32,16 @@ compete with the user (the cursor yields the moment they interact). Roadmap and 
 pnpm install
 pnpm dev                                   # every app with HMR into package source: playground :5173, ecommerce :5174, flights :5175
 pnpm check                                 # biome ci + typecheck + test + build + size (what CI runs)
-pnpm --filter @web-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9 KB, whole package ≤ 13 KB
+pnpm --filter @webmcp-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9 KB, whole package ≤ 13 KB
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
 pnpm turbo run check-exports               # publint + are-the-types-wrong on every package (CI runs it)
 pnpm changeset                             # describe a change to a published package (release.yml publishes)
 pnpm e2e                                   # Playwright e2e of apps/ecommerce + apps/flights (not part of pnpm check)
-pnpm --filter @web-agents/core test        # one package
-pnpm --filter @web-agents/docs dev         # docs site on :4321 (also started by pnpm dev); `test` = blume validate (links)
-pnpm --filter @web-agents/core exec vitest run --project core:unit      # node tests only
-pnpm --filter @web-agents/core exec vitest run --project core:browser   # Chromium tests only
+pnpm --filter @webmcp-agents/core test        # one package
+pnpm --filter @webmcp-agents/docs dev         # docs site on :4321 (also started by pnpm dev); `test` = blume validate (links)
+pnpm --filter @webmcp-agents/core exec vitest run --project core:unit      # node tests only
+pnpm --filter @webmcp-agents/core exec vitest run --project core:browser   # Chromium tests only
 pnpm exec playwright install chromium      # once, for browser-mode tests
 ```
 
@@ -54,21 +54,21 @@ apps/playground/        demo storefront; every action is a WebMCP tool (declarat
 apps/ecommerce/         "Field Store" example (React Router 7): global / route / drawer-scoped tools, confirm-gated checkout;
                         data/ (mock JSON + pure queries), store/ (cart, cartRules), tools/, e2e/ (Playwright)
 apps/flights/           "Skyline" example: search in the URL, results tools on the results route, confirm-gated booking
-apps/docs/              @web-agents/docs: Blume site whose content root is ../../docs (config only; edit content in docs/)
-packages/core/          @web-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
-                        webmcp.ts (global WebMCP types), cursor.css (shipped as @web-agents/core/cursor.css),
+apps/docs/              @webmcp-agents/docs: Blume site whose content root is ../../docs (config only; edit content in docs/)
+packages/core/          @webmcp-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
+                        webmcp.ts (global WebMCP types), cursor.css (shipped as @webmcp-agents/core/cursor.css),
                         web-tool.ts (defineWebTool), registry.ts, confirm.ts, deferred.ts (deferred release + call tracking)
-packages/react/         @web-agents/react: <WebAgentsProvider>, useWebTool, useEnableTools, useToolAnswer, JSX attr types
-packages/polyfill/      @web-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
-packages/chat/          @web-agents/chat: <AgentChat> (components/), AgentAdapter types, createCloudAdapter (adapter/cloud.ts:
+packages/react/         @webmcp-agents/react: <WebAgentsProvider>, useWebTool, useEnableTools, useToolAnswer, JSX attr types
+packages/polyfill/      @webmcp-agents/polyfill: document.modelContext polyfill + declarative forms (+ /auto entry)
+packages/chat/          @webmcp-agents/chat: <AgentChat> (components/), AgentAdapter types, createCloudAdapter (adapter/cloud.ts:
                         the model ↔ tool loop, adapter/wire.ts: AI SDK UI message stream), session/ (reducer + useAgentSession),
                         /server (createChatHandler), /vite (webAgentsChatDev), chat.css
-packages/local-agent/   @web-agents/local-agent: createLocalAdapter (index.ts), loop.ts (shared on-device agent loop),
+packages/local-agent/   @webmcp-agents/local-agent: createLocalAdapter (index.ts), loop.ts (shared on-device agent loop),
                         tool-call-parser.ts, tools.ts (rank/compact/validate), providers/transformers (worker + engine +
                         main-thread provider), providers/prompt-api (Chrome LanguageModel)
-packages/vercel-api/    @web-agents/vercel-api (private): createVercelChatRoute for apps/*/api/chat.ts — origin, per-IP
+packages/vercel-api/    @webmcp-agents/vercel-api (private): createVercelChatRoute for apps/*/api/chat.ts — origin, per-IP
                         rate limit (Upstash or in-memory) and daily budget guards around the chat handler
-packages/devtools/      @web-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
+packages/devtools/      @webmcp-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts; keeps window.agent.run
 docs/                   API reference: docs/<package>/<api>.md, one file per public API (+ deploy.md); update it with the API.
@@ -109,11 +109,11 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 - Short "why" comments; don't narrate what the code does.
 
 ### Packages
-- `exports` use the custom condition `"@web-agents/source": "./src/….ts"` first, then `types`/`import` → `dist`.
-  Apps set `resolve.conditions: ["@web-agents/source", ...defaultClientConditions]`; `tsconfig.base.json` sets
+- `exports` use the custom condition `"@webmcp-agents/source": "./src/….ts"` first, then `types`/`import` → `dist`.
+  Apps set `resolve.conditions: ["@webmcp-agents/source", ...defaultClientConditions]`; `tsconfig.base.json` sets
   `customConditions`. So dev and typecheck use source; never import from another package's `src/` by path
   (exception: core's tests import the polyfill source, because a dependency would be a cycle).
-- Packages that need WebMCP types import them by name from `@web-agents/core` (`import type { ModelContext } …`), which
+- Packages that need WebMCP types import them by name from `@webmcp-agents/core` (`import type { ModelContext } …`), which
   also pulls the global declarations into their emitted `.d.ts`.
 - No DOM access at import time (SSR-safe); `typeof document === "undefined"` → no-op.
 - Library UIs (devtools, chat) put `data-web-agents-ui` (`UI_HOST_ATTR`) on their host so input there never yields the cursor.
@@ -175,16 +175,16 @@ mid-run (the cursor must vanish and the tool still complete).
   augmentation in `src/tools/context.ts`). Store actions read/write a ref, so back-to-back agent calls see each other.
 - Forms that navigate away answer first and navigate after the grace (`apps/*/src/lib/afterAnswer.ts`); a page whose
   own tool empties it (checkout, booking) keeps rendering until then.
-- `@web-agents/chat` runs one model step per request; tools run in the browser between steps. After each tool call (and
+- `@webmcp-agents/chat` runs one model step per request; tools run in the browser between steps. After each tool call (and
   before a run) the session waits for the page's tools to settle (`toolchange` quiet for ~150 ms), or a navigation's new
   tools miss the next request. Claude Opus 5.5 can't disable thinking: signed reasoning is kept in the history
   (`AgentPart` "reasoning") and sent back; `maxOutputTokens` must leave room for it.
-- `@web-agents/local-agent` loads transformers.js only inside its worker (`new Worker(new URL("./worker.ts", …))` in
+- `@webmcp-agents/local-agent` loads transformers.js only inside its worker (`new Worker(new URL("./worker.ts", …))` in
   source; a tsdown plugin rewrites it to `./worker.js` in dist). Apps need `optimizeDeps.exclude` for the package and
   transformers, and `worker: { format: "es" }`. pnpm denies the install scripts of transformers' Node-only deps
   (`allowBuilds` in pnpm-workspace.yaml). Unit tests never download a model.
 - Node-environment Vitest tests that import *another* workspace package at runtime need
-  `ssr: { resolve: { conditions: ["@web-agents/source", ...defaultServerConditions] } }`, else they load its stale `dist`.
+  `ssr: { resolve: { conditions: ["@webmcp-agents/source", ...defaultServerConditions] } }`, else they load its stale `dist`.
 - Vercel's function bundler resolves `api/chat.ts` imports with default conditions (`dist`, not `src`): a package used
   there must build what its `exports` name (tsdown `platform: "node"` emits `.mjs`; publint in the build catches it).
 - Library CSS is unlayered on purpose: an app's plain `button { color: inherit }` beats any `@layer` rule.

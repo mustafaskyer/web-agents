@@ -18,16 +18,16 @@ build with native WebMCP the polyfill steps aside and the same code runs against
 ## Packages
 
 API reference, one file per API: [docs/](docs/README.md), also built as a searchable site by
-[`apps/docs`](apps/docs/README.md) (`pnpm --filter @web-agents/docs dev`).
+[`apps/docs`](apps/docs/README.md) (`pnpm --filter @webmcp-agents/docs dev`).
 
 | Package | |
 |---|---|
-| [`@web-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
-| [`@web-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
-| [`@web-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
-| [`@web-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (Claude on your server, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `/api/chat` handler and a Vite dev plugin. |
-| [`@web-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
-| [`@web-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
+| [`@webmcp-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
+| [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
+| [`@webmcp-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
+| [`@webmcp-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (Claude on your server, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `/api/chat` handler and a Vite dev plugin. |
+| [`@webmcp-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
+| [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
 
 | App | |
 |---|---|
@@ -44,7 +44,7 @@ consequential step. Each app's README has its tool table.
 | [`apps/ecommerce`](apps/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
 | [`apps/flights`](apps/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
 
-`pnpm --filter @web-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
+`pnpm --filter @webmcp-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
@@ -131,7 +131,7 @@ deploy_.
   are-the-types-wrong (`check-exports`), then Playwright e2e. Releases: Changesets (`pnpm changeset`), published by
   `.github/workflows/release.yml`.
 - Packages build with tsdown. In this repo, apps and type-checking resolve packages to their
-  TypeScript source through the `"@web-agents/source"` export condition, so edits hot-reload
+  TypeScript source through the `"@webmcp-agents/source"` export condition, so edits hot-reload
   without a build; published packages use `dist/`.
 - Tests: Vitest. `*.test.ts` run in Node; `*.browser.test.ts` run in real Chromium (Vitest
   browser mode + Playwright). First run: `pnpm exec playwright install chromium`. The example apps

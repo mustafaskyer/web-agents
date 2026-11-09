@@ -1,12 +1,12 @@
-# @web-agents/docs
+# @webmcp-agents/docs
 
 The docs website: a [Blume](https://github.com/haydenbleasel/blume) site that renders the API reference in the repo's
 [`docs/`](../../docs/README.md). This app holds only config; **edit content in `docs/`**, not here.
 
 ```bash
-pnpm --filter @web-agents/docs dev      # http://localhost:4321, reloads on edits in docs/
-pnpm --filter @web-agents/docs build    # static site in dist/ (search index, llms.txt, raw .md copies)
-pnpm --filter @web-agents/docs test     # blume validate: every internal link and anchor resolves
+pnpm --filter @webmcp-agents/docs dev      # http://localhost:4321, reloads on edits in docs/
+pnpm --filter @webmcp-agents/docs build    # static site in dist/ (search index, llms.txt, raw .md copies)
+pnpm --filter @webmcp-agents/docs test     # blume validate: every internal link and anchor resolves
 ```
 
 - Pages stay `.md` (in `.mdx`, `{` and `<` become JSX). The title is the file's `# H1`.

@@ -1,4 +1,4 @@
-1. [x] Switch to a turbo repo and make this work under webmc-helpers as a package to demonstrate it via different examples (`@web-agents/*`, Phase 1)
+1. [x] Switch to a turbo repo and make this work under webmc-helpers as a package to demonstrate it via different examples (`@webmcp-agents/*`, Phase 1)
 2. add examples for ecommerce and booking flights web sites (designs from opendesign mcp)
 3. add dev tools package (inspired from tanstack dev tools) that visualize and make runs with visual json schema to simplify how to run
 4. add chat widget to enable and chat with the mcp leveraging agents
