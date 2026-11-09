@@ -1,0 +1,55 @@
+---
+title: Skyline
+description: A flight-booking site in apps/flights where search lives in the URL, results tools exist only on the results route, and booking waits for the person's click.
+---
+
+`apps/flights` (**Skyline**) books flights on deterministic mock data: the same search always returns the same
+flights and ids. Search, filter and sort the results, pick a flight, fill in the travelers and book. Every step is a
+tool, and booking waits for the person.
+
+![Skyline's search page](../media/examples/skyline.png)
+
+<video autoPlay loop muted playsInline data-no-zoom width="960">
+  <source src="../media/examples/skyline-booking.webm" type="video/webm" />
+  <source src="../media/examples/skyline-booking.mp4" type="video/mp4" />
+</video>
+
+*Search, results, select a flight: each a tool call under the cursor.*
+
+```bash
+pnpm --filter @webmcp-agents/example-flights dev     # http://localhost:5175
+pnpm --filter @webmcp-agents/example-flights e2e     # Playwright, desktop + Pixel 7
+```
+
+```js
+await agent.run("search_flights", { from: "LHR", to: "DXB", date: "2026-11-20" });
+await agent.run("filter_results", { stops: "0" });
+await agent.run("list_results", { limit: 3 });                 // ids for select_flight
+await agent.run("select_flight", { flightId: "F-…" });
+```
+
+## Tools
+
+| Tool | Kind | On | Confirm |
+|---|---|---|---|
+| `search_flights` | declarative | home and results pages | no |
+| `get_booking` | `WebTool`, read-only | global | no |
+| `get_location` | `WebTool`, read-only: city, region, country and the nearest airports | global | no |
+| `get_time` | `WebTool`, read-only: today's date and what "tomorrow", "this weekend" or "next week" mean for the person | global | no |
+| `filter_results` | `WebTool` | results route | no |
+| `sort_results` | `WebTool` | results route | no |
+| `list_results` | `WebTool`, read-only | results route | no |
+| `select_flight` | `WebTool` | results route | no |
+| `fill_traveler_details` | declarative | booking page | no |
+| `book_flight` | declarative | booking page | **yes**: the agent ticks the fare rules, the person clicks "Book flight" |
+
+## Patterns worth copying
+
+- **The search is the URL** (`/flights/lhr/dxb/oneway/economy/1/0/0/2026-11-20`). A loader validates it, and a bad URL
+  renders a readable error instead of a blank page.
+- **Context tools.** `get_time` and `get_location` answer what a model can't know ("next Friday", "from here"), so
+  the agent doesn't invent a date or an airport.
+- **Route-scoped results tools.** `filter_results` and friends exist only on the results page, and their descriptions
+  say so.
+- **Real fields.** Travelers are inline counters rather than a popover, so the agent fills visible fields.
+- **The agent** (`concierge`, the booking flow in plain lines) lives in `src/agents.ts` and is shared by the chat, the Vite dev plugin and `api/chat.ts` ([Define an agent](/guides/agents)).

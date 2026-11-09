@@ -1,0 +1,86 @@
+---
+title: Field Store on Next.js
+description: The store on the Next.js App Router with shadcn/ui, where Server Components render the pages, client components hold the tools, the chat is a shadcn block, and the API key provably stays on the server.
+---
+
+`apps/nextjs` is Field Store again, trimmed to home, product, cart and checkout, on **Next.js 16** (App Router,
+Turbopack) with **shadcn/ui** (Tailwind v4). It exists to show three things the Vite examples can't:
+
+- **Server Components render the pages**; only the tools and the chat are client components (they need the DOM).
+- **The chat is a shadcn block** (`agent-chat` from the `@webmcp-agents` registry), built on `useAgentChat` and
+  shadcn/ui's AI patterns: Message Scroller, Tool (Trace), Subagent, Reasoning, Prompt Input, Model Selector.
+- **The key never reaches the client**: it lives in a `server-only` module and is tainted with React's
+  `experimental_taintUniqueValue`, so a Server Component can't pass it to a client component by accident.
+
+![Field Store on Next.js: the store front, server-rendered, with the shadcn chat block](../media/examples/nextjs.png)
+
+```bash
+pnpm --filter @webmcp-agents/example-nextjs dev    # http://localhost:5176; builds the packages it consumes first
+pnpm --filter @webmcp-agents/example-nextjs e2e    # Playwright, desktop + Pixel 7
+```
+
+Put a key in `apps/nextjs/.env.local` (see `.env.example`); never with a `NEXT_PUBLIC_` prefix.
+
+## Where things are
+
+<FileTree>
+  - app/
+    - layout.tsx (Server Component: fonts, the agent cursor's stylesheet, `<Providers>`)
+    - providers.tsx ("use client": cart store, `<WebAgentsProvider>`, header, the chat block)
+    - page.tsx (home, a Server Component; `?q=` is what `search_products` navigates to)
+    - product/[slug]/page.tsx (Server Component + the client `add_to_cart` form)
+    - cart/, checkout/ (client views; checkout holds `apply_promo` and the confirm-gated `checkout`)
+    - api/chat/route.ts (`createVercelChatRoute({ app, agents, model })`)
+  - agents.ts (`shopper` with the `checkout` sub-agent: shared by the client and the route)
+  - lib/env.server.ts (`server-only` + taint)
+  - lib/catalog.ts, lib/cart.tsx, tools/ (the same tools as Field Store, in Tailwind)
+  - components/web-agents/ (the installed registry blocks: agent-chat, agent-tool, agent-subagent, agent-reasoning, agent-model-selector)
+  - components/ui/ (shadcn primitives)
+</FileTree>
+
+## Tools and agents
+
+| Tool | Kind | On |
+|---|---|---|
+| `search_products` | declarative (header form) | everywhere |
+| `open_product`, `go_to_page`, `get_cart` | `WebTool` | global |
+| `add_to_cart` | declarative | a product page |
+| `apply_promo` | declarative | checkout |
+| `checkout` | declarative, no `toolautosubmit` | checkout; the browser pauses on **Place order** until the person clicks |
+
+`shopper` sees everything but `apply_promo` and `checkout`; it hands a purchase to the `checkout` sub-agent
+(`delegate_to_checkout`), which runs with those two tools plus `get_cart` and `go_to_page`. In the chat the delegate
+call shows as a Subagent trace with the nested tool lines inside.
+
+## Try it
+
+<Steps>
+  <Step title="Ask for a mug">
+    Open the Assistant (bottom right) and send "Add a ceramic mug to my cart". `open_product` and `add_to_cart` show
+    as Trace lines while the cursor works the page.
+  </Step>
+  <Step title="Check out through the sub-agent">
+    "Check out with promo WELCOME10 to ada@example.com, 1 Main St". The shopper delegates; the Subagent trace nests
+    `get_cart`, `go_to_page`, `apply_promo` and `checkout`, which parks: "Confirm on the page". Click **Place order**.
+  </Step>
+  <Step title="See that the key stays put">
+    View source: no key. The route answers `GET /api/chat` with `{ enabled, model, provider, agents }` and nothing
+    else. Try `console.log(process.env.ANTHROPIC_API_KEY)` in a Server Component passed to a client prop: React throws.
+  </Step>
+</Steps>
+
+## Patterns worth copying
+
+- **`server-only` + taint** for the one secret (`lib/env.server.ts`); the route handler reads `process.env` itself.
+- **Consume the built packages** (`dist`), not the `@webmcp-agents/source` condition: Turbopack has no custom export
+  conditions, and this is the published shape anyway. `predev` builds the dependencies.
+- **The cursor stylesheet as a static file** (`scripts/copy-cursor-css.mjs` → `public/web-agents/cursor.css`):
+  Turbopack's CSS parser refuses Chrome's native `:tool-form-active` pseudo-class inside the Tailwind pipeline.
+- **`usePathname()`** feeds the provider so route-scoped tools follow Next's soft navigations.
+- **The polyfill, then the devtools** load in an effect before the provider renders, so the first tool registers on a
+  `document.modelContext` that exists (the devtools give `window.agent` to the e2e tests in dev).
+
+## Reference
+
+[Use your shadcn components](/guides/ai-elements), [Frameworks](/frameworks/vite), [Define an agent](/guides/agents),
+[`useAgentChat`](/reference/chat/use-agent-chat).

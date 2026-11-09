@@ -1,0 +1,160 @@
+---
+title: Vite
+description: A Vite single-page app with React and React Router, from install to a deployed /api/chat. This is how the example apps are built.
+---
+
+The Vite setup is the reference one: `apps/playground`, `apps/ecommerce` and `apps/flights` are all built this way.
+Everything below is what those apps do, in order.
+
+## 1. Install
+
+```bash
+pnpm add @webmcp-agents/core @webmcp-agents/react @webmcp-agents/chat
+pnpm add -D @webmcp-agents/polyfill @webmcp-agents/devtools          # development only
+pnpm add @ai-sdk/anthropic                                           # the SDK of your model's provider, server only
+```
+
+## 2. Styles and the polyfill
+
+The cursor's stylesheet and the chat's, then the polyfill for browsers without native WebMCP (development only; it
+must exist before the first tool registers).
+
+```ts src/main.tsx
+import "@webmcp-agents/core/cursor.css";
+import "@webmcp-agents/chat/chat.css";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { createBrowserRouter, RouterProvider } from "react-router";
+
+if (import.meta.env.DEV) await import("@webmcp-agents/polyfill/auto");
+
+const { routes } = await import("./routes");
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <RouterProvider router={createBrowserRouter(routes)} />
+  </StrictMode>,
+);
+```
+
+## 3. Tools and the agent
+
+Tools are plain definitions; the agent is plain data. Both live in `src/` and have no DOM access, so the agent file
+can also be imported by `vite.config.ts` and `api/chat.ts`.
+
+```ts src/tools/catalog.ts
+import { defineWebTool } from "@webmcp-agents/react";
+
+export const getCart = defineWebTool({
+  id: "get_cart",
+  description: "Read the cart: lines, promo code and totals.",
+  annotations: { readOnlyHint: true },
+  execute: (_input, ctx) => ctx.context!.cart.describe(),
+});
+
+export const catalog = [getCart /* , openProduct, goToPage, … */];
+export const globalTools = catalog.map((t) => t.id);
+```
+
+```ts src/agents.ts
+import { defineWebAgent } from "@webmcp-agents/chat/agent";
+
+export const shopper = defineWebAgent({
+  id: "shopper",
+  instructions: [
+    "Field Store sells apparel, accessories and home goods.",
+    "To find a product: search_products with one key word. To show one: open_product with its slug.",
+    "add_to_cart only exists on a product's page: open_product first.",
+  ],
+});
+```
+
+## 4. The provider and the chat
+
+The provider installs the cursor and registers the tools. It takes the router's `pathname`, so route-scoped tools
+follow navigation. Adapters are created once, at module scope.
+
+```tsx src/Root.tsx
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import { WebAgentsProvider } from "@webmcp-agents/react";
+import { Outlet, useLocation, useNavigate } from "react-router";
+import { shopper } from "./agents";
+import { catalog, globalTools } from "./tools/catalog";
+
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter()];
+
+export function Root() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const cart = useCart();
+  return (
+    <WebAgentsProvider tools={catalog} global={globalTools} pathname={pathname} context={{ cart, navigate }}>
+      <Outlet />
+      <AgentChat adapters={ADAPTERS} agent={shopper} />
+    </WebAgentsProvider>
+  );
+}
+```
+
+## 5. `/api/chat` in development
+
+The Vite plugin serves the endpoint from the dev server. It reads the key from `.env.local` on the server side,
+knows the page's agents, and refuses to start when a `VITE_*` variable is named like a secret.
+
+```ts vite.config.ts
+import react from "@vitejs/plugin-react";
+import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
+import { defineConfig } from "vite";
+import { shopper } from "./src/agents";
+
+export default defineConfig({
+  plugins: [react(), webAgentsChatDev({ agents: [shopper] })],
+});
+```
+
+```bash .env.local
+WEB_AGENTS_MODEL=anthropic/claude-opus-5-5
+ANTHROPIC_API_KEY=sk-ant-…
+```
+
+## 6. `/api/chat` in production
+
+On Vercel, `api/chat.ts` is a function; `createVercelChatRoute` wraps the handler with an origin check, per-IP rate
+limits and a daily budget. Any other host works with `createChatHandler` behind its own guard.
+
+```ts api/chat.ts
+import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
+import { shopper } from "../src/agents";
+
+export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "ecommerce", agents: [shopper] });
+```
+
+```ts api/chat.ts (any runtime with web Request/Response)
+import { createChatHandler } from "@webmcp-agents/chat/server";
+import { shopper } from "../src/agents";
+
+const handler = createChatHandler({ agents: [shopper] });
+export const GET = handler;
+export const POST = handler;
+```
+
+The SPA needs a rewrite so deep links serve `index.html`; `apps/ecommerce/vercel.json` has it.
+
+## 7. Typecheck both sides
+
+The app typechecks twice: `tsconfig.json` for `src/` (with `vite/client`) and `tsconfig.node.json` for `api/`,
+`vite.config.ts` and the e2e tests (with `node`). `src/agents.ts` is in both, which is fine: it imports nothing
+environment-specific.
+
+## Where secrets live
+
+| | |
+|---|---|
+| The API key | `.env.local`, unprefixed, read on the server side by the dev plugin and by `api/chat.ts`. Never `VITE_*`: Vite inlines those into the bundle, and the dev plugin refuses to start when it sees one named like a secret. |
+| The model | `WEB_AGENTS_MODEL` on the server, or `model` in the handler. |
+| Agent instructions | `src/agents.ts`, shared; the server reads them from its registry, the page sends only the id. |
+
+## Reference
+
+[Add a chat](/guides/chat), [Define an agent](/guides/agents), [Deploy to Vercel](/guides/deploy),
+[Field Store](/examples/field-store), [Skyline](/examples/skyline).
