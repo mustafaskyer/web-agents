@@ -4,8 +4,8 @@ The zod schema for the POST body of `/api/chat`, and the caps it enforces. Count
 page, or anyone calling the endpoint, can't send an unbounded prompt.
 
 ```ts
-import { chatRequestSchema, LIMITS } from "@web-agents/chat/server";
-import type { ChatRequest } from "@web-agents/chat/server";
+import { chatRequestSchema, LIMITS } from "@webmcp-agents/chat/server";
+import type { ChatRequest } from "@webmcp-agents/chat/server";
 ```
 
 ## Signature
@@ -76,7 +76,7 @@ const { messages, tools, page } = parsed.data;
 ## Notes
 
 - `createChatHandler` already applies it; use it when you write your own handler or test a client.
-- `LIMITS` is exported from `@web-agents/chat/server`, not the main entry.
+- `LIMITS` is exported from `@webmcp-agents/chat/server`, not the main entry.
 
 ## See also
 

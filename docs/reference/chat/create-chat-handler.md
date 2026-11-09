@@ -5,8 +5,8 @@ Vercel, in any Node or edge server with web `Request`/`Response`, and in `vite d
 model's tool calls stream back to the browser, which runs them on the live page.
 
 ```ts
-import { createChatHandler, DEFAULT_MODEL } from "@web-agents/chat/server";
-import type { ChatHandlerOptions, Effort } from "@web-agents/chat/server";
+import { createChatHandler, DEFAULT_MODEL } from "@webmcp-agents/chat/server";
+import type { ChatHandlerOptions, Effort } from "@webmcp-agents/chat/server";
 ```
 
 ## Signature
@@ -67,7 +67,7 @@ A handler. By method and order:
 
 ```ts
 // api/chat.ts (Vercel): any runtime with web Request/Response works the same way
-import { createChatHandler } from "@web-agents/chat/server";
+import { createChatHandler } from "@webmcp-agents/chat/server";
 
 const handler = createChatHandler({
   guard: (req) => (rateLimited(req) ? new Response("Too many requests", { status: 429 }) : undefined),
@@ -76,7 +76,7 @@ export const GET = handler;
 export const POST = handler;
 ```
 
-The example apps wrap it with origin, rate-limit and budget guards through `@web-agents/vercel-api`
+The example apps wrap it with origin, rate-limit and budget guards through `@webmcp-agents/vercel-api`
 (`apps/*/api/chat.ts`).
 
 ## Notes

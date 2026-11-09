@@ -4,8 +4,8 @@ A chat launcher and a non-modal chat panel. The agent behind it works the live p
 person watches, so by default the panel docks beside the page instead of covering it.
 
 ```ts
-import { AgentChat } from "@web-agents/chat";
-import "@web-agents/chat/chat.css";
+import { AgentChat } from "@webmcp-agents/chat";
+import "@webmcp-agents/chat/chat.css";
 ```
 
 ## Signature
@@ -59,7 +59,7 @@ is given.
 
 ## Theming
 
-Import `@web-agents/chat/chat.css` once. Every rule is scoped by a `.wa-chat*` class and sits outside any cascade
+Import `@webmcp-agents/chat/chat.css` once. Every rule is scoped by a `.wa-chat*` class and sits outside any cascade
 layer. Override the custom properties on `.wa-chat` (or on your `className`):
 
 | Property | Default (light) |
@@ -87,8 +87,8 @@ Dark mode follows `prefers-color-scheme` (unless an ancestor or the host has `da
 
 ```tsx
 // apps/ecommerce/src/Root.tsx
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
 
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: STORE_INSTRUCTIONS })];

@@ -4,8 +4,8 @@ A Vite plugin that serves `/api/chat` from `vite dev`, so the chat widget works 
 API key is read from the project's `.env` files on the server side.
 
 ```ts
-import { webAgentsChatDev } from "@web-agents/chat/vite";
-import type { WebAgentsChatDevOptions } from "@web-agents/chat/vite";
+import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
+import type { WebAgentsChatDevOptions } from "@webmcp-agents/chat/vite";
 ```
 
 ## Signature
@@ -35,7 +35,7 @@ A Vite `Plugin` named `web-agents-chat-dev`, with `apply: "serve"`: it does noth
 ```ts
 // apps/ecommerce/vite.config.ts
 import react from "@vitejs/plugin-react";
-import { webAgentsChatDev } from "@web-agents/chat/vite";
+import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -55,7 +55,7 @@ ANTHROPIC_API_KEY=…
 - The env is loaded with `loadEnv(mode, envDir || root, "")` into a private object; `process.env` is not changed.
 - Closing the browser request (Stop, a navigation) aborts the model call.
 - A handler error is logged through Vite's logger and answered with `500` if headers weren't sent yet.
-- `vite` is an optional peer dependency of `@web-agents/chat`.
+- `vite` is an optional peer dependency of `@webmcp-agents/chat`.
 
 ## See also
 

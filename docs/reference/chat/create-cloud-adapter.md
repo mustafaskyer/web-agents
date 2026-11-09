@@ -4,7 +4,7 @@ An `AgentAdapter` backed by your `/api/chat` endpoint (Claude on your server). T
 call runs on the page, one at a time, so the agent cursor plays.
 
 ```ts
-import { createCloudAdapter } from "@web-agents/chat";
+import { createCloudAdapter } from "@webmcp-agents/chat";
 ```
 
 ## Signature

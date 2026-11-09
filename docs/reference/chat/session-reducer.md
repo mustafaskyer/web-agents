@@ -4,8 +4,8 @@ The chat session as a pure state machine: messages, whether a run is streaming, 
 feeds it adapter stream parts and core agent events. `resumable` decides what Retry sends.
 
 ```ts
-import { resumable, sessionReducer } from "@web-agents/chat";
-import type { SessionAction, SessionError, SessionState } from "@web-agents/chat";
+import { resumable, sessionReducer } from "@webmcp-agents/chat";
+import type { SessionAction, SessionError, SessionState } from "@webmcp-agents/chat";
 ```
 
 ## Signature

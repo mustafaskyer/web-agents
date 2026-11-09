@@ -5,8 +5,8 @@ differences are absorbed. It never throws: every outcome is a result the model c
 code.
 
 ```ts
-import { callModelContextTool, CANCELLED, isCancelled, NAVIGATED, TOOL_TIMEOUT_MS } from "@web-agents/chat";
-import type { CallToolOptions } from "@web-agents/chat";
+import { callModelContextTool, CANCELLED, isCancelled, NAVIGATED, TOOL_TIMEOUT_MS } from "@webmcp-agents/chat";
+import type { CallToolOptions } from "@webmcp-agents/chat";
 ```
 
 ## Signature
@@ -59,7 +59,7 @@ what each code means.
 ## The time limit and `waitingForUser`
 
 The clock stops for good once the tool waits for the person, since they may take their time. That is detected two
-ways: a core `park` event for this tool (a confirm, or `waitingForUser()` from `@web-agents/core`), or, when the timer
+ways: a core `park` event for this tool (a confirm, or `waitingForUser()` from `@webmcp-agents/core`), or, when the timer
 fires, a declarative `form[toolname="<tool>"]` on the page whose submit is paused for the click
 (`[data-tool-submit-active]` or `:tool-submit-active`). The `park` event needs the visuals installed, so the page check
 covers pages without them.

@@ -8,7 +8,7 @@ implement it.
 import type {
   AdapterStatus, AgentAdapter, AgentMessage, AgentPart, AgentRunRequest,
   AgentStreamPart, ToolCallState, ToolDescriptor, ToolOutput,
-} from "@web-agents/chat";
+} from "@webmcp-agents/chat";
 ```
 
 ## `AgentAdapter`
@@ -127,7 +127,7 @@ interface ToolDescriptor {
   inputSchema: JSONSchema;
 }
 
-type ToolOutput = ModelContextToolResult; // { content, isError?, structuredContent? } from @web-agents/core
+type ToolOutput = ModelContextToolResult; // { content, isError?, structuredContent? } from @webmcp-agents/core
 ```
 
 ## Example

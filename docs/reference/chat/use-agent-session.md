@@ -4,7 +4,7 @@ A React hook for a conversation with an agent about the current page. It is what
 your own chat UI on the same session logic.
 
 ```ts
-import { useAgentSession } from "@web-agents/chat";
+import { useAgentSession } from "@webmcp-agents/chat";
 ```
 
 ## Signature
@@ -63,7 +63,7 @@ interface AgentSession {
 ## Example
 
 ```tsx
-import { createCloudAdapter, useAgentSession } from "@web-agents/chat";
+import { createCloudAdapter, useAgentSession } from "@webmcp-agents/chat";
 
 const cloud = createCloudAdapter();
 

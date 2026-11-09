@@ -4,7 +4,7 @@ Lists the WebMCP tools registered on this page right now, as the model sees them
 use the widget.
 
 ```ts
-import { listToolDescriptors } from "@web-agents/chat";
+import { listToolDescriptors } from "@webmcp-agents/chat";
 ```
 
 ## Signature

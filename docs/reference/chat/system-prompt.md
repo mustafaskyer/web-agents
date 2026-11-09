@@ -5,7 +5,7 @@ The system prompt the chat handler sends Claude: `DEFAULT_SYSTEM_PROMPT` says ho
 here.
 
 ```ts
-import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "@web-agents/chat/server";
+import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "@webmcp-agents/chat/server";
 ```
 
 ## Signature
@@ -43,7 +43,7 @@ function buildSystemPrompt(base: string, path?: string): string;
 ## Example
 
 ```ts
-import { createChatHandler, DEFAULT_SYSTEM_PROMPT } from "@web-agents/chat/server";
+import { createChatHandler, DEFAULT_SYSTEM_PROMPT } from "@webmcp-agents/chat/server";
 
 const handler = createChatHandler({
   system: `${DEFAULT_SYSTEM_PROMPT}\n\n- This is Field Store. Prices are in USD.`,
