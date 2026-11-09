@@ -1,5 +1,5 @@
-import "@web-agents/core/cursor.css";
-import "@web-agents/chat/chat.css";
+import "@webmcp-agents/core/cursor.css";
+import "@webmcp-agents/chat/chat.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import { StrictMode } from "react";
@@ -8,7 +8,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 
 // 1. (dev only) give browsers without native WebMCP a document.modelContext, before any tool registers.
 //    Phase 7: ship it in the deployed demo behind VITE_WEBMCP_POLYFILL, or most visitors see no tools.
-if (import.meta.env.DEV) await import("@web-agents/polyfill/auto");
+if (import.meta.env.DEV) await import("@webmcp-agents/polyfill/auto");
 
 // 2. the app: <WebAgentsProvider> in Root installs the agent cursor before its first tool registers.
 const { routes } = await import("./routes");

@@ -11,11 +11,11 @@
  * `ctx.context` (the provider's `context` prop), typed by the `Register`
  * augmentation below.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { type CartApi, money } from "../store";
 
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: CartApi;
   }

@@ -6,7 +6,7 @@
  * within the document, and these tools are global, so their definitions stay
  * put and the call is never cancelled by its own navigation.
  */
-import { defineWebTool, WebToolError } from "@web-agents/react";
+import { defineWebTool, WebToolError } from "@webmcp-agents/react";
 import { z } from "zod";
 import {
   categorySlugs,

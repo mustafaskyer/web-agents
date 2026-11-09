@@ -1,13 +1,13 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import "@web-agents/core/cursor.css";
-import "@web-agents/chat/chat.css";
+import "@webmcp-agents/core/cursor.css";
+import "@webmcp-agents/chat/chat.css";
 import "./app.css";
 
 // 1. (dev only) give browsers without native WebMCP a document.modelContext
 if (import.meta.env.DEV) {
-  await import("@web-agents/polyfill/auto");
+  await import("@webmcp-agents/polyfill/auto");
 }
 
 // 2. the app: <WebAgentsProvider> (App.tsx) installs the agent cursor before its first tool registers,

@@ -13,7 +13,7 @@
  */
 import type { FormEvent } from "react";
 import { money, settle, useCart } from "../store";
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 
 export function CheckoutForm() {
   const cart = useCart();

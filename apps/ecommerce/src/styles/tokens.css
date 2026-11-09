@@ -1,4 +1,4 @@
-/* Field Store design tokens. Imported after @web-agents/core/cursor.css, so the --agent* values below win. */
+/* Field Store design tokens. Imported after @webmcp-agents/core/cursor.css, so the --agent* values below win. */
 :root {
   --bg: #fafafa;
   --surface: #ffffff;

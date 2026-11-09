@@ -3,7 +3,7 @@
  * TanStack Devtools instead of the floating panel.
  */
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@web-agents/devtools/react";
+import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 const TANSTACK = new URLSearchParams(location.search).has("tanstack");
 

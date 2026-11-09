@@ -1,6 +1,6 @@
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
-import { EnableTools, usePathname, WebAgentsProvider } from "@web-agents/react";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import { EnableTools, usePathname, WebAgentsProvider } from "@webmcp-agents/react";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 import { Orders } from "./Orders";
 import { CartProvider, PRODUCTS, money, useCart } from "./store";

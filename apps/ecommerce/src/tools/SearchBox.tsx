@@ -5,7 +5,7 @@
  * their slugs, so the agent can go straight to open_product. The header stays
  * mounted across pages, so navigating to the results can't cancel the call.
  */
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { SearchIcon } from "../components/icons";

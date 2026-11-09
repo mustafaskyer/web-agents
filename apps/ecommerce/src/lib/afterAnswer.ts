@@ -1,4 +1,4 @@
-import { RESPONSE_GRACE_MS } from "@web-agents/core";
+import { RESPONSE_GRACE_MS } from "@webmcp-agents/core";
 
 /**
  * Run `then` (navigate away, close a panel) once the agent has its answer:

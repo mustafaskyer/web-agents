@@ -5,7 +5,7 @@
  * exactly when their controls are on screen. The cursor goes to the line's own
  * quantity field or remove button.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
 import { MAX_QTY } from "../store/cartRules";
 import { store } from "./context";

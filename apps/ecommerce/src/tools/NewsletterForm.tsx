@@ -4,7 +4,7 @@
  * It hands over the person's email, so no `toolautosubmit`: the agent fills it
  * in, and the browser waits for the person to click Subscribe.
  */
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useState } from "react";
 import styles from "./forms.module.css";
 

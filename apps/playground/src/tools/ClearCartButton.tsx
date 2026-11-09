@@ -8,7 +8,7 @@
  * while there is something to clear. The `toolname` attribute is what the
  * cursor and the confirmation look for.
  */
-import { defineWebTool, useWebTool } from "@web-agents/react";
+import { defineWebTool, useWebTool } from "@webmcp-agents/react";
 import { useMemo } from "react";
 import { useCart } from "../store";
 

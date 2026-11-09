@@ -3,9 +3,9 @@
  * cart drawer and (dev only) the devtools. The provider gets the router's
  * pathname, since React Router's pushState is invisible without the Navigation API.
  */
-import { AgentChat, createCloudAdapter } from "@web-agents/chat";
-import { createLocalAdapter } from "@web-agents/local-agent";
-import { useAgentEvents, WebAgentsProvider } from "@web-agents/react";
+import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import { useAgentEvents, WebAgentsProvider } from "@webmcp-agents/react";
 import { lazy, Suspense, useMemo } from "react";
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { CartDrawer } from "./components/CartDrawer";
@@ -19,7 +19,7 @@ import { STORE_INSTRUCTIONS } from "./tools/instructions";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
+  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
 const VISUALS = { spotlight: false };

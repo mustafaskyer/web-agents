@@ -8,7 +8,7 @@
  * dialog-role panel instead; Root makes the page behind it `inert`, which gives
  * the same focus containment.
  */
-import { EnableTools } from "@web-agents/react";
+import { EnableTools } from "@webmcp-agents/react";
 import { useEffect, useId, useRef } from "react";
 import { Link } from "react-router";
 import { findProduct, money } from "../data/catalog";

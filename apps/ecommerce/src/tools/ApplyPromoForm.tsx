@@ -6,8 +6,8 @@
  * form (the summary shows the code with a Remove link), so it stays for a
  * moment after answering (useToolAnswer) instead of vanishing under the call.
  */
-import { errorText } from "@web-agents/core";
-import { useToolAnswer } from "@web-agents/react";
+import { errorText } from "@webmcp-agents/core";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useId, useState } from "react";
 import { useCart } from "../store/cart";
 import styles from "./forms.module.css";

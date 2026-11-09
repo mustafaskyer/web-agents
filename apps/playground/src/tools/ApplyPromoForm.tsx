@@ -13,7 +13,7 @@
  */
 import { useId, useState, type FormEvent } from "react";
 import { errorMessage, useCart } from "../store";
-import { useToolAnswer } from "@web-agents/react";
+import { useToolAnswer } from "@webmcp-agents/react";
 
 export function ApplyPromoForm() {
   const cart = useCart();

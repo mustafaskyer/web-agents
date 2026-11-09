@@ -3,7 +3,7 @@
  * (see Root in routes.tsx). Module-level tools can't call hooks, so the cart,
  * the drawer and navigation reach them this way.
  */
-import type { WebToolContext } from "@web-agents/react";
+import type { WebToolContext } from "@webmcp-agents/react";
 import type { CartApi } from "../store/cart";
 import type { UiApi } from "../store/ui";
 
@@ -14,7 +14,7 @@ export interface StoreContext {
   navigate(to: string): void;
 }
 
-declare module "@web-agents/core" {
+declare module "@webmcp-agents/core" {
   interface Register {
     context: StoreContext;
   }

@@ -13,8 +13,8 @@
  * what was chosen. No pick within a minute answers the agent to ask instead
  * (`Error [needs_user]`). `waitingForUser` tells the agent's tool clock the person is being asked.
  */
-import { errorText, waitingForUser } from "@web-agents/core";
-import { useToolAnswer } from "@web-agents/react";
+import { errorText, waitingForUser } from "@webmcp-agents/core";
+import { useToolAnswer } from "@webmcp-agents/react";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { QtyStepper } from "../components/QtyStepper";
 import type { Product } from "../data/catalog";

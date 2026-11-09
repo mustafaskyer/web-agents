@@ -9,8 +9,8 @@
  * state: `onPlaced` hands the page the order to keep showing until the agent
  * has its answer, then the page moves to the order confirmation.
  */
-import { errorText } from "@web-agents/core";
-import { useToolAnswer } from "@web-agents/react";
+import { errorText } from "@webmcp-agents/core";
+import { useToolAnswer } from "@webmcp-agents/react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { money } from "../data/catalog";

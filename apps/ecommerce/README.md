@@ -5,8 +5,8 @@ the three ways a tool can be on: always (global), while a route is shown (by mou
 while a component is open (the cart drawer).
 
 ```
-pnpm --filter @web-agents/example-ecommerce dev    # http://localhost:5174
-pnpm --filter @web-agents/example-ecommerce e2e    # Playwright, desktop + Pixel 7
+pnpm --filter @webmcp-agents/example-ecommerce dev    # http://localhost:5174
+pnpm --filter @webmcp-agents/example-ecommerce e2e    # Playwright, desktop + Pixel 7
 ```
 
 Open the devtools (bottom right, Alt+Shift+A) and run a tool, or from the browser console:

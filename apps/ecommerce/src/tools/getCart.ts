@@ -5,7 +5,7 @@
  * tools (update_cart_item, remove_from_cart). The cart button in the header
  * carries toolname="open_cart", so the cursor presses it.
  */
-import { defineWebTool } from "@web-agents/react";
+import { defineWebTool } from "@webmcp-agents/react";
 import { store } from "./context";
 
 export const getCart = defineWebTool({
