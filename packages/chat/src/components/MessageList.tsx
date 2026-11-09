@@ -1,22 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AgentMessage } from "../types";
 import { DownIcon } from "./icons";
+import { Text } from "./Text";
 import { ToolCallCard } from "./ToolCallCard";
-
-/** Plain text with paragraph breaks: model output is never rendered as HTML. */
-function Text({ text }: { text: string }) {
-  return (
-    <>
-      {text
-        .split(/\n{2,}/)
-        .filter((p) => p.trim())
-        .map((p, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one streaming text, only ever appended to
-          <p key={i}>{p}</p>
-        ))}
-    </>
-  );
-}
 
 function Message({ message }: { message: AgentMessage }) {
   const visible = message.parts.filter((p) => p.type !== "reasoning" && (p.type !== "text" || p.text.trim()));

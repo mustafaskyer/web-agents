@@ -9,9 +9,10 @@
  * here never counts as "the user took over" for the agent cursor.
  */
 import { UI_HOST_ATTR } from "@webmcp-agents/core";
-import { type CSSProperties, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { useAgentSession } from "../session/use-agent-session";
+import type { WebAgent } from "../agent";
+import { useAgentChat } from "../session/use-agent-chat";
 import type { AgentAdapter } from "../types";
 import { AdapterSwitcher } from "./AdapterSwitcher";
 import { Composer } from "./Composer";
@@ -19,7 +20,8 @@ import { ResizeHandle, useDock } from "./dock";
 import { DownloadCard } from "./DownloadCard";
 import { ChatIcon, CloseIcon, ResetIcon } from "./icons";
 import { MessageList } from "./MessageList";
-import { Suggestions, suggestionsFor } from "./Suggestions";
+import { ModelPicker } from "./ModelPicker";
+import { Suggestions } from "./Suggestions";
 
 /** Props of `<AgentChat>`. */
 export interface AgentChatProps {
@@ -27,6 +29,11 @@ export interface AgentChatProps {
   adapter?: AgentAdapter;
   /** Several agents: the panel shows a switcher (cloud, in-browser…). The first is the default. */
   adapters?: readonly AgentAdapter[];
+  /**
+   * The agent for this page (`defineWebAgent`): its instructions, the tools it may use and its sub-agents. Register
+   * the same definition on the server (`createChatHandler({ agents })`). Default: every page tool, no instructions.
+   */
+  agent?: WebAgent;
   /** Panel title. Default "Assistant". */
   title?: string;
   /** Open on first render. Default false. */
@@ -45,8 +52,6 @@ export interface AgentChatProps {
   /** sessionStorage key for the conversation; `false` keeps it in memory. Default "web-agents:chat". */
   storageKey?: string | false;
 }
-
-const ADAPTER_KEY = "web-agents:chat:adapter";
 
 function useHost(className: string | undefined, position: string): HTMLElement | null {
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -69,6 +74,7 @@ function useHost(className: string | undefined, position: string): HTMLElement |
 export function AgentChat({
   adapter,
   adapters,
+  agent,
   title = "Assistant",
   defaultOpen = false,
   position = "bottom-right",
@@ -77,22 +83,13 @@ export function AgentChat({
   className,
   storageKey,
 }: AgentChatProps) {
-  const all = useMemo(() => adapters ?? (adapter ? [adapter] : []), [adapter, adapters]);
-  if (all.length === 0) throw new Error("<AgentChat> needs an `adapter` (or `adapters`), e.g. createCloudAdapter().");
-  // the person's last choice, when that adapter is still offered
-  const [adapterId, setAdapterId] = useState(() => {
-    const saved = typeof localStorage === "undefined" ? null : localStorage.getItem(ADAPTER_KEY);
-    return all.some((a) => a.id === saved) ? saved! : all[0]!.id;
-  });
-  const current = all.find((a) => a.id === adapterId) ?? all[0]!;
-  const choose = (id: string): void => {
-    setAdapterId(id);
-    localStorage.setItem(ADAPTER_KEY, id);
-  };
+  if (!adapter && !adapters?.length) throw new Error("<AgentChat> needs an `adapter` (or `adapters`), e.g. createCloudAdapter().");
+  // one state source, shared with custom UIs: the adapter choice, the session, the adapter's status and models
+  const chat = useAgentChat({ adapter, adapters, agent, storageKey });
+  const { adapters: all, adapter: current, selectAdapter: choose, session } = chat;
 
   const host = useHost(className, position);
   const side = position === "bottom-left" ? "left" : "right";
-  const session = useAgentSession(current, { storageKey });
   const [open, setOpen] = useState(defaultOpen);
   const dock = useDock(open && layout === "docked", side);
   useEffect(() => {
@@ -130,7 +127,9 @@ export function AgentChat({
         : status.state === "error"
           ? status.error
           : status.state === "loading"
-            ? "Connecting to the assistant…"
+            ? status.progress === undefined
+              ? "Connecting to the assistant…"
+              : `Loading the model… ${Math.round(status.progress * 100)}%`
             : status.state === "downloading"
               ? `Downloading the model… ${Math.round(status.progress * 100)}%`
               : "Download the model to start.";
@@ -143,11 +142,24 @@ export function AgentChat({
     download.current?.abort();
     const ctrl = new AbortController();
     download.current = ctrl;
-    current.prepare?.(ctrl.signal).catch(() => {}); // failures show as the adapter's "error" status
+    chat.prepare?.(ctrl.signal).catch(() => {}); // failures show as the adapter's "error" status
   };
   const other = all.find((a) => a.id !== current.id);
+  // ---------- model picker (adapters that offer several models) ----------
+  const models = chat.models;
+  const busy =
+    session.status === "streaming" || status.state === "downloading" || (status.state === "loading" && status.progress !== undefined);
+  const picker =
+    models.length > 1 ? (
+      <ModelPicker models={models} disabled={busy} onSelect={(id) => void chat.selectModel?.(id).catch(() => {})} />
+    ) : null;
+  // a cached model loading from disk (`loading` with progress) shows the same card, worded as a load
   const downloadCard =
-    current.prepare && (status.state === "needs-download" || status.state === "downloading" || status.state === "error") ? (
+    current.prepare &&
+    (status.state === "needs-download" ||
+      status.state === "downloading" ||
+      status.state === "error" ||
+      (status.state === "loading" && status.progress !== undefined)) ? (
       <DownloadCard
         status={status}
         bytes={size.current}
@@ -161,7 +173,7 @@ export function AgentChat({
   const last = session.messages.at(-1);
   const busyTool = last?.parts.some((p) => p.type === "tool" && (p.state === "running" || p.state === "awaiting-confirmation"));
   const thinking = session.status === "streaming" && !busyTool && !(last?.role === "assistant" && last.parts.at(-1)?.type === "text");
-  const chips = suggestions === false ? [] : (suggestions ?? suggestionsFor(session.tools));
+  const chips = suggestions === false ? [] : (suggestions ?? chat.suggestions);
 
   if (!host) return null;
   return createPortal(
@@ -192,6 +204,7 @@ export function AgentChat({
         {all.length > 1 && (
           <AdapterSwitcher adapters={all} value={current.id} disabled={session.status === "streaming"} onChange={choose} />
         )}
+        {picker}
 
         {session.messages.length === 0 ? (
           <div className="wa-chat__empty">

@@ -4,7 +4,7 @@ const mb = (bytes: number): string => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1
 
 /** Props of the download card. */
 export interface DownloadCardProps {
-  status: Extract<AdapterStatus, { state: "needs-download" | "downloading" | "error" }>;
+  status: Extract<AdapterStatus, { state: "needs-download" | "downloading" | "loading" | "error" }>;
   /** The size, kept from `needs-download` so progress can show "380 MB of 1.4 GB". */
   bytes?: number;
   /** Start (or retry) the download: the person's explicit click. */
@@ -16,29 +16,38 @@ export interface DownloadCardProps {
   otherLabel?: string;
 }
 
-/** Consent before a model download (never automatic), then determinate progress with Cancel, or Retry after a failure. */
+/**
+ * Consent before a model download (never automatic), then determinate progress with Cancel, or Retry after a failure.
+ * A model already on the device shows as loading from disk, never as a download.
+ */
 export function DownloadCard({ status, bytes, onDownload, onCancel, onUseOther, otherLabel }: DownloadCardProps) {
-  if (status.state === "downloading") {
-    const pct = Math.round(status.progress * 100);
+  if (status.state === "downloading" || status.state === "loading") {
+    const progress = status.state === "downloading" ? status.progress : (status.progress ?? 0);
+    const fromDisk = status.state === "loading";
+    const pct = Math.round(progress * 100);
     // the files are in; loading them into the GPU (or WASM) can take a while the first time, with nothing to count
-    const starting = status.progress >= 1;
+    const starting = progress >= 1;
     return (
       <div className="wa-chat__download">
-        <p className="wa-chat__download-title">{starting ? "Starting the model on this device…" : "Downloading the model…"}</p>
+        <p className="wa-chat__download-title">
+          {starting ? "Starting the model on this device…" : fromDisk ? "Loading the model from this device…" : "Downloading the model…"}
+        </p>
         <div
           className="wa-chat__progress"
           role="progressbar"
-          aria-label="Model download"
+          aria-label={fromDisk ? "Model loading" : "Model download"}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={pct}
         >
-          <span style={{ transform: `scaleX(${status.progress})` }} />
+          <span style={{ transform: `scaleX(${progress})` }} />
         </div>
         <p className="wa-chat__download-meta">
           {starting
-            ? "The first start can take a few minutes."
-            : `${pct}%${bytes ? ` · ${mb(bytes * status.progress)} of ${mb(bytes)}` : ""}`}
+            ? fromDisk
+              ? "Nothing to download: the files are already here."
+              : "The first start can take a few minutes."
+            : `${pct}%${bytes ? ` · ${mb(bytes * progress)} of ${mb(bytes)}` : ""}`}
         </p>
         <button type="button" className="wa-chat__button" onClick={onCancel}>
           Cancel
