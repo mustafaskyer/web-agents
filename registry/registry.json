@@ -1,0 +1,94 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "webmcp-agents",
+  "homepage": "https://github.com/mustafaskyer/web-agents",
+  "items": [
+    {
+      "name": "agent-tool",
+      "type": "registry:component",
+      "title": "Agent tool",
+      "description": "A WebMCP tool call as a Trace line: running, parked on the page for the person's click, done, failed or cancelled, with its input and output.",
+      "dependencies": ["@webmcp-agents/chat", "ai"],
+      "registryDependencies": ["trace", "code-block", "item"],
+      "files": [
+        {
+          "path": "registry/default/agent-tool/agent-tool.tsx",
+          "type": "registry:component",
+          "target": "@components/web-agents/agent-tool.tsx"
+        }
+      ]
+    },
+    {
+      "name": "agent-reasoning",
+      "type": "registry:component",
+      "title": "Agent reasoning",
+      "description": "The model's reasoning as a Trace: Thinking while it streams, Thought after.",
+      "dependencies": ["ai", "streamdown"],
+      "registryDependencies": ["trace"],
+      "files": [
+        {
+          "path": "registry/default/agent-reasoning/agent-reasoning.tsx",
+          "type": "registry:component",
+          "target": "@components/web-agents/agent-reasoning.tsx"
+        }
+      ]
+    },
+    {
+      "name": "agent-subagent",
+      "type": "registry:component",
+      "title": "Agent subagent",
+      "description": "A sub-agent's run behind a delegate_to_<id> call: its tool calls and its answer, nested under the call.",
+      "dependencies": ["@webmcp-agents/chat", "ai", "streamdown"],
+      "registryDependencies": ["trace", "badge", "./agent-tool.json"],
+      "files": [
+        {
+          "path": "registry/default/agent-subagent/agent-subagent.tsx",
+          "type": "registry:component",
+          "target": "@components/web-agents/agent-subagent.tsx"
+        }
+      ]
+    },
+    {
+      "name": "agent-model-selector",
+      "type": "registry:component",
+      "title": "Agent model selector",
+      "description": "Two menus: which assistant answers (cloud, on-device), and which local model runs, with each model's size and whether it is already on the device.",
+      "dependencies": ["@webmcp-agents/chat", "lucide-react"],
+      "registryDependencies": ["dropdown-menu", "input-group"],
+      "files": [
+        {
+          "path": "registry/default/agent-model-selector/agent-model-selector.tsx",
+          "type": "registry:component",
+          "target": "@components/web-agents/agent-model-selector.tsx"
+        }
+      ]
+    },
+    {
+      "name": "agent-chat",
+      "type": "registry:block",
+      "title": "Agent chat",
+      "description": "A chat whose assistant works the live page through its WebMCP tools, rendered with shadcn/ui's AI patterns: Message Scroller, Message, Prompt Input, Tool, Subagent, Reasoning, Suggestion, Model Selector.",
+      "dependencies": ["@webmcp-agents/chat", "@webmcp-agents/react", "ai", "streamdown", "lucide-react"],
+      "registryDependencies": [
+        "message-scroller",
+        "message",
+        "bubble",
+        "input-group",
+        "button",
+        "item",
+        "scroll-area",
+        "./agent-tool.json",
+        "./agent-subagent.json",
+        "./agent-reasoning.json",
+        "./agent-model-selector.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/agent-chat/agent-chat.tsx",
+          "type": "registry:component",
+          "target": "@components/web-agents/agent-chat.tsx"
+        }
+      ]
+    }
+  ]
+}
