@@ -4,8 +4,8 @@ Turns a tool's `inputSchema` into a `SchemaNode` object. Chrome returns `inputSc
 polyfill returns an object, so the devtools read both through this.
 
 ```ts
-import { parseSchema } from "@web-agents/devtools";
-import type { SchemaNode } from "@web-agents/devtools";
+import { parseSchema } from "@webmcp-agents/devtools";
+import type { SchemaNode } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -48,7 +48,7 @@ signature.
 ## Example
 
 ```ts
-import { parseSchema } from "@web-agents/devtools";
+import { parseSchema } from "@webmcp-agents/devtools";
 
 const tools = await document.modelContext.getTools();
 for (const tool of tools) {

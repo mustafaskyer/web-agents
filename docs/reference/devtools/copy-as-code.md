@@ -4,7 +4,7 @@ Snippets that repeat a tool call from the browser console or a test. The runner'
 `toExecuteToolCode` writes the same call through WebMCP directly.
 
 ```ts
-import { toAgentRunCode, toExecuteToolCode } from "@web-agents/devtools";
+import { toAgentRunCode, toExecuteToolCode } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -45,7 +45,7 @@ await document.modelContext.executeTool(tool, {
 ## Example
 
 ```ts
-import { toAgentRunCode } from "@web-agents/devtools";
+import { toAgentRunCode } from "@webmcp-agents/devtools";
 
 await navigator.clipboard.writeText(toAgentRunCode("add_to_cart_mug-01", { qty: 3 }));
 ```

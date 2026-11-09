@@ -4,8 +4,8 @@ The floating devtools panel as a React component (launcher bottom-right, `Alt+Sh
 `<WebAgentsProvider>` its Settings switches drive the provider's agent cursor.
 
 ```tsx
-import { WebAgentsDevtools, useDevtoolsStore } from "@web-agents/devtools/react";
-import type { WebAgentsDevtoolsProps } from "@web-agents/devtools/react";
+import { WebAgentsDevtools, useDevtoolsStore } from "@webmcp-agents/devtools/react";
+import type { WebAgentsDevtoolsProps } from "@webmcp-agents/devtools/react";
 ```
 
 ## Signature
@@ -47,7 +47,7 @@ import { lazy, Suspense } from "react";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
+  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
 <WebAgentsProvider tools={catalog} visuals={{ spotlight: false }}>
@@ -60,7 +60,7 @@ const Devtools = import.meta.env.DEV
 
 ## Notes
 
-- Render it once, inside your provider. Outside a provider, pass `visuals`. `@web-agents/react` is needed only for
+- Render it once, inside your provider. Outside a provider, pass `visuals`. `@webmcp-agents/react` is needed only for
   the `/react` entry.
 - Inside a provider it calls the provider's `ensureVisuals()` on mount, because the provider installs its cursor
   lazily and saved Settings need it.

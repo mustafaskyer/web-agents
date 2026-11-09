@@ -4,8 +4,8 @@ Puts the devtools panel in a "Web Agents" tab of TanStack Devtools. It is the sa
 dock, resize handle or hotkey.
 
 ```tsx
-import { webAgentsDevtoolsPlugin } from "@web-agents/devtools/react";
-import type { WebAgentsDevtoolsPlugin } from "@web-agents/devtools/react";
+import { webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
+import type { WebAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 ```
 
 ## Signature
@@ -44,7 +44,7 @@ From `apps/playground/src/Devtools.tsx` (`?tanstack` in the URL picks the TanSta
 
 ```tsx
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@web-agents/devtools/react";
+import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 const TANSTACK = new URLSearchParams(location.search).has("tanstack");
 

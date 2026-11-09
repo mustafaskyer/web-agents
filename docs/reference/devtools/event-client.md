@@ -4,8 +4,8 @@ An optional bridge to TanStack Devtools' event bus, so other TanStack panels (or
 `bridgeStoreToEventClient` posts a devtools store's tools and calls, and forwards every agent event.
 
 ```ts
-import { bridgeStoreToEventClient, webAgentsEventClient } from "@web-agents/devtools";
-import type { WebAgentsEvents } from "@web-agents/devtools";
+import { bridgeStoreToEventClient, webAgentsEventClient } from "@webmcp-agents/devtools";
+import type { WebAgentsEvents } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -47,7 +47,7 @@ Event names are bare in `WebAgentsEvents`; the bus prefixes them with the plugin
 ## Example
 
 ```ts
-import { webAgentsEventClient } from "@web-agents/devtools";
+import { webAgentsEventClient } from "@webmcp-agents/devtools";
 
 const off = webAgentsEventClient.on("agent-event", (e) => {
   console.log(e.payload.type, e.payload.tool);

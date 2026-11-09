@@ -1,11 +1,11 @@
 # `createVercelChatRoute`
 
-Builds the `/api/chat` handlers for a Vercel Function: `@web-agents/chat`'s handler behind origin and per-IP guards,
+Builds the `/api/chat` handlers for a Vercel Function: `@webmcp-agents/chat`'s handler behind origin and per-IP guards,
 with a global daily budget on model calls. Every limit is an env var.
 
 ```ts
-import { createVercelChatRoute } from "@web-agents/vercel-api";
-import type { VercelChatRouteOptions } from "@web-agents/vercel-api";
+import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
+import type { VercelChatRouteOptions } from "@webmcp-agents/vercel-api";
 ```
 
 ## Signature
@@ -57,7 +57,7 @@ From `apps/playground/api/chat.ts`:
 
 ```ts
 // /api/chat on Vercel: the chat handler behind origin, rate-limit and budget guards (see docs/deploy.md).
-import { createVercelChatRoute } from "@web-agents/vercel-api";
+import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
 
 export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" });
 ```

@@ -5,8 +5,8 @@ limits hold across serverless instances. Otherwise it counts in memory per insta
 unconfigured previews working.
 
 ```ts
-import { createLimiter, createMemoryLimiter, redisCredentials } from "@web-agents/vercel-api";
-import type { Env, Limiter, LimiterOptions, LimitResult } from "@web-agents/vercel-api";
+import { createLimiter, createMemoryLimiter, redisCredentials } from "@webmcp-agents/vercel-api";
+import type { Env, Limiter, LimiterOptions, LimitResult } from "@webmcp-agents/vercel-api";
 ```
 
 ## Signature
@@ -62,7 +62,7 @@ interface LimitResult {
 ## Example
 
 ```ts
-import { createLimiter } from "@web-agents/vercel-api";
+import { createLimiter } from "@webmcp-agents/vercel-api";
 
 const perMinute = createLimiter({ env: process.env, prefix: "playground:minute", limit: 30, window: "1 m", failOpen: true });
 

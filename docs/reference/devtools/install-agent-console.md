@@ -4,8 +4,8 @@ Deprecated. The old agent console, kept as an alias: it installs the devtools pa
 helper it used to provide, `window.agent`, is now set by every devtools store.
 
 ```ts
-import { installAgentConsole } from "@web-agents/devtools";
-import type { AgentConsoleOptions } from "@web-agents/devtools";
+import { installAgentConsole } from "@webmcp-agents/devtools";
+import type { AgentConsoleOptions } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -49,7 +49,7 @@ The disposer from `installWebAgentsDevtools`.
 
 ```ts
 // Preferred
-import { installWebAgentsDevtools } from "@web-agents/devtools";
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
 installWebAgentsDevtools({ visuals, initialOpen: true });
 ```
 

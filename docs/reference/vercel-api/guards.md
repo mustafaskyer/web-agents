@@ -5,8 +5,8 @@ explains (403, 429 `rate_limited`, 503). Only `POST` is limited: `GET` is the ca
 preflight.
 
 ```ts
-import { budgetGuard, clientIp, composeGuards, originGuard, rateLimitGuard } from "@web-agents/vercel-api";
-import type { Guard } from "@web-agents/vercel-api";
+import { budgetGuard, clientIp, composeGuards, originGuard, rateLimitGuard } from "@webmcp-agents/vercel-api";
+import type { Guard } from "@webmcp-agents/vercel-api";
 ```
 
 ## Signature
@@ -49,8 +49,8 @@ Refusals are JSON with `cache-control: no-store`.
 How `createVercelChatRoute` wires them (`packages/vercel-api/src/index.ts`):
 
 ```ts
-import { createChatHandler } from "@web-agents/chat/server";
-import { budgetGuard, composeGuards, createLimiter, originGuard, rateLimitGuard } from "@web-agents/vercel-api";
+import { createChatHandler } from "@webmcp-agents/chat/server";
+import { budgetGuard, composeGuards, createLimiter, originGuard, rateLimitGuard } from "@webmcp-agents/vercel-api";
 
 const env = process.env;
 const handler = createChatHandler({

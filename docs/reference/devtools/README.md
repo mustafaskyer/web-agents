@@ -2,7 +2,7 @@
 slug: devtools
 ---
 
-# `@web-agents/devtools`
+# `@webmcp-agents/devtools`
 
 Devtools for WebMCP pages. The panel shows which tools are live on the current screen. It runs them from a form
 generated from their JSON Schema and records every call, whether it came from the panel or from a real agent.
@@ -22,29 +22,29 @@ panel never makes the agent cursor yield.
 ## Install
 
 ```sh
-pnpm add -D @web-agents/devtools
+pnpm add -D @webmcp-agents/devtools
 ```
 
 React and React DOM (>= 18) are peer dependencies, also for the vanilla host. `@tanstack/react-devtools` and
-`@web-agents/react` are optional peers.
+`@webmcp-agents/react` are optional peers.
 
 ## Entry points
 
 | Import | What it has |
 |---|---|
-| `@web-agents/devtools` | `installWebAgentsDevtools`, the store, the event-client bridge, `SchemaForm` and other building blocks |
-| `@web-agents/devtools/react` | `<WebAgentsDevtools>`, `useDevtoolsStore`, `webAgentsDevtoolsPlugin` |
+| `@webmcp-agents/devtools` | `installWebAgentsDevtools`, the store, the event-client bridge, `SchemaForm` and other building blocks |
+| `@webmcp-agents/devtools/react` | `<WebAgentsDevtools>`, `useDevtoolsStore`, `webAgentsDevtoolsPlugin` |
 
 ```ts
 // Vanilla
-import { installWebAgentsDevtools } from "@web-agents/devtools";
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
 if (import.meta.env.DEV) installWebAgentsDevtools({ visuals });
 ```
 
 ```tsx
 // React, dev only: the condition guards the import() itself, so production bundles leave the devtools out
 const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@web-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
+  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 ```
 

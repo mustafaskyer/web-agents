@@ -4,8 +4,8 @@ Creates the devtools' state, independent of any UI: the page's tools, every call
 agent) and the panel's settings. Use it to build another UI on the same data.
 
 ```ts
-import { createDevtoolsStore, DEFAULT_SETTINGS } from "@web-agents/devtools";
-import type { DevtoolsStore, DevtoolsState } from "@web-agents/devtools";
+import { createDevtoolsStore, DEFAULT_SETTINGS } from "@webmcp-agents/devtools";
+import type { DevtoolsStore, DevtoolsState } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -64,7 +64,7 @@ A `DevtoolsStore`. `subscribe` and `getSnapshot` fit `useSyncExternalStore`.
 
 ```tsx
 import { useSyncExternalStore } from "react";
-import { createDevtoolsStore } from "@web-agents/devtools";
+import { createDevtoolsStore } from "@webmcp-agents/devtools";
 
 const store = createDevtoolsStore();
 

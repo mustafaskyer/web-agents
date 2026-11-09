@@ -4,8 +4,8 @@ A controlled React form for a tool's JSON Schema, the one the devtools runner us
 ready-to-run starting values, so "Run" works on the first click for most tools.
 
 ```tsx
-import { SchemaForm, defaultValueFor } from "@web-agents/devtools";
-import type { SchemaFormProps } from "@web-agents/devtools";
+import { SchemaForm, defaultValueFor } from "@webmcp-agents/devtools";
+import type { SchemaFormProps } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -61,8 +61,8 @@ no properties renders "This tool takes no arguments."
 
 ```tsx
 import { useState } from "react";
-import type { ModelContextToolInfo } from "@web-agents/core";
-import { SchemaForm, defaultValueFor, parseSchema } from "@web-agents/devtools";
+import type { ModelContextToolInfo } from "@webmcp-agents/core";
+import { SchemaForm, defaultValueFor, parseSchema } from "@webmcp-agents/devtools";
 
 function Runner({ tool }: { tool: ModelContextToolInfo }) {
   const schema = parseSchema(tool.inputSchema);

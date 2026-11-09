@@ -4,8 +4,8 @@ Mounts the floating devtools panel (launcher bottom-right, `Alt+Shift+A`) on a p
 React still renders the panel, into its own root and shadow DOM.
 
 ```ts
-import { installWebAgentsDevtools } from "@web-agents/devtools";
-import type { DevtoolsOptions } from "@web-agents/devtools";
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
+import type { DevtoolsOptions } from "@webmcp-agents/devtools";
 ```
 
 ## Signature
@@ -45,8 +45,8 @@ A disposer `() => void`. It unmounts the panel, removes its host, destroys the s
 ## Example
 
 ```ts
-import { installAgentVisuals } from "@web-agents/core";
-import { installWebAgentsDevtools } from "@web-agents/devtools";
+import { installAgentVisuals } from "@webmcp-agents/core";
+import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
 
 const visuals = installAgentVisuals({ spotlight: true });
 if (import.meta.env.DEV) installWebAgentsDevtools({ visuals, initialSettings: { spotlight: true } });
