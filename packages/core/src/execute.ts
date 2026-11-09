@@ -20,7 +20,8 @@ export interface ExecuteToolOptions {
 let argsAs: "object" | "string" = "object";
 
 const WRONG_SHAPE = {
-  object: /parse input string as JSON|not of type 'DOMString'/i,
+  // Chrome 150 builds word it "Failed to parse input string as JSON" or "Failed to parse input arguments".
+  object: /parse input|not of type 'DOMString'/i,
   string: /not an object|invalid input object/i,
 } as const;
 

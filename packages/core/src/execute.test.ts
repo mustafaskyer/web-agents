@@ -50,6 +50,17 @@ describe("executeTool", () => {
     expect(mc.executeTool.mock.calls[2]?.[1]).toBe('{"qty":3}');
   });
 
+  it("recognises later Chrome 150 builds' wording of the same args error", async () => {
+    vi.resetModules();
+    const { executeTool: fresh } = await import("./execute"); // module state starts at "object" again
+    const mc = fakeModelContext(async (_, args) => {
+      if (typeof args !== "string") throw new Error("Failed to parse input arguments");
+      return "ok";
+    });
+    expect((await fresh("add", {}))?.content[0]?.text).toBe("ok");
+    expect(mc.executeTool.mock.calls[1]?.[1]).toBe("{}");
+  });
+
   it("lets concurrent calls each fall back from the shape they tried", async () => {
     vi.resetModules();
     const { executeTool: fresh } = await import("./execute"); // module state starts at "object" again
