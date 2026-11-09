@@ -4,8 +4,9 @@
  * the Navigation API), header, footer and (dev only) the devtools.
  */
 import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
-import { createLocalAdapter } from "@webmcp-agents/local-agent";
+import { createLocalAdapter, DEFAULT_MODEL } from "@webmcp-agents/local-agent";
 import { WebAgentsProvider } from "@webmcp-agents/react";
+import { concierge } from "./agents";
 import { lazy, Suspense, useMemo } from "react";
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { Footer } from "./components/Footer";
@@ -13,7 +14,6 @@ import { Header } from "./components/Header";
 import { BookingProvider, useBooking } from "./store/booking";
 import { catalog, globalTools, routeTools } from "./tools/catalog";
 import type { FlightsContext } from "./tools/context";
-import { SKYLINE_INSTRUCTIONS } from "./tools/instructions";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
@@ -22,7 +22,9 @@ const Devtools = import.meta.env.DEV
 
 const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
-const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: SKYLINE_INSTRUCTIONS })];
+// Both follow the `concierge` agent (src/agents.ts): the cloud reads it from the server registry, the on-device model here.
+// two on-device models to pick from: the default, and a larger one for machines with the memory for it
+const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ models: [DEFAULT_MODEL, "onnx-community/Qwen3-1.7B-ONNX"] })];
 
 function Shell() {
   const booking = useBooking();
@@ -43,7 +45,7 @@ function Shell() {
         <Footer />
       </div>
       {/* inside the provider: the assistant sees exactly the tools this page has on */}
-      <AgentChat adapters={ADAPTERS} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
+      <AgentChat adapters={ADAPTERS} agent={concierge} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
         <Devtools initialSettings={{ spotlight: VISUALS.spotlight }} />
       </Suspense>
