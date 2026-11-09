@@ -5,7 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
-    "customConditions": ["@web-agents/source"],
+    "customConditions": ["@webmcp-agents/source"],
     "jsx": "react-jsx",
     "isolatedModules": true,
     "verbatimModuleSyntax": true,

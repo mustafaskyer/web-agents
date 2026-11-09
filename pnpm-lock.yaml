@@ -56,19 +56,19 @@ importers:
 
   apps/ecommerce:
     dependencies:
-      '@web-agents/chat':
+      '@webmcp-agents/chat':
         specifier: workspace:*
         version: link:../../packages/chat
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@web-agents/local-agent':
+      '@webmcp-agents/local-agent':
         specifier: workspace:*
         version: link:../../packages/local-agent
-      '@web-agents/react':
+      '@webmcp-agents/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@web-agents/vercel-api':
+      '@webmcp-agents/vercel-api':
         specifier: workspace:*
         version: link:../../packages/vercel-api
       react:
@@ -99,10 +99,10 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/devtools':
+      '@webmcp-agents/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../../packages/polyfill
       vite:
@@ -117,19 +117,19 @@ importers:
       '@fontsource/poppins':
         specifier: ^5.3.0
         version: 5.3.0
-      '@web-agents/chat':
+      '@webmcp-agents/chat':
         specifier: workspace:*
         version: link:../../packages/chat
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@web-agents/local-agent':
+      '@webmcp-agents/local-agent':
         specifier: workspace:*
         version: link:../../packages/local-agent
-      '@web-agents/react':
+      '@webmcp-agents/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@web-agents/vercel-api':
+      '@webmcp-agents/vercel-api':
         specifier: workspace:*
         version: link:../../packages/vercel-api
       react:
@@ -160,10 +160,10 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/devtools':
+      '@webmcp-agents/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../../packages/polyfill
       vite:
@@ -175,19 +175,19 @@ importers:
 
   apps/playground:
     dependencies:
-      '@web-agents/chat':
+      '@webmcp-agents/chat':
         specifier: workspace:*
         version: link:../../packages/chat
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@web-agents/local-agent':
+      '@webmcp-agents/local-agent':
         specifier: workspace:*
         version: link:../../packages/local-agent
-      '@web-agents/react':
+      '@webmcp-agents/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@web-agents/vercel-api':
+      '@webmcp-agents/vercel-api':
         specifier: workspace:*
         version: link:../../packages/vercel-api
       react:
@@ -215,10 +215,10 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/devtools':
+      '@webmcp-agents/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../../packages/polyfill
       vite:
@@ -227,7 +227,7 @@ importers:
 
   packages/chat:
     dependencies:
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:^
         version: link:../core
       ai:
@@ -255,7 +255,7 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../polyfill
       react:
@@ -295,7 +295,7 @@ importers:
       '@tanstack/devtools-event-client':
         specifier: ^0.5.1
         version: 0.5.1
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:^
         version: link:../core
     devDependencies:
@@ -311,10 +311,10 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../polyfill
-      '@web-agents/react':
+      '@webmcp-agents/react':
         specifier: workspace:*
         version: link:../react
       react:
@@ -339,10 +339,10 @@ importers:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
-      '@web-agents/chat':
+      '@webmcp-agents/chat':
         specifier: workspace:*
         version: link:../chat
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:*
         version: link:../core
       tsdown:
@@ -351,7 +351,7 @@ importers:
 
   packages/polyfill:
     devDependencies:
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:*
         version: link:../core
       tsdown:
@@ -360,7 +360,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@web-agents/core':
+      '@webmcp-agents/core':
         specifier: workspace:^
         version: link:../core
     devDependencies:
@@ -373,7 +373,7 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
-      '@web-agents/polyfill':
+      '@webmcp-agents/polyfill':
         specifier: workspace:*
         version: link:../polyfill
       react:
@@ -403,7 +403,7 @@ importers:
       '@upstash/redis':
         specifier: ^1.41.0
         version: 1.41.0
-      '@web-agents/chat':
+      '@webmcp-agents/chat':
         specifier: workspace:*
         version: link:../chat
       ai:

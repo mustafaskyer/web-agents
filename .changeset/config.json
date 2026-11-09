@@ -3,11 +3,11 @@
   "changelog": ["@changesets/changelog-github", { "repo": "mustafaskyer/web-agents" }],
   "commit": false,
   "fixed": [
-    ["@web-agents/core", "@web-agents/polyfill", "@web-agents/react", "@web-agents/devtools", "@web-agents/chat", "@web-agents/local-agent"]
+    ["@webmcp-agents/core", "@webmcp-agents/polyfill", "@webmcp-agents/react", "@webmcp-agents/devtools", "@webmcp-agents/chat", "@webmcp-agents/local-agent"]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["playground", "@web-agents/example-ecommerce", "@web-agents/example-flights", "@web-agents/vercel-api", "@web-agents/docs"]
+  "ignore": ["playground", "@webmcp-agents/example-ecommerce", "@webmcp-agents/example-flights", "@webmcp-agents/vercel-api", "@webmcp-agents/docs"]
 }
