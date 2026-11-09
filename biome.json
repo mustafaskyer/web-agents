@@ -6,7 +6,27 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/.turbo", "!.agents", "!.claude", "!pnpm-lock.yaml", "!**/*.md"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.turbo",
+      "!.agents",
+      "!.claude",
+      "!pnpm-lock.yaml",
+      "!**/*.md",
+      "!apps/nextjs/components/ui",
+      "!apps/nextjs/.next",
+      "!apps/nextjs/next-env.d.ts",
+      "!apps/docs/public/r",
+      "!apps/nextjs/lib/highlighter.tsx",
+      "!apps/nextjs/lib/utils.ts",
+      "!apps/nextjs/app/globals.css",
+      "!apps/docs/components/opendesigns",
+      "!apps/docs/components/ui",
+      "!apps/docs/lib/utils.ts",
+      "!apps/docs/landing.css",
+      "!apps/docs/pages"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -44,6 +64,8 @@
         "packages/chat/src/adapter/**",
         "packages/chat/src/session/**",
         "packages/chat/src/index.ts",
+        "packages/chat/src/agent.ts",
+        "packages/chat/src/shared.ts",
         "packages/chat/src/tools.ts",
         "packages/chat/src/types.ts"
       ],
@@ -53,10 +75,11 @@
             "noRestrictedImports": {
               "level": "error",
               "options": {
-                "paths": {
-                  "@ai-sdk/anthropic": "The provider SDK is server-only: import it from src/server/** only."
-                },
                 "patterns": [
+                  {
+                    "group": ["@ai-sdk/*", "@openrouter/*"],
+                    "message": "Provider SDKs are server-only: import them from src/server/** only."
+                  },
                   {
                     "group": ["node:*"],
                     "message": "Client code runs in the browser: no Node built-ins."

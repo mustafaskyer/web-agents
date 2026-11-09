@@ -1,0 +1,55 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "docs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@webmcp-agents/docs",
+        "dev"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "playground",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "playground",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "ecommerce",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@webmcp-agents/example-ecommerce",
+        "dev"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "flights",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@webmcp-agents/example-flights",
+        "dev"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "nextjs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@webmcp-agents/example-nextjs",
+        "dev"
+      ],
+      "port": 5176
+    }
+  ]
+}
