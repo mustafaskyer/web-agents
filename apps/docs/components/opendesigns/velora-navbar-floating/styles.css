@@ -1,0 +1,112 @@
+.velora-floating-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: 100%;
+  padding: calc(var(--spacing, 0.25rem) * 3);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+.velora-floating-frame {
+  position: relative;
+  container: velora-floating / inline-size;
+  width: min(100%, var(--velora-floating-max, 1152px));
+  margin-inline: auto;
+  transition: width 220ms ease;
+}
+.velora-floating-header[data-compact="true"] .velora-floating-frame {
+  width: min(100%, var(--velora-floating-compact, 760px));
+}
+.velora-floating-bar {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 3);
+  min-width: 0;
+  padding: calc(var(--spacing, 0.25rem) * 2);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-xl) * 4);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+}
+.velora-floating-header[data-compact="true"] .velora-floating-bar {
+  border-color: var(--border);
+  background: color-mix(in oklch, var(--background) 90%, transparent);
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--foreground) 7%, transparent);
+  backdrop-filter: blur(12px);
+}
+.velora-floating-home {
+  min-width: 0;
+  max-width: 100%;
+}
+.velora-floating-desktop-links,
+.velora-floating-desktop-actions {
+  display: none;
+  min-width: 0;
+}
+.velora-floating-desktop-links ul {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--spacing, 0.25rem) * 1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.velora-floating-desktop-links li {
+  min-width: 0;
+}
+.velora-floating-mobile-control {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.velora-floating-extra {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.velora-floating-extra ~ .velora-floating-mobile-control {
+  margin-left: 0;
+}
+@container velora-floating (min-width: 64rem) {
+  .velora-floating-desktop-links {
+    display: block;
+    flex: 1;
+  }
+  .velora-floating-desktop-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing, 0.25rem) * 1);
+  }
+  .velora-floating-mobile-control {
+    display: none;
+  }
+  .velora-floating-extra {
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .velora-floating-frame {
+    transition: none;
+  }
+}
+
+/* The native popover lives in this positioned frame; these layout constraints supersede its body-coordinate placement. */
+.velora-floating-frame [data-slot="dropdown-menu-content"] {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  bottom: auto !important;
+  left: auto !important;
+  max-width: 100%;
+  max-height: min(
+    40rem,
+    max(
+      0px,
+      calc(
+        var(--velora-floating-menu-available, 70dvh) - var(--spacing, 0.25rem) *
+          4
+      )
+    )
+  ) !important;
+}
