@@ -1,5 +1,6 @@
 ---
 slug: reference/chat
+description: "A chat widget whose agent works the live page through its WebMCP tools (document.modelContext)."
 ---
 
 # `@webmcp-agents/chat`
@@ -10,7 +11,7 @@ Mistral, OpenRouter, the AI Gateway) with the key server-side; every tool call r
 cursor from `@webmcp-agents/core` plays as it does for any agent, and anything a form gates on a click waits for the
 person. `defineWebAgent` gives the assistant its instructions, a tool subset and sub-agents, shared by the browser and
 the server; each request is run by an AI SDK `ToolLoopAgent` built from it. The same adapter contract also takes an
-on-device model ([`@webmcp-agents/local-agent`](../local-agent/README.md)).
+on-device model ([`@webmcp-agents/local-agent`](../local-agent/README.md)). An agent can also be run from code with no chat on the page (`agent.invoke("…")`, or `useWebAgent(agent)` for live status).
 
 ## Install
 
@@ -27,7 +28,7 @@ model id needs); optional `vite` (≥ 6, for the dev plugin).
 
 | Import | What |
 |---|---|
-| `@webmcp-agents/chat` | The widget, `defineWebAgent`, the cloud adapter, the session hook and reducer, tool helpers, adapter types |
+| `@webmcp-agents/chat` | The widget, `defineWebAgent` (with `agent.invoke`), `useWebAgent`, the cloud adapter, the session hook and reducer, tool helpers, adapter types |
 | `@webmcp-agents/chat/agent` | `defineWebAgent` alone: plain data, importable from `vite.config.ts` and `api/chat.ts` |
 | `@webmcp-agents/chat/server` | The `/api/chat` handler, `resolveModel`, `toToolLoopAgent`, system prompt, request schema |
 | `@webmcp-agents/chat/vite` | A Vite plugin that serves `/api/chat` in `vite dev` |
@@ -35,52 +36,55 @@ model id needs); optional `vite` (≥ 6, for the dev plugin).
 
 ## Quick start
 
+The chat panel, with the agent the page defines:
+
 ```tsx
-// client
-import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
+import { AgentChat } from "@webmcp-agents/chat";
 import "@webmcp-agents/chat/chat.css";
 
-const cloud = createCloudAdapter(); // POSTs to /api/chat; create it once
-
-<WebAgentsProvider tools={catalog}>
-  …
-  <AgentChat adapter={cloud} />
-</WebAgentsProvider>
+// Inside <WebAgentsProvider tools={tools}>:
+<AgentChat agent={shopper} /> // no adapter needed: POSTs to /api/chat
 ```
 
-```ts
-// api/chat.ts
+The endpoint it talks to, on your server:
+
+```ts api/chat.ts
 import { createChatHandler } from "@webmcp-agents/chat/server";
-const handler = createChatHandler();
+
+const handler = createChatHandler({ agents });
 export const GET = handler;
 export const POST = handler;
 ```
 
-```ts
-// vite.config.ts
+And in development, the same endpoint from `vite dev`:
+
+```ts vite.config.ts
 import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
-export default defineConfig({ plugins: [react(), webAgentsChatDev()] });
+
+// In defineConfig({ … }):
+plugins: [react(), webAgentsChatDev({ agents })],
 ```
 
-## API
+## APIs
 
-| API | Entry | File |
+| API | Entry | What it is |
 |---|---|---|
-| `AgentChat`, `AgentChatProps`, `chat.css` theming | `@webmcp-agents/chat` | [agent-chat.md](./agent-chat.md) |
-| `defineWebAgent`, `WebAgent`, `WebAgentConfig`, `selectTools`, `delegateTool`, `flattenWebAgents` | `@webmcp-agents/chat/agent` | [define-web-agent.md](./define-web-agent.md) |
-| `createCloudAdapter`, `CloudAdapterOptions` | `@webmcp-agents/chat` | [create-cloud-adapter.md](./create-cloud-adapter.md) |
-| `useAgentChat`, `AgentChatState`, `ToolPhase`, `UseAgentChatOptions` | `@webmcp-agents/chat` | [use-agent-chat.md](./use-agent-chat.md) |
-| `useAgentSession`, `AgentSession`, `UseAgentSessionOptions` | `@webmcp-agents/chat` | [use-agent-session.md](./use-agent-session.md) |
-| `sessionReducer`, `resumable`, `SessionAction`, `SessionState`, `SessionError` | `@webmcp-agents/chat` | [session-reducer.md](./session-reducer.md) |
-| `callModelContextTool`, `CallToolOptions`, `TOOL_TIMEOUT_MS`, `NAVIGATED`, `CANCELLED`, `isCancelled` | `@webmcp-agents/chat` | [call-model-context-tool.md](./call-model-context-tool.md) |
-| `listToolDescriptors` | `@webmcp-agents/chat` | [list-tool-descriptors.md](./list-tool-descriptors.md) |
-| `AgentAdapter`, `AdapterStatus`, `AgentRunRequest`, `AgentStreamPart`, `AgentMessage`, `AgentPart`, `ToolDescriptor`, `ToolOutput`, `ToolCallState` | `@webmcp-agents/chat` | [adapter-types.md](./adapter-types.md) |
-| `createChatHandler`, `ChatHandlerOptions`, `ReasoningLevel`, `DEFAULT_MODEL` | `@webmcp-agents/chat/server` | [create-chat-handler.md](./create-chat-handler.md) |
-| `toToolLoopAgent`, `toToolLoopAgentSettings`, `toToolSet` | `@webmcp-agents/chat/server` | [to-tool-loop-agent.md](./to-tool-loop-agent.md) |
-| `resolveModel`, `modelAvailability`, `parseModelId`, `providerOptionsFor`, `displayName`, `PROVIDERS`, `ModelUnavailableError` | `@webmcp-agents/chat/server` | [resolve-model.md](./resolve-model.md) |
-| `buildSystemPrompt`, `DEFAULT_SYSTEM_PROMPT` | `@webmcp-agents/chat/server` | [system-prompt.md](./system-prompt.md) |
-| `chatRequestSchema`, `LIMITS`, `ChatRequest` | `@webmcp-agents/chat/server` | [chat-request-schema.md](./chat-request-schema.md) |
-| `webAgentsChatDev`, `WebAgentsChatDevOptions` | `@webmcp-agents/chat/vite` | [web-agents-chat-dev.md](./web-agents-chat-dev.md) |
+| [`defineWebAgent`](./define-web-agent.md) | `@webmcp-agents/chat/agent` | An agent (instructions, tool subset, sub-agents, model) as plain data, shared by the browser and the server; `agent.invoke` runs it from code. Includes `WebAgent`, `WebAgentConfig`, `WebAgentInvokeOptions`, `WebAgentResult`, `WebAgentStep`, `selectTools`, `delegateTool`, `flattenWebAgents`. |
+| [`<AgentChat>`](./agent-chat.md) | `@webmcp-agents/chat` | The launcher and docked chat panel, with `chat.css` theming. Includes `AgentChatProps`. |
+| [`createChatHandler`](./create-chat-handler.md) | `@webmcp-agents/chat/server` | The `/api/chat` endpoint as a web-standard function. Includes `ChatHandlerOptions`, `DEFAULT_MODEL`, `ReasoningLevel`. |
+| [`webAgentsChatDev`](./web-agents-chat-dev.md) | `@webmcp-agents/chat/vite` | A Vite plugin that serves `/api/chat` in `vite dev`. Includes `WebAgentsChatDevOptions`. |
+| [`useWebAgent`](./use-web-agent.md) | `@webmcp-agents/chat` | Run an agent from a component with live status and no chat. Includes `WebAgentHandle`, `WebAgentStatus`, `UseWebAgentOptions`. |
+| [`createCloudAdapter`](./create-cloud-adapter.md) | `@webmcp-agents/chat` | The adapter that talks to your `/api/chat`. Includes `CloudAdapterOptions`. |
+| [`useAgentChat`](./use-agent-chat.md) | `@webmcp-agents/chat` | The chat as a `useChat`-shaped hook, to render with your own components. Includes `AgentChatState`, `ToolPhase`, `UseAgentChatOptions`. |
+| [`useAgentSession`](./use-agent-session.md) | `@webmcp-agents/chat` | The conversation in the chat's own message shape. Includes `AgentSession`, `UseAgentSessionOptions`. |
+| [`resolveModel`](./resolve-model.md) | `@webmcp-agents/chat/server` | A `"<provider>/<model>"` id as an AI SDK model. Includes `modelAvailability`, `parseModelId`, `providerOptionsFor`, `displayName`, `PROVIDERS`, `ModelUnavailableError`. |
+| [`toToolLoopAgent`](./to-tool-loop-agent.md) | `@webmcp-agents/chat/server` | A `WebAgent` as an AI SDK `ToolLoopAgent`. Includes `toToolLoopAgentSettings`, `toToolSet`. |
+| [`buildSystemPrompt`](./system-prompt.md) | `@webmcp-agents/chat/server` | The system prompt the handler sends, and `DEFAULT_SYSTEM_PROMPT`. |
+| [`chatRequestSchema`](./chat-request-schema.md) | `@webmcp-agents/chat/server` | The zod schema and `LIMITS` for the POST body. Includes `ChatRequest`. |
+| [Adapter types](./adapter-types.md) | `@webmcp-agents/chat` | The contract an adapter implements. Includes `AgentAdapter`, `AdapterStatus`, `AgentRunRequest`, `AgentStreamPart`, `AgentMessage`, `AgentPart`, `ToolDescriptor`, `ToolOutput`, `ToolCallState`. |
+| [`callModelContextTool`](./call-model-context-tool.md) | `@webmcp-agents/chat` | Run one page tool for an agent, with a time limit and error codes. Includes `CallToolOptions`, `TOOL_TIMEOUT_MS`, `NAVIGATED`, `CANCELLED`, `isCancelled`. |
+| [`listToolDescriptors`](./list-tool-descriptors.md) | `@webmcp-agents/chat` | The tools on the page right now, as a model sees them. |
+| [`sessionReducer`](./session-reducer.md) | `@webmcp-agents/chat` | The session as a pure state machine. Includes `resumable`, `SessionAction`, `SessionState`, `SessionError`. |
 
 ## When a tool fails
 
@@ -100,4 +104,4 @@ resumes it from the last finished tool call ([`resumable`](./session-reducer.md#
 
 - [`@webmcp-agents/local-agent`](../local-agent/README.md)
 - [Tool error codes](../core/tool-error.md)
-- [Deploy to Vercel](../../guides/deploy.md)
+- [Deploy](../../more/deploy.md)

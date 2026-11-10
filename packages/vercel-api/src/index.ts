@@ -36,7 +36,7 @@ const num = (value: string | undefined, fallback: number): number => {
 /**
  * The chat handler behind origin and per-IP guards, with a global daily budget on model calls. Public demos default to
  * Claude Sonnet 5.5 (cheaper, faster), 4096 output tokens (thinking counts against them) and 6 steps; every limit is
- * an env var (see docs/guides/deploy.md).
+ * an env var (see docs/more/deploy.md).
  */
 export function createVercelChatRoute({ app, env = process.env, model, agents }: VercelChatRouteOptions) {
   // each tool step is one request: a 6-step turn is 7, so a burst limit must fit a few turns

@@ -5,7 +5,9 @@
   "description": "Show users what a WebMCP agent is doing: ghost cursor, field replay, confirmation parking.",
   "license": "MIT",
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "./src/polyfill/auto.ts",
+    "./dist/polyfill/auto.js"
   ],
   "files": [
     "dist",
@@ -17,9 +19,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./polyfill": {
+      "@webmcp-agents/source": "./src/polyfill/index.ts",
+      "types": "./dist/polyfill/index.d.ts",
+      "import": "./dist/polyfill/index.js"
+    },
+    "./polyfill/auto": {
+      "@webmcp-agents/source": "./src/polyfill/auto.ts",
+      "types": "./dist/polyfill/auto.d.ts",
+      "import": "./dist/polyfill/auto.js"
+    },
     "./cursor.css": {
       "@webmcp-agents/source": "./src/cursor.css",
       "default": "./dist/cursor.css"
+    },
+    "./cursor-native.css": {
+      "@webmcp-agents/source": "./src/cursor-native.css",
+      "default": "./dist/cursor-native.css"
     },
     "./package.json": "./package.json"
   },
@@ -29,7 +45,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "size": "node scripts/size.mjs",
-    "check-exports": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./cursor.css"
+    "check-exports": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./cursor.css ./cursor-native.css"
   },
   "devDependencies": {
     "tsdown": "^0.23.7",

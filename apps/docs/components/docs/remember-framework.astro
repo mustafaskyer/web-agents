@@ -1,0 +1,39 @@
+---
+/**
+ * Saves the reader's framework on an installation page: `<RememberFramework name="Next.js" />` in the page's MDX.
+ *
+ * Blume's view picker keeps a pick in localStorage ("blume-view") and applies it on every page written in views, but
+ * only a pick made in the picker is saved: arriving with `?view=Next.js` shows that view and saves nothing. An
+ * installation page has no views (one page per framework), so it has no picker either. This writes the same key, so
+ * the pages after installation open in the framework the reader installed.
+ *
+ * A custom element, not an inline script: Blume's client router runs an inline script once per session, and this
+ * must run on every visit to an installation page.
+ */
+interface Props {
+  /** The view title to save: exactly "Vite", "Next.js", "TanStack Start" or "Astro". */
+  name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<webmcp-remember-framework data-name={name} hidden></webmcp-remember-framework>
+
+<script>
+  class RememberFramework extends HTMLElement {
+    connectedCallback() {
+      const { name } = this.dataset;
+      if (!name) return;
+      try {
+        localStorage.setItem("blume-view", name);
+      } catch {
+        // Storage can be off; the "Next" link still carries ?view=.
+      }
+    }
+  }
+
+  if (!customElements.get("webmcp-remember-framework")) {
+    customElements.define("webmcp-remember-framework", RememberFramework);
+  }
+</script>

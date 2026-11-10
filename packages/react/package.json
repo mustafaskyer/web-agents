@@ -28,15 +28,18 @@
     "react": ">=18"
   },
   "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
     "@webmcp-agents/core": "workspace:^"
   },
   "devDependencies": {
+    "@hookform/resolvers": "^7.0.3",
+    "@tanstack/react-form": "^1.33.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
-    "@webmcp-agents/polyfill": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
     "tsdown": "^0.23.7",
     "vitest-browser-react": "^2.3.0",
     "zod": "^4.6.7"

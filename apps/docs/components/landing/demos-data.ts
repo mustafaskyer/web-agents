@@ -43,7 +43,7 @@ select_flight({ flightId: "F-…" })
 fill_traveler_details({ firstName: "Mustafa", lastName: "Elsayed",
   email: "mustafa@mail.test", phone: "+966567891011", … })
 book_flight({ acceptTerms: true })   // parks until the person clicks`,
-    note: "list_results and select_flight are defineWebTool tools; the search, traveler and booking steps are declarative forms, and book_flight has no toolautosubmit, so it waits for a click.",
+    note: "list_results and select_flight are the results page's tools (match); search, traveler details and booking are forms with useWebTool (React Hook Form, and TanStack Form for the travelers), and book_flight has requireConfirmation, so it waits for a click.",
     docs: `${DOCS}/examples/skyline`,
     source: `${REPO}/tree/main/apps/flights`,
   },
@@ -63,7 +63,7 @@ go_to_page({ page: "checkout" })
 checkout({ email: "mustafa@mail.test", name: "Mustafa Elsayed",
   address: "King Fahd Road 2411, Al Olaya", city: "Riyadh",
   postcode: "12214", country: "Saudi Arabia" })   // parks until the person clicks`,
-    note: "open_product and go_to_page are defineWebTool tools that navigate; search, add to cart and checkout are declarative forms, and checkout has no toolautosubmit, so it waits for a click.",
+    note: "open_product and go_to_page are app-wide tools that navigate; search, add to cart and checkout are React Hook Form forms with useWebTool, and checkout has requireConfirmation, so it waits for a click.",
     docs: `${DOCS}/examples/field-store`,
     source: `${REPO}/tree/main/apps/ecommerce`,
   },

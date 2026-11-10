@@ -1,7 +1,7 @@
 /**
- * Stops and airline filters. On wide screens a card beside the results; on
- * phones a bottom sheet behind a Filters button. Whichever is on screen carries
- * toolname="filter_results", so the agent cursor goes there.
+ * Stops and airline filters. On wide screens a card beside the results; on phones a bottom sheet behind a Filters
+ * button. filter_results finds them by their names: the stops radio it sets (named `stops`, valued like its
+ * parameter, so the cursor ticks it), an airline's checkbox, or on a phone the Filters button.
  */
 import { useEffect, useId, useRef, useState } from "react";
 import { AIRLINES, type Filters, type Flight, type StopsFilter } from "../data/flights";
@@ -15,15 +15,15 @@ interface Props {
   onChange(filters: Partial<Filters>): void;
 }
 
-const STOPS: { value: StopsFilter; label: string }[] = [
-  { value: "any", label: "Any" },
-  { value: 0, label: "Direct" },
-  { value: 1, label: "1 stop" },
-  { value: 2, label: "2 stops" },
+/** `param`: the value filter_results' `stops` parameter takes for it. */
+const STOPS: { value: StopsFilter; param: string; label: string }[] = [
+  { value: "any", param: "any", label: "Any" },
+  { value: 0, param: "0", label: "Direct" },
+  { value: 1, param: "1", label: "1 stop" },
+  { value: 2, param: "2", label: "2 stops" },
 ];
 
 function FiltersPanel({ results, filters, onChange }: Props) {
-  const name = useId();
   const carriers = AIRLINES.map((a) => ({ ...a, count: results.filter((f) => f.airline === a.code).length })).filter((a) => a.count > 0);
   const toggle = (code: string, on: boolean) =>
     onChange({ airlines: on ? [...filters.airlines, code] : filters.airlines.filter((c) => c !== code) });
@@ -36,7 +36,13 @@ function FiltersPanel({ results, filters, onChange }: Props) {
           const count = s.value === "any" ? results.length : results.filter((f) => f.stops === s.value).length;
           return (
             <label key={s.label} className={styles.option}>
-              <input type="radio" name={name} checked={filters.stops === s.value} onChange={() => onChange({ stops: s.value })} />
+              <input
+                type="radio"
+                name="stops"
+                value={s.param}
+                checked={filters.stops === s.value}
+                onChange={() => onChange({ stops: s.value })}
+              />
               <span>{s.label}</span>
               <span className={`${styles.count} tabular`}>{count}</span>
             </label>
@@ -85,7 +91,7 @@ export function FiltersSidebar(props: Props) {
 
   if (!phone) {
     return (
-      <aside className={`card ${styles.sidebar}`} aria-label="Filters" toolname="filter_results">
+      <aside className={`card ${styles.sidebar}`} aria-label="Filters">
         <h2 className={styles.title}>Filters</h2>
         <FiltersPanel {...props} />
       </aside>
@@ -94,14 +100,14 @@ export function FiltersSidebar(props: Props) {
 
   return (
     <>
-      <button type="button" className="btn outline" onClick={() => setOpen(true)} toolname={open ? undefined : "filter_results"}>
+      <button type="button" className="btn outline" onClick={() => setOpen(true)}>
         <FilterIcon />
         Filters{active > 0 && <span className="tabular"> ({active})</span>}
       </button>
       {open && (
         <div className={styles.sheetRoot}>
           <div className={styles.backdrop} onClick={() => setOpen(false)} aria-hidden="true" />
-          <div role="dialog" aria-modal="true" aria-labelledby={titleId} className={styles.sheet} toolname="filter_results">
+          <div role="dialog" aria-modal="true" aria-labelledby={titleId} className={styles.sheet}>
             <div className={styles.sheetHead}>
               <h2 id={titleId} className={styles.title}>
                 Filters

@@ -1,12 +1,8 @@
-import { playwright } from "@vitest/browser-playwright";
-import { defaultClientConditions } from "vite";
+import { defaultServerConditions } from "vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  resolve: { conditions: ["@webmcp-agents/source", ...defaultClientConditions] },
-  test: {
-    name: "polyfill:browser",
-    include: ["src/**/*.browser.test.ts"],
-    browser: { enabled: true, headless: true, provider: playwright(), instances: [{ browser: "chromium" }] },
-  },
+  // The re-exports load core from source, as the apps do in dev.
+  ssr: { resolve: { conditions: ["@webmcp-agents/source", ...defaultServerConditions] } },
+  test: { name: "polyfill:unit", include: ["src/**/*.test.ts"], environment: "node" },
 });

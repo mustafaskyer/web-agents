@@ -1,56 +1,49 @@
+---
+description: "The zod schema for the POST body of /api/chat, and the LIMITS it enforces."
+---
+
 # `chatRequestSchema`
 
-The zod schema for the POST body of `/api/chat`, and the caps it enforces. Counts, sizes and names are capped so a
-page, or anyone calling the endpoint, can't send an unbounded prompt.
+The zod schema for the POST body of `/api/chat`, and the `LIMITS` it enforces. Counts, sizes and names are capped so a page, or anyone calling the endpoint, cannot send an unbounded prompt. [`createChatHandler`](./create-chat-handler.md) already applies it; use it when you write your own handler or test a client.
+
+## Import
 
 ```ts
 import { chatRequestSchema, LIMITS } from "@webmcp-agents/chat/server";
 import type { ChatRequest } from "@webmcp-agents/chat/server";
 ```
 
-## Signature
+`LIMITS` is exported from `@webmcp-agents/chat/server` (and used by the client internally); the main entry does not export it.
 
-```ts
-const chatRequestSchema: z.ZodObject<…>;
-type ChatRequest = z.infer<typeof chatRequestSchema>;
+## Example
 
-const LIMITS: {
-  readonly bodyBytes: 1048576;
-  readonly messages: 160;
-  readonly parts: 40;
-  readonly text: 8000;
-  readonly reasoning: 32000;
-  readonly tools: 48;
-  readonly description: 1024;
-  readonly schemaBytes: 8192;
-};
-```
+A handler of your own that validates the body first and answers with the first issues.
 
-## Shape
+<include meta='title="api/chat.ts"'>/_examples/shared/reference/chat/chat-request-schema.ts</include>
 
-```ts
-{
-  messages: AgentMessage[];                          // 1 to LIMITS.messages
-  tools: { name: string; description: string; inputSchema: Record<string, unknown> }[];
-  page?: { url?: string };                           // url ≤ 2000 characters
-  agent?: string;                                    // the agent's id; looked up in the handler's registry
-}
-```
+## Options
+
+`chatRequestSchema.safeParse(body)` takes the parsed JSON body. Its fields (`ChatRequest`):
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `messages` | `AgentMessage[]` | required | The conversation, 1 to 160. Each has an `id` of 1 to 64 characters, a `role` of `"user"` or `"assistant"` and at most 40 `parts`. |
+| `tools` | `{ name, description, inputSchema }[]` | required | The page's tools: at most 48, with unique names. |
+| `page` | `{ url?: string }` | not set | Where the conversation happens. `url` is at most 2000 characters; only a same-origin path reaches the model. |
+| `agent` | `string` | not set | The agent's id, matching `/^[a-zA-Z0-9_.-]{1,64}$/`, looked up in the handler's registry. An id only: instructions in the body are unknown keys and are stripped. |
+
+### Rules per field
 
 | Field | Rule |
 |---|---|
-| `messages` | 1 to 160. Each: `id` 1–64 characters, `role` `"user"` or `"assistant"`, at most 40 `parts`. |
-| text part | `text` ≤ 8000 characters. |
-| reasoning part | `text` ≤ 32 000 characters; `providerMetadata` ≤ 32 000 characters as JSON. |
-| tool part | `id` 1–128 characters; `name` matches the tool name rule; `state` one of the `ToolCallState`s; `output.content` ≤ 20 items; `error` and `prompt` ≤ 8000 characters; `providerMetadata` ≤ 32 000 characters as JSON. A nested `agent` run is not accepted (the cloud adapter strips it). |
-| `tools` | At most 48, unique names. |
+| text part | `text` is at most 8000 characters. |
+| reasoning part | `text` is at most 32 000 characters; `providerMetadata` at most 32 000 characters as JSON. |
+| tool part | `id` is 1 to 128 characters; `name` matches the tool name rule; `state` is one of the [`ToolCallState`](./adapter-types.md#toolcallstate)s; `output.content` has at most 20 items; `error` and `prompt` are at most 8000 characters; `providerMetadata` at most 32 000 characters as JSON. A nested `agent` run is not accepted (the cloud adapter strips it). |
 | tool `name` | `/^[a-zA-Z0-9_.-]{1,128}$/` |
-| tool `description` | ≤ 1024 characters. |
-| tool `inputSchema` | An object, ≤ 8192 characters as JSON. |
-| `page.url` | Optional, ≤ 2000 characters. Only a same-origin path reaches the model. |
-| `agent` | Optional, `/^[a-zA-Z0-9_.-]{1,64}$/`. An id only: instructions in the body are unknown keys and are stripped. |
+| tool `description` | At most 1024 characters. |
+| tool `inputSchema` | An object, at most 8192 characters as JSON. |
 
-## `LIMITS`
+### `LIMITS`
 
 | Key | Value | Meaning |
 |---|---|---|
@@ -65,22 +58,16 @@ const LIMITS: {
 
 ## Returns
 
-`chatRequestSchema.safeParse(body)` gives `{ success: true, data: ChatRequest }` or the zod issues.
-
-## Example
-
-```ts
-const parsed = chatRequestSchema.safeParse(await req.json());
-if (!parsed.success) return Response.json({ error: "bad_request", issues: parsed.error.issues.slice(0, 10) }, { status: 400 });
-const { messages, tools, page } = parsed.data;
-```
+`chatRequestSchema.safeParse(body)` gives `{ success: true, data: ChatRequest }` or `{ success: false, error }` with the zod issues. `ChatRequest` is `z.infer<typeof chatRequestSchema>`.
 
 ## Notes
 
-- `createChatHandler` already applies it; use it when you write your own handler or test a client.
-- `LIMITS` is exported from `@webmcp-agents/chat/server`, not the main entry.
+- The body size is checked before parsing, by the handler (413), not by the schema.
+- A tool output keeps `content` and `isError` only: other keys of a result do not reach the server.
+- Only a same-origin path from `page.url` reaches the model, and only for a same-origin browser request.
 
 ## See also
 
 - [`createChatHandler`](./create-chat-handler.md)
+- [`createCloudAdapter`](./create-cloud-adapter.md), the client that builds this body
 - [Adapter types](./adapter-types.md)

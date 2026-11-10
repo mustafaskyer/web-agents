@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "webmcp-agents",
-  "homepage": "https://github.com/mustafaskyer/web-agents",
+  "homepage": "https://webmcp-agents.dev",
   "items": [
     {
       "name": "agent-tool",

@@ -1,50 +1,46 @@
-# `@webmcp-agents/polyfill/auto`
+---
+description: "A side-effect entry: importing it calls installWebMCPPolyfill(), which installs the polyfill if the browser has no WebMCP."
+---
 
-A side-effect entry: importing it calls [`installWebMCPPolyfill()`](./install-webmcp-polyfill.md), which installs the polyfill if the browser has no WebMCP. Use it when you don't need the returned `ModelContext`.
+# `@webmcp-agents/core/polyfill/auto`
+
+A side-effect entry: importing it calls [`installWebMCPPolyfill()`](./install-webmcp-polyfill.md), which installs the polyfill if the browser has no WebMCP. An app with [`<WebAgentsProvider>`](../react/web-agents-provider.md) or [`createWebAgents`](../core/create-web-agents.md) does not need it: they load the polyfill themselves. Use it on a page that registers tools without them.
+
+## Import
 
 ```ts
-import "@webmcp-agents/polyfill/auto";
+import "@webmcp-agents/core/polyfill/auto";
 ```
-
-## Signature
-
-```ts
-// src/auto.ts
-import { installWebMCPPolyfill } from "./index";
-
-installWebMCPPolyfill();
-```
-
-## Parameters
-
-—
-
-## Returns
-
-Nothing. The module has no exports.
 
 ## Example
 
-The example apps load it in development only, with a dynamic import, before the app module (`apps/playground/src/main.tsx`):
+A page whose tools are only declarative forms, with no provider: the polyfill finds the forms once it is installed.
 
-```ts
-import "@webmcp-agents/core/cursor.css";
-
-// 1. (dev only) give browsers without native WebMCP a document.modelContext
-if (import.meta.env.DEV) {
-  await import("@webmcp-agents/polyfill/auto");
-}
-
-// 2. the app: <WebAgentsProvider> (App.tsx) installs the agent cursor before its first tool registers
+```ts src/main.ts
+// Browsers without WebMCP get document.modelContext, which
+// registers every <form toolname> on the page.
+import "@webmcp-agents/core/polyfill/auto";
 ```
+
+## Options
+
+None. The module has no exports and takes no options.
+
+## Returns
+
+Nothing.
 
 ## Notes
 
-- Import it before any tool registers. A static `import` runs in module order; the example apps use `await import(…)` so the production bundle doesn't include it, and import the app after it.
-- The package declares only this entry as having side effects (`"sideEffects": ["./src/auto.ts", "./dist/auto.js"]`), so bundlers keep it and can drop unused code from the main entry.
+- Import it before any tool registers: a static `import` runs in module order.
+- A static import puts the polyfill in your main bundle for every browser. To load it only where the browser has no WebMCP, call [`loadWebMCPPolyfill`](../core/load-webmcp-polyfill.md) instead.
+- The package declares this entry as having side effects (`"sideEffects"` lists `./src/polyfill/auto.ts` and `./dist/polyfill/auto.js`), so bundlers keep it.
 - Same behaviour as calling `installWebMCPPolyfill()`: nothing is installed when the browser already has `document.modelContext`, and nothing happens on the server.
+- `@webmcp-agents/polyfill/auto` (deprecated) imports this entry, so code written against it keeps working.
 
 ## See also
 
+- [Browsers without WebMCP](../../more/polyfill.mdx)
+- [`loadWebMCPPolyfill`](../core/load-webmcp-polyfill.md)
 - [`installWebMCPPolyfill`](./install-webmcp-polyfill.md)
 - [`PolyfillModelContext`](./polyfill-model-context.md)

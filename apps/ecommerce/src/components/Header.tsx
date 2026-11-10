@@ -16,8 +16,7 @@ export function Header() {
           <span className={styles.glyph} aria-hidden="true" />
           Field Store
         </Link>
-        {/* toolname: where the cursor goes when the agent calls browse_category */}
-        <nav className={styles.nav} aria-label="Shop" toolname="browse_category">
+        <nav className={styles.nav} aria-label="Shop">
           <NavLink to="/products" end>
             All products
           </NavLink>
@@ -35,7 +34,6 @@ export function Header() {
           <button
             type="button"
             className={`icon-btn ${styles.cart}`}
-            toolname="open_cart"
             onClick={openCart}
             aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
           >

@@ -2,10 +2,11 @@
  * installAgentVisuals()
  *
  * Makes agent activity visible (a ghost cursor, a focus ring), driven ENTIRELY
- * by WebMCP lifecycle events. It never imports, wraps or patches a tool. The
- * only contract with the page is the `toolname` attribute, which the
- * declarative API already requires and which imperative tools can simply add
- * to the element they act on.
+ * by WebMCP lifecycle events. It never imports, wraps or patches a tool. A
+ * declarative form is found by its `toolname` attribute. A WebTool says where
+ * it acts itself (its `Stage`: a control found by role and name, the fields
+ * its parameters are typed into); any other imperative tool can mark its
+ * element with `toolname`.
  *
  * In sync mode (the default) the page changes IN STEP with the cursor: the
  * browser fills an agent's fields and submits instantly, so the layer puts the
@@ -24,11 +25,12 @@
  * Install once, before tools register (before your app renders). Every call
  * returns a handle; the layer tears down when the last handle is destroyed.
  */
-import { CONFIRM, TARGET, confirmPrompt } from "./confirm";
+import { confirmPrompt, type FieldStep, STAGE, type Stage, type Staged, stages } from "./confirm";
 import { agentCursor, reduced, wait, type SpotlightOptions } from "./cursor";
 import { type AgentEvent, emit } from "./events";
 import { errorText, isAbortError } from "./result";
 import { type YieldOptions, watchUserInput } from "./user-yield";
+import { type FieldControl, type FieldValue, isCheckbox, isControl, writeControl } from "./write";
 
 export type { SpotlightOptions, YieldOptions };
 
@@ -77,9 +79,6 @@ interface Instance {
   setYieldToUser(value: boolean | YieldOptions): void;
   teardown(): void;
 }
-
-type FieldValue = string | boolean;
-type FieldControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 /** One field the agent filled. */
 interface Fill {
@@ -131,14 +130,11 @@ function onLifecycle(type: LifecycleEvent, listener: (ev: ToolEvent) => void, si
   target.addEventListener(type, listener as EventListener, { signal });
 }
 
-const isControl = (el: Element): el is FieldControl =>
-  el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement;
+/** Field types typed a character at a time. Everything else (number, date, range, select, checkbox) is written once. */
+const TYPED = /^(text|search|email|url|tel|password|textarea)$/;
 
 const controlsOf = (form: HTMLFormElement): FieldControl[] =>
   [...form.elements].filter((f): f is FieldControl => isControl(f) && !!f.name && f.type !== "submit" && f.type !== "button");
-
-const isCheckbox = (f: FieldControl): f is HTMLInputElement =>
-  f instanceof HTMLInputElement && (f.type === "checkbox" || f.type === "radio");
 
 const fieldValue = (f: FieldControl): FieldValue => (isCheckbox(f) ? f.checked : f.value);
 
@@ -220,13 +216,10 @@ function start({
     );
 
   const runs = new Map<string, Run>();
-  /** Imperative tools that name their element with a selector (WebTool `target`) instead of `toolname`. */
-  const targets = new Map<string, string | ((args: unknown) => string | undefined)>();
+  /** A WebTool's own control (its target, a `toolname` marker, or the control named like it); any other tool's `toolname` element. */
   const byTool = (name: string, args?: unknown): Element | null => {
-    const t = targets.get(name);
-    const own = typeof t === "function" ? t(args) : t;
-    // an explicit selector that matches nothing falls back to the `toolname` element: a stale `target` never hides the cursor
-    return (own && document.querySelector(own)) || document.querySelector(`[toolname="${CSS.escape(name)}"]`);
+    const stage = stages.get(name);
+    return stage ? stage.at(args) : document.querySelector(`[toolname="${CSS.escape(name)}"]`);
   };
 
   // ---------- field bookkeeping ----------
@@ -239,14 +232,11 @@ function start({
   const replayed = new WeakSet<Event>();
   let writing = false;
 
-  /** Write like a user would: native setter + input/change, so React & co. see it. */
-  function writeField(f: FieldControl, value: FieldValue): void {
+  /** Write like a user would (see `writeControl`), without taking our own `input` event for the agent's. */
+  function writeField(f: FieldControl, value: FieldValue, press?: boolean): void {
     writing = true;
     try {
-      if (isCheckbox(f)) f.checked = !!value;
-      else Object.getOwnPropertyDescriptor(Object.getPrototypeOf(f), "value")?.set?.call(f, String(value));
-      f.dispatchEvent(new Event("input", { bubbles: true }));
-      f.dispatchEvent(new Event("change", { bubbles: true }));
+      writeControl(f, value, press);
     } finally {
       writing = false;
     }
@@ -324,8 +314,10 @@ function start({
   onLifecycle(
     "toolactivated",
     async ({ toolName }) => {
-      const el = byTool(toolName);
       // Imperative tools registered through the gate (section 4) are animated from their execute.
+      // (A WebTool is asked first, so its `target` function is not called here, without arguments, for nothing.)
+      if (gated.has(toolName) && stages.has(toolName)) return;
+      const el = byTool(toolName);
       if (gated.has(toolName) && !(el instanceof HTMLFormElement)) return;
 
       // Already playing: native Chrome announces an autosubmit form after its submit,
@@ -504,7 +496,8 @@ function start({
   // ---------- 4. imperative tools: run execute at the cursor's click ----------
   // A declarative form has a submit to hold; an imperative tool doesn't, the
   // browser just calls execute(). So wrap registerTool once: a tool whose
-  // `toolname` element is on screen runs when the cursor presses that element.
+  // control is on screen runs when the cursor presses it, after the cursor
+  // typed the call's values into the fields a WebTool found for them.
   // Tools with no element run immediately; forms pass through (section 3 holds them).
   const gated = new Set<string>();
   const mc = document.modelContext;
@@ -514,9 +507,6 @@ function start({
     const register = originalRegister.bind(mc);
     wrappedRegister = (tool, options) => {
       gated.add(tool.name);
-      const target = (tool as { [TARGET]?: string | ((args: unknown) => string | undefined) })[TARGET];
-      if (target) targets.set(tool.name, target);
-      else targets.delete(tool.name);
       return register({ ...tool, execute: (args: unknown, ctx?: ModelContextExecuteOptions) => runGated(tool, args, ctx) }, options);
     };
     mc.registerTool = wrappedRegister;
@@ -528,18 +518,35 @@ function start({
   // biome-ignore lint/suspicious/noExplicitAny: a tool may declare any argument type; registration must accept them all
   async function runGated(tool: ModelContextTool<any>, args: unknown, ctx?: ModelContextExecuteOptions): Promise<unknown> {
     if (!alive) return tool.execute(args, ctx as ModelContextExecuteOptions); // torn down: just run it
-    const el = byTool(tool.name, args);
+    // A WebTool validates first: the cursor never types input the schema rejects (the tool answers with the error, unseen).
+    const stage = (tool as { [STAGE]?: Stage })[STAGE];
+    let staged: Staged | undefined;
+    if (stage)
+      try {
+        staged = await stage(args);
+      } catch {
+        return runUnseen(tool, args, ctx);
+      }
+    const el = staged ? staged.el : byTool(tool.name, args);
     if (el instanceof HTMLFormElement) return tool.execute(args, ctx as ModelContextExecuteOptions);
-    if (!el) return runUnseen(tool, args, ctx);
+    /** The staged call continues in the tool: it writes what the cursor didn't, then confirms and runs. */
+    const execute = (): unknown =>
+      tool.execute(args, (staged ? { signal: ctx?.signal, [STAGE]: staged } : ctx) as ModelContextExecuteOptions);
+    const fields = staged?.fields ?? [];
+    const anchor = el ?? fields[0]?.field;
+    if (!anchor) return runUnseen(tool, args, ctx, execute);
 
     report({ type: "start", tool: tool.name, at: performance.now(), args });
     agentCursor.say(`${tool.name} started`);
-    const run = startRun(tool.name, el);
-    if ((tool as { [CONFIRM]?: string })[CONFIRM]) return runConfirmed(tool, args, ctx, el, run);
+    const run = startRun(tool.name, anchor);
+    /** `requireConfirmation`: the tool's execute waits for the user's click itself, so the cursor parks instead of clicking. */
+    const confirm = !!el && !!staged?.confirm;
+    const current = (): boolean => runs.get(tool.name) === run;
+    let settled = false;
 
     let release!: () => void;
     const pressed = new Promise<void>((resolve) => (release = resolve));
-    const timeout = setTimeout(() => release(), GATE_TIMEOUT_MS);
+    const timeout = setTimeout(() => release(), GATE_TIMEOUT_MS * (1 + fields.length));
     const cancelled = new Promise<never>((_, reject) =>
       ctx?.signal?.addEventListener(
         "abort",
@@ -549,71 +556,32 @@ function start({
     );
 
     void (async () => {
+      if (staged) {
+        await playFields(run, tool.name, fields);
+        await staged.fill().catch(() => {}); // the tool's own call reports a throwing `fill`
+      }
+      // The confirm gate opens once the values are on screen (no gate timeout: the user decides), and the cursor parks.
+      if (confirm) release();
+      if (!el || settled || !current()) return release(); // nothing to press, or superseded: don't hold the tool
       await agentCursor.moveTo(el);
-      if (runs.get(tool.name) !== run) return release(); // superseded: don't hold the tool
+      if (settled || !current()) return release();
       el.setAttribute("data-agent-active", "");
-      agentCursor.highlight(el);
-      await agentCursor.click(release);
-    })();
-
-    try {
-      await Promise.race([pressed, cancelled]);
-      const result = await tool.execute(args, ctx as ModelContextExecuteOptions);
-      report({ type: "result", tool: tool.name, result, ms: performance.now() - run.startedAt });
-      agentCursor.say(`${tool.name} done`);
-      return result;
-    } catch (err) {
-      reportFailure(tool.name, err, run.startedAt);
-      throw err;
-    } finally {
-      clearTimeout(timeout);
-      setTimeout(() => finish(tool.name, run.generation), linger);
-    }
-  }
-
-  /** No element to animate: run at once, but still report the run (devtools, chat). */
-  // biome-ignore lint/suspicious/noExplicitAny: see runGated
-  async function runUnseen(tool: ModelContextTool<any>, args: unknown, ctx?: ModelContextExecuteOptions): Promise<unknown> {
-    const startedAt = performance.now();
-    report({ type: "start", tool: tool.name, at: startedAt, args });
-    try {
-      const result = await tool.execute(args, ctx as ModelContextExecuteOptions);
-      report({ type: "result", tool: tool.name, result, ms: performance.now() - startedAt });
-      return result;
-    } catch (err) {
-      reportFailure(tool.name, err, startedAt);
-      throw err;
-    }
-  }
-
-  /**
-   * A WebTool with `requireConfirmation`: its execute already waits for the
-   * user's click, so run it at once (no gate timeout) and park the cursor on
-   * the element meanwhile. The cursor clicks only after the user confirmed.
-   */
-  async function runConfirmed(
-    // biome-ignore lint/suspicious/noExplicitAny: see runGated
-    tool: ModelContextTool<any>,
-    args: unknown,
-    ctx: ModelContextExecuteOptions | undefined,
-    el: Element,
-    run: Run,
-  ): Promise<unknown> {
-    const current = (): boolean => runs.get(tool.name) === run;
-    let settled = false;
-    void (async () => {
-      await agentCursor.moveTo(el);
-      if (settled || !current()) return;
-      el.setAttribute("data-agent-active", "");
+      if (!confirm) {
+        agentCursor.highlight(el);
+        return agentCursor.click(release);
+      }
       const prompt = confirmPrompt(el, tool.name);
       agentCursor.park(prompt, el);
       run.parked = true;
       log({ type: "park", tool: tool.name, prompt }); // the gate itself emits it to onAgentEvent
     })();
+
     try {
-      const result = await tool.execute(args, ctx as ModelContextExecuteOptions);
+      await Promise.race([pressed, cancelled]);
+      const result = await execute();
       settled = true;
-      if (current()) {
+      if (confirm && current()) {
+        // The cursor clicks only after the user confirmed.
         if (run.parked) agentCursor.unpark();
         agentCursor.highlight(el);
         void agentCursor.click();
@@ -627,40 +595,73 @@ function start({
       reportFailure(tool.name, err, run.startedAt);
       throw err;
     } finally {
+      clearTimeout(timeout);
       run.parked = false;
       setTimeout(() => finish(tool.name, run.generation), linger);
     }
   }
 
+  /** No element to animate: run at once, but still report the run (devtools, chat). */
+  async function runUnseen(
+    // biome-ignore lint/suspicious/noExplicitAny: see runGated
+    tool: ModelContextTool<any>,
+    args: unknown,
+    ctx?: ModelContextExecuteOptions,
+    execute = (): unknown => tool.execute(args, ctx as ModelContextExecuteOptions),
+  ): Promise<unknown> {
+    const startedAt = performance.now();
+    report({ type: "start", tool: tool.name, at: startedAt, args });
+    try {
+      const result = await execute();
+      report({ type: "result", tool: tool.name, result, ms: performance.now() - startedAt });
+      return result;
+    } catch (err) {
+      reportFailure(tool.name, err, startedAt);
+      throw err;
+    }
+  }
+
   // ---------- helpers ----------
-  /** Visit each field the agent filled: glide there, type the value in, flash. */
-  function playFields(run: Run, toolName: string): Promise<void> {
+  /**
+   * Visit each field: glide there, type the value in, flash. `steps` are a tool's parameters and their fields;
+   * left out, the fields of the run's form that the agent filled.
+   */
+  function playFields(run: Run, toolName: string, steps?: FieldStep[]): Promise<void> {
     run.fieldsDone ??= (async () => {
       const order = run.el instanceof HTMLFormElement ? controlsOf(run.el) : [];
-      const fills = [...run.fills].sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field));
-      for (const fill of fills) {
+      const fills: Array<FieldStep & { from?: FieldValue }> =
+        steps ??
+        [...run.fills]
+          .sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field))
+          .map(({ field, from, to }) => ({ field, from, to, name: field.name }));
+      for (const step of fills) {
+        const { field, name, to } = step;
         if (runs.get(toolName) !== run) return;
-        await agentCursor.moveTo(fill.field);
-        agentCursor.highlight(fill.field);
-        agentCursor.say(`${toolName}: ${fill.field.name} = ${JSON.stringify(fill.to)}`);
-        if (sync) await typeInto(fill);
-        agentCursor.flash();
-        report({ type: "fill", tool: toolName, field: fill.field.name, value: fill.to });
-        await wait(60);
+        await agentCursor.moveTo(field);
+        if (step.done) continue; // the gate gave up waiting and the tool wrote it itself
+        agentCursor.highlight(field);
+        agentCursor.say(`${toolName}: ${name} = ${JSON.stringify(to)}`);
+        // A custom widget (a role, no native control) is shown, never written: the tool's `fill` sets it.
+        if (isControl(field)) {
+          step.done = true;
+          if (sync) await typeInto(field, to, step.from, !!steps);
+          agentCursor.flash();
+          report({ type: "fill", tool: toolName, field: name, value: to });
+        }
+        await wait(isControl(field) ? 60 : 300);
       }
     })();
     return run.fieldsDone;
   }
 
-  /** Type the agent's value into the field, a character at a time. */
-  async function typeInto({ field, from, to }: Fill): Promise<void> {
-    if (typeof to !== "string" || isCheckbox(field) || field instanceof HTMLSelectElement || reduced()) {
-      writeField(field, to);
+  /** Type the value into the field, a character at a time where a person would type; write it in one step elsewhere. */
+  async function typeInto(field: FieldControl, to: FieldValue, from: FieldValue = fieldValue(field), press?: boolean): Promise<void> {
+    if (typeof to !== "string" || !TYPED.test(field.type) || reduced()) {
+      writeField(field, to, press);
       return;
     }
     // Extend the old value if the new one starts with it; otherwise type over it
-    // (like select-all + type), never passing through an empty field, which
-    // number inputs in React would render as "0".
+    // (like select-all + type), never passing through an empty field.
     let typed = typeof from === "string" && to.startsWith(from) ? from : "";
     const perChar = Math.min(70, Math.max(30, 420 / Math.max(1, to.length - typed.length)));
     while (typed.length < to.length) {

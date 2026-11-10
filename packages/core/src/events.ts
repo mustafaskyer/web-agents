@@ -9,9 +9,13 @@ export type AgentEvent =
   /**
    * A tool run started (first lifecycle signal seen). `at` is performance.now().
    * `args`: what the agent passed, when known (imperative tools; declarative forms only show `fill`s).
+   * A tool whose input fails its schema still starts and answers with the error, without the cursor moving.
    */
   | { type: "start"; tool: string; at: number; args?: unknown }
-  /** The agent filled a field of a declarative form; emitted once the cursor has typed it. */
+  /**
+   * The agent's value went into a field: one of a declarative form, or the field a tool's parameter is typed into
+   * (`field` is the control's `name` for a form, the parameter's name for a tool). Emitted once the cursor has typed it.
+   */
   | { type: "fill"; tool: string; field: string; value: string | boolean }
   /** The tool is waiting for the user (the browser paused on a submit button, or the page asked them something). */
   | { type: "park"; tool: string; prompt: string }

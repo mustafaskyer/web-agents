@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { list, open, run } from "./agent";
+import { list, open, parkedOn, run } from "./agent";
 
 const RESULTS_URL = /\/flights\/lhr\/dxb\/oneway\/economy\/1\/0\/0\/\d{4}-\d{2}-\d{2}$/;
 const RESULTS_TOOLS = ["filter_results", "list_results", "select_flight", "sort_results"];
@@ -51,14 +51,13 @@ test("search_flights answers, then shows the results; results tools exist only t
   await expect.poll(() => list(page)).toEqual(expect.arrayContaining(RESULTS_TOOLS));
 });
 
-test("search_flights takes airports the way agents copy them; a malformed date says how to send it", async ({ page }) => {
+test("search_flights takes airports and dates the way agents copy them; a date it can't read says how to send it", async ({ page }) => {
   await open(page, "/?latency=0");
   await expect.poll(() => list(page)).toContain("search_flights");
-  // the date input itself drops anything but YYYY-MM-DD
-  expect(await run(page, "search_flights", { ...search, date: `Fri ${search.date}.` })).toMatch(
-    /^Error: Departure date is missing or wasn't YYYY-MM-DD: send it exactly like \d{4}-\d{2}-\d{2}/,
+  expect(await run(page, "search_flights", { ...search, date: "next Friday" })).toBe(
+    'Error [invalid_input]: Departure date must be YYYY-MM-DD, got "next Friday".',
   );
-  const answer = await run(page, "search_flights", { ...search, from: "LHR.", to: "Dubai" });
+  const answer = await run(page, "search_flights", { ...search, from: "LHR.", to: "Dubai", date: `Fri ${search.date}.` });
   expect(answer).toMatch(/^Found \d+ flights London \(LHR\) â†’ Dubai \(DXB\)/);
   await expect(page).toHaveURL(RESULTS_URL);
 });
@@ -66,7 +65,9 @@ test("search_flights takes airports the way agents copy them; a malformed date s
 test("search_flights errors reach the agent and the page", async ({ page }) => {
   await open(page, "/?latency=0");
   await expect.poll(() => list(page)).toContain("search_flights");
-  expect(await run(page, "search_flights", { ...search, trip: "roundtrip" })).toBe("Error: A round trip needs a returnDate (YYYY-MM-DD).");
+  expect(await run(page, "search_flights", { ...search, trip: "roundtrip" })).toBe(
+    "Error [invalid_input]: A round trip needs a returnDate (YYYY-MM-DD).",
+  );
   await expect(page.getByRole("alert")).toHaveText("A round trip needs a returnDate (YYYY-MM-DD).");
   await expect(page).toHaveURL(/\/\?latency=0$/);
 });
@@ -119,9 +120,10 @@ test("book_flight: missing details is an error; then details â†’ confirm gate â†
 
   // without details: the gate still waits for the person; the answer names the missing fields
   const early = run(page, "book_flight", { acceptTerms: true });
-  await expect(book).toHaveAttribute("data-tool-submit-active", "");
+  await parkedOn(page, book);
+  await expect(page.getByRole("checkbox", { name: /I accept the fare rules/ })).toBeChecked(); // ticked by the cursor
   await book.click();
-  expect(await early).toMatch(/^Error: Missing traveler details: firstName, lastName, email, phone, firstName_1/);
+  expect(await early).toMatch(/^Error \[failed\]: Missing traveler details: firstName, lastName, email, phone, firstName_1/);
   await expect(page.getByRole("alert")).toContainText("Missing traveler details");
 
   const details = {
@@ -139,7 +141,7 @@ test("book_flight: missing details is an error; then details â†’ confirm gate â†
   );
 
   const pending = run(page, "book_flight", { acceptTerms: true });
-  await expect(book).toHaveAttribute("data-tool-submit-active", "");
+  await parkedOn(page, book);
   const state = await Promise.race([pending.then(() => "settled"), page.waitForTimeout(500).then(() => "pending")]);
   expect(state).toBe("pending");
   await book.click();
@@ -152,6 +154,45 @@ test("book_flight: missing details is an error; then details â†’ confirm gate â†
   expect(await run(page, "get_booking", { reference: ref })).toMatch(
     new RegExp(`^Booking ${ref}: confirmed\\.\\nLondon \\(LHR\\) â†’ Dubai \\(DXB\\)`),
   );
+});
+
+test("fill_traveler_details types into the TanStack Form fields; the person sees every value before booking", async ({ page }) => {
+  await selectFirst(page);
+  await expect.poll(() => list(page)).toContain("fill_traveler_details");
+  const details = {
+    firstName: "Mustafa",
+    lastName: "Elsayed",
+    email: "mustafa@mail.test",
+    phone: "+966567891011",
+    firstName_1: "Mustafa",
+    lastName_1: "Elsayed",
+    dob_1: "2000-01-01",
+    document_1: "A12345678",
+  };
+  expect(await run(page, "fill_traveler_details", details)).toBe(
+    "Saved details for 1 traveler. Next: book_flight (needs the user's confirmation).",
+  );
+  const contact = page.getByRole("region", { name: "Contact information" });
+  await expect(contact.getByLabel("Email")).toHaveValue("mustafa@mail.test");
+  await expect(contact.getByLabel("Phone")).toHaveValue("+966567891011");
+  const traveler = page.getByRole("region", { name: /^Traveler 1/ });
+  await expect(traveler.getByLabel("Date of birth")).toHaveValue("2000-01-01");
+  await expect(traveler.getByLabel("Passport or ID number")).toHaveValue("A12345678");
+  await expect(page.getByRole("status").filter({ hasText: "Saved details" })).toBeVisible();
+});
+
+test("filter_results ticks the stops radio it sets; the results tools follow the URL", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the filters sit in a closed sheet on phones");
+  await searchFromHome(page);
+  await expect.poll(() => list(page)).toContain("filter_results");
+  expect(await run(page, "filter_results", { stops: "0" })).toMatch(/^Showing \d+ of \d+ flights/);
+  await expect(page.getByRole("radio", { name: /^Direct/ })).toBeChecked();
+  // back home, client-side: the tools whose `match` no longer fits turn off
+  await page.goBack();
+  await expect(page).toHaveURL(/\/\?latency=0$/);
+  await expect.poll(() => list(page)).not.toContain("filter_results");
+  await page.goForward();
+  await expect.poll(() => list(page)).toEqual(expect.arrayContaining(RESULTS_TOOLS));
 });
 
 test("a malformed results URL shows a readable error page", async ({ page }) => {
@@ -216,6 +257,6 @@ test.describe("get_time", () => {
     expect(answer).toContain("Now: 14:05 on Sun 2026-11-08 for the user (Asia/Riyadh, UTC+03:00)");
     expect(answer).toContain("Tomorrow: 2026-11-09 (Mon)");
     expect(answer).toContain("Fri 2026-11-13");
-    expect(answer).toMatch(/Next week: 2026-11-09 to 2026-11-15 \(weeks start on Monday here\)/);
+    expect(answer).toMatch(/Next week: 2026-11-09 to 2026-11-15 \(weeks start on Monday for en-GB\)/);
   });
 });

@@ -59,6 +59,10 @@
   },
   "overrides": [
     {
+      "includes": ["docs/_examples/**"],
+      "formatter": { "lineWidth": 72 }
+    },
+    {
       "includes": [
         "packages/chat/src/components/**",
         "packages/chat/src/adapter/**",

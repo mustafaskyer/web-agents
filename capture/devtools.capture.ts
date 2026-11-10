@@ -3,7 +3,7 @@ import { open, run, sleep, still } from "./helpers";
 
 const PLAYGROUND = "http://localhost:5173";
 
-test("devtools: tools form, timeline, settings", async ({ page }, info) => {
+test("devtools: tools form, timeline", async ({ page }, info) => {
   await open(page, PLAYGROUND, "get_cart");
   // the hotkey is a trusted keydown on the page (the cursor yields to it): drive tools a moment later
   await page.keyboard.press("Alt+Shift+A");
@@ -20,8 +20,4 @@ test("devtools: tools form, timeline, settings", async ({ page }, info) => {
   await page.getByRole("tab", { name: /Timeline/ }).click();
   await sleep(400);
   await still(page, info, "devtools/timeline");
-
-  await page.getByRole("tab", { name: /Settings/ }).click();
-  await sleep(300);
-  await still(page, info, "devtools/settings");
 });

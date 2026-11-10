@@ -3,8 +3,8 @@
 /**
  * The three steps, each beside its snippet with a copy button. The snippets arrive already highlighted (Shiki, at
  * build time, with the docs' two code themes), in the order of STEPS; a missing one falls back to the plain source.
- * Each copy button is what `copy_step_code` acts on (`data-step-copy`); the tool and the button share
- * `copyStepCode()`, so an agent's copy and a person's look the same.
+ * Each copy button is what `copy_step_code` acts on (by its name, "Copy the code of step 1"); the tool and the button
+ * share `copyStepCode()`, so an agent's copy and a person's look the same.
  */
 import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -75,7 +75,6 @@ export const Steps = ({ highlighted = [] }: StepsProps) => {
               <button
                 type="button"
                 className="step__copy-button"
-                data-step-copy={n}
                 aria-label={`Copy the code of step ${n}`}
                 onClick={() => void copyStepCode(n)}
               >

@@ -1,21 +1,20 @@
 /**
- * Declarative WebMCP tool: checkout (mounted on /checkout while the cart has items)
+ * checkout, on /checkout while the cart has items: the agent's contact and shipping details go into the form, and the
+ * order is placed only by the person's own click on "Place order · $…" (`requireConfirmation`; the cursor finds the
+ * button by the tool's title, which its text starts with). One schema checks the agent's call and the person's submit.
  *
- * The agent fills contact and shipping details; there is no `toolautosubmit`,
- * so the browser pauses on "Place order · $…" until the person clicks it. That
- * pause is the confirm gate: nothing is ordered without a human click.
- *
- * Placing the order empties the cart, which would swap this form for the empty
- * state: `onPlaced` hands the page the order to keep showing until the agent
- * has its answer, then the page moves to the order confirmation.
+ * Order of an agent's call: the input is checked → the cursor types each field (the ones named like the parameters)
+ * and picks the country → `fill` puts every value in the form's state → the cursor parks on Place order → the person
+ * clicks → `placeOrder` runs and the page moves to the order.
  */
+import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
-import { useToolAnswer } from "@webmcp-agents/react";
-import type { FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { useWebTool, WebToolError } from "@webmcp-agents/react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { money } from "../data/catalog";
-import { afterAnswer } from "../lib/afterAnswer";
-import { type Contact, type Order, useCart } from "../store/cart";
+import { navigate } from "../lib/navigate";
+import { cart, type Order } from "../store/cart";
 import styles from "./forms.module.css";
 
 const COUNTRIES = [
@@ -30,56 +29,64 @@ const COUNTRIES = [
   "Egypt",
   "Japan",
   "Australia",
-];
+] as const;
+
+const schema = z.object({
+  email: z.email().describe("Email for the receipt"),
+  name: z.string().min(1).describe("The recipient's full name"),
+  address: z.string().min(1).describe("Street and number"),
+  city: z.string().min(1).describe("City"),
+  postcode: z.string().min(1).describe("Postal or ZIP code"),
+  country: z.enum(COUNTRIES).default("United States").describe("Country, as listed; default United States"),
+  note: z.string().optional().describe("Optional delivery note"),
+});
+
+type CheckoutInput = z.input<typeof schema>;
 
 export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(order: Order): void }) {
-  const cart = useCart();
-  const navigate = useNavigate();
-  const { answer } = useToolAnswer();
+  const form = useForm<CheckoutInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", name: "", address: "", city: "", postcode: "", country: "United States", note: "" },
+  });
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const event = e.nativeEvent as SubmitEvent;
-    const form = e.currentTarget;
-    // An agent's submit skips the browser's own validation: check, and say which fields are missing.
-    const invalid = [...form.querySelectorAll<HTMLInputElement>(":invalid")].filter((el) => el.name);
-    if (invalid.length) {
-      form.reportValidity();
-      answer(event, Promise.resolve(`Error: Fill in ${invalid.map((el) => el.name).join(", ")} first.`));
-      return;
-    }
-    const data = Object.fromEntries(new FormData(form)) as Record<keyof Contact, string>;
+  const placeOrder = (input: CheckoutInput) => {
+    let order: Order;
     try {
-      const order = cart.placeOrder({ ...data, note: data.note || undefined });
-      onPlaced(order);
-      const result = Promise.resolve(
-        `Order ${order.id} placed for ${money(order.totals.total)}. A confirmation goes to ${order.contact.email}.`,
-      );
-      answer(event, result);
-      afterAnswer(event, result, () => void navigate(`/order/${order.id}`));
+      order = cart.placeOrder({ ...input, country: input.country ?? "United States", note: input.note || undefined });
     } catch (err) {
-      answer(event, Promise.resolve(`Error: ${errorText(err)}`));
+      throw new WebToolError("failed", errorText(err));
     }
-  }
+    onPlaced(order); // the page keeps showing this order until it moves on
+    navigate(`/order/${order.id}`);
+    return `Order ${order.id} placed for ${money(order.totals.total)}. A confirmation goes to ${order.contact.email}.`;
+  };
 
+  // An agent calls this.
+  useWebTool({
+    id: "checkout",
+    title: "Place order",
+    description:
+      "Place the order for everything in the cart, shipped to the user's address. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page (Place order).",
+    inputSchema: schema,
+    requireConfirmation: true,
+    // every value in the form's state too, before the person confirms
+    fill: (values) => form.reset(values),
+    execute: placeOrder,
+  });
+
+  // A person submits this.
   return (
-    <form
-      id="checkout"
-      className={styles.stack}
-      toolname="checkout"
-      tooldescription="Place the order for everything in the cart, shipped to the user's address. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page (Place order)."
-      onSubmit={onSubmit}
-    >
+    <form className={styles.stack} onSubmit={form.handleSubmit(placeOrder)}>
       <fieldset className={styles.fieldset}>
         <legend>Contact</legend>
         <div className={styles.grid}>
           <label className={`field ${styles.full}`}>
             <span>Email</span>
-            <input name="email" type="email" className="input" required autoComplete="email" toolparamdescription="Email for the receipt" />
+            <input type="email" className="input" required autoComplete="email" {...form.register("email")} />
           </label>
           <label className={`field ${styles.full}`}>
             <span>Full name</span>
-            <input name="name" className="input" required autoComplete="name" toolparamdescription="The recipient's full name" />
+            <input className="input" required autoComplete="name" {...form.register("name")} />
           </label>
         </div>
       </fieldset>
@@ -88,19 +95,19 @@ export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(orde
         <div className={styles.grid}>
           <label className={`field ${styles.full}`}>
             <span>Address</span>
-            <input name="address" className="input" required autoComplete="street-address" toolparamdescription="Street and number" />
+            <input className="input" required autoComplete="street-address" {...form.register("address")} />
           </label>
           <label className="field">
             <span>City</span>
-            <input name="city" className="input" required autoComplete="address-level2" toolparamdescription="City" />
+            <input className="input" required autoComplete="address-level2" {...form.register("city")} />
           </label>
           <label className="field">
             <span>Postcode</span>
-            <input name="postcode" className="input" required autoComplete="postal-code" toolparamdescription="Postal or ZIP code" />
+            <input className="input" required autoComplete="postal-code" {...form.register("postcode")} />
           </label>
           <label className={`field ${styles.full}`}>
             <span>Country</span>
-            <select name="country" className="input" required autoComplete="country-name" defaultValue="United States">
+            <select className="input" required autoComplete="country-name" {...form.register("country")}>
               {COUNTRIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
@@ -108,7 +115,7 @@ export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(orde
           </label>
           <label className={`field ${styles.full}`}>
             <span>Order note (optional)</span>
-            <textarea name="note" className="input" rows={2} toolparamdescription="Optional delivery note" />
+            <textarea className="input" rows={2} {...form.register("note")} />
           </label>
         </div>
       </fieldset>

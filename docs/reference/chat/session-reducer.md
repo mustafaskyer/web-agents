@@ -1,52 +1,51 @@
+---
+description: "The chat session as a pure state machine: the messages, whether a run is streaming, and the last error."
+---
+
 # `sessionReducer`
 
-The chat session as a pure state machine: messages, whether a run is streaming, and the last error. `useAgentSession`
-feeds it adapter stream parts and core agent events. `resumable` decides what Retry sends.
+The chat session as a pure state machine: the messages, whether a run is streaming, and the last error. Use it when you manage a conversation yourself or test one in Node; [`useAgentSession`](./use-agent-session.md) feeds it adapter stream parts and core agent events. `resumable` decides what Retry sends.
+
+## Import
 
 ```ts
 import { resumable, sessionReducer } from "@webmcp-agents/chat";
-import type { SessionAction, SessionError, SessionState } from "@webmcp-agents/chat";
+import type {
+  SessionAction,
+  SessionError,
+  SessionState,
+} from "@webmcp-agents/chat";
 ```
 
-## Signature
+## Example
 
-```ts
-function sessionReducer(state: SessionState, action: SessionAction): SessionState;
-function resumable(messages: AgentMessage[]): AgentMessage[];
+Play what an adapter streams into a session, then ask what Retry would send after the run failed.
 
-interface SessionState {
-  messages: AgentMessage[];
-  status: "idle" | "streaming" | "error";
-  error?: SessionError;
-}
+<include meta='title="session.ts"'>/_examples/shared/reference/chat/session-reducer.ts</include>
 
-interface SessionError {
-  message: string;
-  code?: "chat_disabled" | "rate_limited" | "bad_request" | "network";
-}
+## Options
 
-type SessionAction =
-  | { type: "send"; id: string; text: string }
-  | { type: "part"; part: AgentStreamPart; within?: string }
-  | { type: "toolPhase"; name: string; state: "running" | "awaiting-confirmation"; prompt?: string }
-  | { type: "stop" }
-  | { type: "retry" }
-  | { type: "reset" };
-```
+`sessionReducer(state, action)` is a reducer, so `useReducer(sessionReducer, { messages: [], status: "idle" })` works as is. `resumable(messages)` takes only the messages.
 
-## Actions
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `state` | `SessionState` | required | The session so far: `messages: AgentMessage[]`, `status: "idle" \| "streaming" \| "error"` and `error?: SessionError`. A new conversation is `{ messages: [], status: "idle" }`. |
+| `action` | `SessionAction` | required | What happened: one of the actions below. |
+
+A `SessionError` is `{ message: string; code?: "chat_disabled" | "rate_limited" | "bad_request" | "network" }`: the failure's text and a code the widget can explain.
+
+### Actions
 
 | Action | Effect |
 |---|---|
-| `part` with `within` | The part belongs to a sub-agent's run behind the `delegate_to_*` call `within`: it is applied to that call's nested messages (`AgentPart.agent.messages`) with the same state machine. A nested `finish` or `error` ends only the nested run; the parent stays streaming. `toolPhase`, `tool-result`, `tool-error` and `stop` reach nested calls too. |
-| `send` | Appends a user message with one text part; `status` becomes `streaming`; clears `error`. |
-| `part` | Applies one [`AgentStreamPart`](./adapter-types.md#agentstreampart) (see below). |
-| `toolPhase` | A core agent event about a running tool. Sets the newest open call of that tool name to `state` and `prompt`. Calls run one at a time, so name matching is enough. |
-| `stop` | `status` becomes `idle`; every `running` or `awaiting-confirmation` call becomes `cancelled`. |
-| `retry` | No-op without a user message. Otherwise `status` becomes `streaming` and messages become `resumable(messages)`. |
-| `reset` | Back to the empty session (`{ messages: [], status: "idle" }`). |
+| `{ type: "send", id, text }` | Appends a user message with one text part; `status` becomes `streaming`; clears `error`. |
+| `{ type: "part", part, within? }` | Applies one [`AgentStreamPart`](./adapter-types.md#agentstreampart) (below). With `within`, the part belongs to a sub-agent's run behind the `delegate_to_*` call with that id: it is applied to that call's nested messages (`AgentPart.agent.messages`) by the same state machine. A nested `finish` or `error` ends only the nested run; the parent stays streaming. |
+| `{ type: "toolPhase", name, state, prompt? }` | A core agent event about a running tool: sets the newest open call of that tool name to `state` (`"running"` or `"awaiting-confirmation"`) and `prompt`. Calls run one at a time, so the name is enough. Reaches nested calls too. |
+| `{ type: "stop" }` | `status` becomes `idle`; every `running` or `awaiting-confirmation` call, nested ones included, becomes `cancelled`. |
+| `{ type: "retry" }` | No-op without a user message. Otherwise `status` becomes `streaming` and the messages become `resumable(messages)`. |
+| `{ type: "reset" }` | Back to the empty session. |
 
-Stream parts:
+### Stream parts
 
 | Part | Effect |
 |---|---|
@@ -60,42 +59,22 @@ Stream parts:
 | `finish` | `status` becomes `idle`; with `reason: "aborted"`, open calls become `cancelled`. |
 | `error` | `status` becomes `error`, `error` is set, open calls become `cancelled`. |
 
-## `resumable`
-
-```ts
-function resumable(messages: AgentMessage[]): AgentMessage[];
-```
-
-What Retry sends: the conversation through the last tool call that finished (`done` or `error`) after the last user
-message. What came after it goes: unfinished calls (they are dropped, not reported to the model as "Cancelled by the
-user") and a reply cut short. With no finished call, it returns the messages through the last user message, so the
-turn starts over. Without any user message it returns `messages` unchanged.
-
 ## Returns
 
-`sessionReducer` returns the next `SessionState` (the same object when nothing changed for `toolPhase`).
-`resumable` returns a new message array.
+`sessionReducer` returns the next `SessionState` (the same object when a `toolPhase` changed nothing).
 
-## Example
+### `resumable`
 
-```ts
-import { useReducer } from "react";
-
-const [state, dispatch] = useReducer(sessionReducer, { messages: [], status: "idle" });
-dispatch({ type: "send", id: "u-1", text: "Add two mugs to the cart" });
-for await (const part of adapter.run(request)) dispatch({ type: "part", part });
-```
+`resumable(messages: AgentMessage[]): AgentMessage[]` returns a new array: what Retry sends. It is the conversation through the last tool call that finished (`done` or `error`) after the last user message. What came after it goes: unfinished calls (dropped, not reported to the model as "Cancelled by the user") and a reply cut short. With no finished call, it returns the messages through the last user message, so the turn starts over. Without any user message it returns `messages` unchanged.
 
 ## Notes
 
 - Pure and DOM-free: safe to test in Node.
-- `useAgentSession` applies `stop` to a conversation loaded from sessionStorage, so a reload never shows a call as
-  still running.
-- The comment on the `retry` action says it "drops what came after" the last user message; the code keeps finished
-  tool calls through `resumable`.
+- `useAgentSession` applies `stop` to a conversation loaded from sessionStorage, so a reload never shows a call as still running.
 
 ## See also
 
+- [Add the chat](../../build/add-the-chat.mdx), the page that teaches the chat
 - [`useAgentSession`](./use-agent-session.md)
 - [Adapter types](./adapter-types.md)
 - [Tool error codes](../core/tool-error.md)

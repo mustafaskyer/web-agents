@@ -1,4 +1,4 @@
-/** /orders: past orders. The agent sees `list_orders` only on this route (see ROUTE_TOOLS in App.tsx). */
+/** /orders: past orders. The agent sees `list_orders` only on this page: its `match` (tools/index.ts). */
 import { money, useCart } from "./store";
 
 export function Orders() {

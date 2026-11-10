@@ -2,7 +2,7 @@
 
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { LinkButton, buttonVariants } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
 import { OpenDesignsLogo } from "@/components/ui/opendesigns-logo";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -38,36 +38,16 @@ const ReadingLinks = ({ links }: { links: readonly WordmarkFooterLink[] }) => (
   <ul className="velora-wordmark-reading-links">
     {links.map((link) => (
       <li key={link.id}>
-        {link.toolName ? (
-          // A link a tool acts on is a plain anchor carrying `toolname` (React Aria would drop the attribute, and
-          // re-fire a click that a confirm gate swallowed).
-          <a
-            href={link.href}
-            toolname={link.toolName}
-            data-slot="button"
-            data-variant="link"
-            data-size="touch"
-            className={cn(
-              buttonVariants({ size: "touch", variant: "link" }),
-              "max-w-full justify-start"
-            )}
-          >
-            <span className="min-w-0 text-left whitespace-normal">
-              {link.label}
-            </span>
-          </a>
-        ) : (
-          <LinkButton
-            href={link.href}
-            variant="link"
-            size="touch"
-            className="max-w-full justify-start"
-          >
-            <span className="min-w-0 text-left whitespace-normal">
-              {link.label}
-            </span>
-          </LinkButton>
-        )}
+        <LinkButton
+          href={link.href}
+          variant="link"
+          size="touch"
+          className="max-w-full justify-start"
+        >
+          <span className="min-w-0 text-left whitespace-normal">
+            {link.label}
+          </span>
+        </LinkButton>
       </li>
     ))}
   </ul>

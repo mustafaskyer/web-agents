@@ -8,14 +8,15 @@
  * sub-agent. A delegate call runs the sub-agent's own loop on the same adapter, right here: its page tools still run
  * under the cursor, and its stream is kept nested under the call, so the chat can show it.
  */
-import { onAgentEvent } from "@webmcp-agents/core";
+import { onAgentEvent, whenModelContext } from "@webmcp-agents/core";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { DELEGATE_PREFIX, isDelegateTool, selectTools, type WebAgent } from "../agent";
-import { CANCELLED, newId } from "../shared";
-import { callModelContextTool, listToolDescriptors } from "../tools";
-import type { AdapterStatus, AgentAdapter, AgentMessage, AgentRunRequest, AgentStreamPart, ToolDescriptor, ToolOutput } from "../types";
+import { selectTools, type WebAgent } from "../agent";
+import { newId } from "../shared";
+import { listToolDescriptors } from "../tools";
+import type { AdapterStatus, AgentAdapter, AgentMessage, ToolDescriptor } from "../types";
 import { useAdapterStatus } from "./use-adapter-status";
 import { initialSession, resumable, type SessionError, type SessionState, sessionReducer } from "./reducer";
+import { runAgent } from "./run-agent";
 
 /** Options for `useAgentSession`. */
 export interface UseAgentSessionOptions {
@@ -56,33 +57,6 @@ function load(key: string | false): SessionState {
   }
 }
 
-/**
- * Resolve once the page's tools have stopped changing: no `toolchange` for
- * `quiet` ms (a route renders, its forms register), or after `max` ms.
- */
-function toolsSettled(quiet = 150, max = 1500): Promise<void> {
-  const mc = typeof document === "undefined" ? undefined : document.modelContext;
-  if (!mc) return Promise.resolve();
-  return new Promise((resolve) => {
-    let timer = setTimeout(done, quiet);
-    const cap = setTimeout(done, max);
-    function onChange(): void {
-      clearTimeout(timer);
-      timer = setTimeout(done, quiet);
-    }
-    function done(): void {
-      clearTimeout(timer);
-      clearTimeout(cap);
-      mc!.removeEventListener("toolchange", onChange);
-      resolve();
-    }
-    mc.addEventListener("toolchange", onChange);
-  });
-}
-
-const text = (t: string): ToolOutput => ({ content: [{ type: "text", text: t }] });
-const failed = (t: string): ToolOutput => ({ content: [{ type: "text", text: t }], isError: true });
-
 /** A conversation with `adapter` about this page (what <AgentChat> renders; use it to build your own chat UI). */
 export function useAgentSession(
   adapter: AgentAdapter,
@@ -109,12 +83,16 @@ export function useAgentSession(
     return next;
   }, []);
   useEffect(() => {
-    void refreshTools();
-    const mc = document.modelContext;
-    if (!mc) return;
-    const onChange = (): void => void refreshTools();
-    mc.addEventListener("toolchange", onChange);
-    return () => mc.removeEventListener("toolchange", onChange);
+    const listening = new AbortController();
+    // Once the page has document.modelContext: the provider may still be loading the polyfill.
+    const stopWaiting = whenModelContext((mc) => {
+      void refreshTools();
+      mc.addEventListener("toolchange", () => void refreshTools(), { signal: listening.signal });
+    });
+    return () => {
+      stopWaiting();
+      listening.abort();
+    };
   }, [refreshTools]);
 
   // ---------- adapter status ----------
@@ -140,95 +118,18 @@ export function useAgentSession(
       controller.current?.abort();
       const ctrl = new AbortController();
       controller.current = ctrl;
-      // The page may still be rendering (a route the person just opened): start from its settled tools.
-      await toolsSettled(100);
-      await refreshTools();
-      if (ctrl.signal.aborted) return; // stopped (or superseded) while the page settled
-
-      /**
-       * The request one agent sees: its tools (read fresh each step), its definition, and a `callTool` that runs page
-       * tools under the cursor and `delegate_to_*` tools as nested runs of the sub-agent.
-       */
-      const makeRequest = (history: AgentMessage[], def: WebAgent | undefined): AgentRunRequest => ({
-        messages: history,
-        get tools() {
-          return selectTools(def, toolsRef.current);
-        },
-        signal: ctrl.signal,
-        agent: def,
-        callTool: async (call) => {
-          const sub = isDelegateTool(call.name) ? def?.agents.find((a) => a.id === call.name.slice(DELEGATE_PREFIX.length)) : undefined;
-          if (sub) return runDelegate(sub, call);
-          const output = await callModelContextTool(call, { signal: ctrl.signal });
-          // The call may have changed the page (a navigation, a form appearing): let its tools settle first.
-          await toolsSettled();
-          await refreshTools();
-          return output;
-        },
-      });
-
-      /**
-       * A sub-agent's run: one user message (the task), its own tools and step budget, on the same adapter. Its parts are
-       * dispatched nested under the delegate call; its final text is the call's output. Bounded by the sub-agent's
-       * `maxSteps`, not by the page tool timeout (it isn't a page tool).
-       */
-      async function runDelegate(sub: WebAgent, call: { id: string; name: string; input: unknown }): Promise<ToolOutput> {
-        const input = (call.input ?? {}) as { task?: unknown; context?: unknown };
-        const task = typeof input.task === "string" ? input.task.trim() : "";
-        if (!task) return failed(`Error [invalid_input]: delegate_to_${sub.id} needs a "task" string.`);
-        const prompt = typeof input.context === "string" && input.context.trim() ? `${task}\n\nContext: ${input.context.trim()}` : task;
-        const nested = (part: AgentStreamPart): void => {
-          if (controller.current === ctrl) dispatch({ type: "part", part, within: call.id });
-        };
-        const history: AgentMessage[] = [];
-        let reason: "stop" | "max-steps" | "aborted" | "error" = "stop";
-        let error = "";
-        try {
-          for await (const part of adapter.run(
-            makeRequest([{ id: newId("u"), role: "user", parts: [{ type: "text", text: prompt }] }], sub),
-          )) {
-            if (controller.current !== ctrl) break; // superseded or stopped
-            nested(part);
-            // our own copy of the sub-agent's text (the reducer's copy lives in React state)
-            if (part.type === "message-start") history.push({ id: part.messageId, role: "assistant", parts: [] });
-            else if (part.type === "text-delta") {
-              const m = history.find((h) => h.id === part.messageId);
-              const last = m?.parts.at(-1);
-              if (last?.type === "text") last.text += part.delta;
-              else m?.parts.push({ type: "text", text: part.delta });
-            } else if (part.type === "finish") reason = part.reason;
-            else if (part.type === "error") {
-              reason = "error";
-              error = part.error;
-            }
-          }
-        } catch (err) {
-          reason = "error";
-          error = err instanceof Error ? err.message : String(err);
-        }
-        if (ctrl.signal.aborted) return failed(CANCELLED);
-        if (reason === "error") return failed(`Error [failed]: The ${sub.id} agent failed: ${error}`);
-        const answer = history
-          .flatMap((m) => m.parts)
-          .map((p) => (p.type === "text" ? p.text : ""))
-          .filter((x) => x.trim())
-          .join("\n\n")
-          .trim();
-        if (answer) return text(answer);
-        return reason === "max-steps"
-          ? failed(`Error [failed]: The ${sub.id} agent stopped after ${sub.maxSteps ?? "its"} steps without finishing.`)
-          : text(`The ${sub.id} agent finished without a summary.`);
-      }
-
       try {
-        for await (const part of adapter.run(makeRequest(messages, agent))) {
-          if (controller.current !== ctrl) return; // superseded
-          dispatch({ type: "part", part });
-        }
-      } catch (err) {
-        if (controller.current === ctrl && !ctrl.signal.aborted) {
-          dispatch({ type: "part", part: { type: "error", error: err instanceof Error ? err.message : String(err) } });
-        }
+        // the loop is shared with `agent.invoke` and `useWebAgent` (./run-agent); this session renders its parts
+        await runAgent({
+          adapter,
+          agent,
+          messages,
+          signal: ctrl.signal,
+          listTools: refreshTools,
+          onPart: (part, within) => {
+            if (controller.current === ctrl) dispatch({ type: "part", part, within });
+          },
+        });
       } finally {
         if (controller.current === ctrl) controller.current = null;
       }

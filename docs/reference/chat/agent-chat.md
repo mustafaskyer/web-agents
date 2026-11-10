@@ -1,38 +1,42 @@
+---
+description: "A chat launcher and a non-modal chat panel whose agent works the live page through its tools while the person watches."
+---
+
 # `AgentChat`
 
-A chat launcher and a non-modal chat panel. The agent behind it works the live page through its WebMCP tools while the
-person watches, so by default the panel docks beside the page instead of covering it.
+A chat launcher and a non-modal chat panel whose agent works the live page through its tools while the person watches. Use it to give a page an assistant in one line; by default the panel docks beside the page instead of covering it.
+
+## Import
 
 ```ts
 import { AgentChat } from "@webmcp-agents/chat";
+import type { AgentChatProps } from "@webmcp-agents/chat";
 import "@webmcp-agents/chat/chat.css";
 ```
 
-## Signature
+## Example
+
+<include meta='title="components/page.tsx"'>/_examples/shared/reference/chat/agent-chat.tsx</include>
+
+With a cloud and an on-device adapter, the person picks in a switcher. Create the adapters once, at module scope:
 
 ```ts
-function AgentChat(props: AgentChatProps): React.ReactPortal | null;
+import { createCloudAdapter } from "@webmcp-agents/chat";
+import { createLocalAdapter } from "@webmcp-agents/local-agent";
 
-interface AgentChatProps {
-  adapter?: AgentAdapter;
-  adapters?: readonly AgentAdapter[];
-  agent?: WebAgent;
-  title?: string;
-  defaultOpen?: boolean;
-  position?: "bottom-right" | "bottom-left";
-  layout?: "docked" | "floating";
-  suggestions?: string[] | false;
-  className?: string;
-  storageKey?: string | false;
-}
+const adapters = [
+  createCloudAdapter(),
+  createLocalAdapter({ instructions: "Help with the store." }),
+];
+// <AgentChat adapters={adapters} agent={shopper} />
 ```
 
 ## Props
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `adapter` | `AgentAdapter` | — | The agent. Pass this or `adapters`. |
-| `adapters` | `readonly AgentAdapter[]` | — | Several agents. The panel shows a switcher; the first is the default. |
+| `adapter` | `AgentAdapter` | one shared `createCloudAdapter()` | What runs the model. Left out (with no `adapters`), the panel uses one shared cloud adapter that POSTs to `/api/chat`, the same one [`agent.invoke`](./define-web-agent.md#agentinvoke) and [`useWebAgent`](./use-web-agent.md) use. |
+| `adapters` | `readonly AgentAdapter[]` | — | Several adapters (cloud, on-device…). The panel shows a switcher; the first is the default. An empty list falls back to the default adapter. |
 | `agent` | `WebAgent` | — | The page's agent ([`defineWebAgent`](./define-web-agent.md)): its instructions, the tools it may use, its sub-agents. Register the same definition on the server (`createChatHandler({ agents })`). A delegate call renders as "<Name> agent" with the sub-agent's cards nested inside. |
 | `title` | `string` | `"Assistant"` | Panel title. Also used in the launcher's label ("Open assistant"). |
 | `defaultOpen` | `boolean` | `false` | Open on first render. |
@@ -44,11 +48,9 @@ interface AgentChatProps {
 
 ## Returns
 
-A portal into a host `<div>` appended to `document.body` (class `wa-chat`, `data-position`, `data-layout`, and the
-`data-web-agents-ui` attribute). It renders `null` until the host exists. It throws if neither `adapter` nor `adapters`
-is given.
+A portal into a host `<div>` appended to `document.body` (class `wa-chat`, `data-position`, `data-layout` and the `data-web-agents-ui` attribute). It renders `null` until the host exists.
 
-## Layout
+### Layout
 
 - **Docked** (default): the open panel sits on the `position` side, full height, and the page gets a body margin so
   the agent never works under the chat. Drag the inner edge, or focus it and use the arrow keys (Shift for bigger
@@ -59,7 +61,7 @@ is given.
 - **Floating**: the pop-over stays in the corner, over the page.
 - Below 640 px the panel is a bottom sheet in either layout.
 
-## Theming
+### Theming
 
 Import `@webmcp-agents/chat/chat.css` once. Every rule is scoped by a `.wa-chat*` class and sits outside any cascade
 layer. Override the custom properties on `.wa-chat` (or on your `className`):
@@ -85,27 +87,10 @@ layer. Override the custom properties on `.wa-chat` (or on your `className`):
 Dark mode follows `prefers-color-scheme` (unless an ancestor or the host has `data-theme="light"`), or
 `data-theme="dark"` on an ancestor or the host.
 
-## Example
-
-```tsx
-// apps/ecommerce/src/Root.tsx
-import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
-import { createLocalAdapter } from "@webmcp-agents/local-agent";
-
-// Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
-const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: STORE_INSTRUCTIONS })];
-
-<WebAgentsProvider tools={catalog} global={globalTools} pathname={pathname} context={context}>
-  …
-  {/* inside the provider: the assistant sees exactly the tools this page has on */}
-  <AgentChat adapters={ADAPTERS} title="Assistant" position="bottom-right" />
-</WebAgentsProvider>
-```
-
 ## Notes
 
 - Render it inside `<WebAgentsProvider>` so the agent sees the tools the page has on.
-- Create adapters once, at module scope, not during render: the session and the status hook key on the adapter object.
+- Create custom adapters once, at module scope, not during render: the session and the status hook key on the adapter object.
 - The host carries `data-web-agents-ui`, so typing in the chat never makes the agent cursor yield.
 - The conversation survives route changes and reloads (sessionStorage, last 60 messages). A reload marks any running
   tool call as cancelled.
@@ -119,7 +104,10 @@ const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ instructions: STORE
 
 ## See also
 
-- [`createCloudAdapter`](./create-cloud-adapter.md)
-- [`useAgentSession`](./use-agent-session.md): build your own chat UI
+- [Add the chat](../../build/add-the-chat.mdx), the page that teaches it
+- [`defineWebAgent`](./define-web-agent.md), the `agent` prop
+- [`createCloudAdapter`](./create-cloud-adapter.md) and [`createChatHandler`](./create-chat-handler.md), the two ends of `/api/chat`
+- [`useAgentSession`](./use-agent-session.md), to build your own chat UI
+- [`useWebAgent`](./use-web-agent.md), to run an agent with no chat on the page
 - [Adapter types](./adapter-types.md)
 - [`createLocalAdapter`](../local-agent/create-local-adapter.md)

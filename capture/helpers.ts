@@ -17,7 +17,7 @@ export async function open(page: Page, url: string, tool?: string): Promise<void
 export function run(page: Page, name: string, args: Record<string, unknown> = {}): Promise<string | undefined> {
   return page.evaluate(
     async ([n, a]) => {
-      const result = await window.agent!.run(n, a);
+      const result = await window.agent!.invoke(n, a);
       return result?.content.map((c) => ("text" in c ? c.text : "")).join("\n");
     },
     [name, args] as const,

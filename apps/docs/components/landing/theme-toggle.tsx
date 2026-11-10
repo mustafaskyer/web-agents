@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The light/dark switch in the navbar, and the element the `toggle_theme` tool acts on (`toolname`). It writes the same
+ * The light/dark switch in the navbar, and the button the `toggle_theme` tool presses (by its name). It writes the same
  * key the docs' own toggle does, so the choice follows the reader across the site. Until they choose, the page follows
  * the system, live.
  */
@@ -24,7 +24,6 @@ export const ThemeToggle = () => {
   return (
     <button
       type="button"
-      toolname="toggle_theme"
       aria-label="Switch between light and dark"
       title="Switch between light and dark"
       className={buttonVariants({ variant: "ghost", size: "icon-touch" })}

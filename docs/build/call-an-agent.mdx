@@ -1,0 +1,107 @@
+---
+title: Call an agent
+description: agent.invoke runs an agent from your own code, with no chat on the page; useWebAgent adds live status in a component.
+sidebar:
+  label: 9. Call an agent
+---
+
+An agent has the same verb as a tool: **`invoke`**. Give it a sentence, and it decides which tools to call: the model
+asks for a tool, the tool runs on the page under the cursor, the result goes back, until the model answers. It is the
+chat's loop without the chat, for a button that does a whole task ("Track my last order"), a command palette, or an
+onboarding step.
+
+## A complete example
+
+`useWebAgent` runs an agent from a component and keeps its status live.
+
+<View title="Vite">
+
+<include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/track-last-order.tsx"'>/_examples/nextjs/components/track-last-order.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</View>
+
+It needs the `/api/chat` route from [Add the chat](/build/add-the-chat), but not the widget: by default an agent runs
+on the same shared adapter, which talks to that route. Render the component inside your provider, so the agent sees
+the page's tools.
+
+## What `useWebAgent` gives you
+
+`useWebAgent(agent, { adapter? })` returns:
+
+| | |
+|---|---|
+| `invoke(text)` | Start a run. A second call stops the first. It never rejects: it resolves `undefined` when the run was stopped or failed, so `onClick={() => agent.invoke("…")}` needs no `catch`. |
+| `status` | `idle`, `running`, `waiting` (a tool is parked on the page until the person clicks), or `error`. |
+| `steps` | The tool calls of the current or last run, live, each with its `tool`, `input` and `state`. A sub-agent's calls are included, with `agent` set. |
+| `text` | The agent's answer so far, streamed. |
+| `error` | Why the last run failed, with a `code`. Cleared by the next `invoke`. |
+| `stop()` | Cancel the run in flight. |
+
+Each `invoke` is a fresh conversation: the agent remembers nothing from the last one.
+
+## From anywhere: `agent.invoke`
+
+Outside a component (an event handler in plain code, a test, a keyboard shortcut), call the agent itself:
+
+```ts
+import { shopper } from "@/agents";
+
+const { text, steps } = await shopper.invoke("Where is my last order?", {
+  onStep: (step) => console.log(step.tool, step.state),
+});
+```
+
+It resolves to `{ text, steps, messages }`: the answer, every tool call it made, and the whole conversation. Unlike the
+hook, it **rejects**: with the adapter's message and `code` when the run fails, with an `AbortError` when its `signal`
+aborts, for an empty message, and on the server. `invoke` runs in the browser, because the agent's tools are the
+page's; on the server, register the agent with `createChatHandler({ agents })` instead.
+
+The agent file stays plain data that a server can import: `invoke` loads the browser loop on its first call.
+
+## Another model for one call
+
+Both take an `adapter`. Pass [`createLocalAdapter()`](/more/on-device-agent) to run the same agent on a model in the
+browser, with no server and no key, or a `createCloudAdapter({ … })` of your own. Create an adapter once, at module
+scope, not on every render.
+
+## Try it
+
+Render `<TrackLastOrder />` inside your provider, start the app with the key in `.env.local`, and click **Track my last
+order**. The button reads "Working…", the list fills with `delegate_to_orders`, then the helper's `go_to`,
+`list_orders` and `track_order`, the cursor moves to `/orders`, and the answer appears below. Keep a link to `/orders`
+in your layout: `go_to` clicks it, so your router navigates without reloading the page (a reload would end the run).
+
+## Options you'll use most
+
+| Option | Where | What it is for |
+|---|---|---|
+| `adapter` | both | What runs the model. Default: one shared cloud adapter that talks to `/api/chat`. |
+| `signal` | `agent.invoke` | Stop the run: the model, the tool in flight, any sub-agent. |
+| `onStep(step)` | `agent.invoke` | Called when a tool call starts, parks on the person's confirmation, or ends. |
+
+Reference: [`useWebAgent`](/reference/chat/use-web-agent) and [`defineWebAgent`](/reference/chat/define-web-agent)
+(the agent's `invoke`).
+
+## Next
+
+<Card title="Devtools" href="/build/devtools" icon="arrow-right">
+  See every tool on the page, what the cursor will do for it, and a timeline of every call.
+</Card>

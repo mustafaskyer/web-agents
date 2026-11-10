@@ -1,55 +1,49 @@
+---
+description: "Calls a listener for every agent event while the component is mounted: the React form of onAgentEvent."
+---
+
 # `useAgentEvents`
 
-Calls a listener for every agent event (`start`, `fill`, `park`, `result`, `error`, `cancel`, `yield`, `resume`) while the component is mounted. It is the React form of [`onAgentEvent`](../core/on-agent-event.md).
+Calls a listener for every agent event while the component is mounted: the React form of [`onAgentEvent`](../core/on-agent-event.md). Reach for it to show what the agent is doing (a status line, a log) or to react to it (close a drawer before a tool runs).
+
+## Import
 
 ```ts
 import { useAgentEvents } from "@webmcp-agents/react";
 ```
 
-## Signature
+## Example
 
-```ts
-function useAgentEvents(listener: (event: AgentEvent) => void): void;
-```
+A status line that follows the agent.
 
-## Parameters
+<include meta='title="components/agent-status.tsx"'>/_examples/shared/reference/react/use-agent-events.tsx</include>
+
+## Options
+
+`useAgentEvents(listener)`.
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `listener` | `(event: AgentEvent) => void` | — | Called for each event. The latest render's listener is used, so an inline function is fine. |
+| `listener` | `(event: AgentEvent) => void` | required | Called for each event. The latest render's listener is used, so an inline function that closes over state is fine. |
 
-`AgentEvent` (from `@webmcp-agents/core`):
+### `AgentEvent`
+
+From `@webmcp-agents/core`. Branch on `type`:
 
 | `type` | Fields | When |
 |---|---|---|
-| `start` | `tool`, `at`, `args?` | A tool run started. `at` is `performance.now()`. `args` when known (imperative tools). |
-| `fill` | `tool`, `field`, `value` | The agent filled a field of a declarative form, once the cursor has typed it. |
-| `park` | `tool`, `prompt` | The tool is waiting for the user. |
+| `start` | `tool`, `at`, `args?` | A tool run started. `at` is `performance.now()`. `args` when known (tools from `defineWebTool` / `useWebTool`). |
+| `fill` | `tool`, `field`, `value` | The agent's value went into a field (of a declarative form, or the field a tool's parameter is typed into), once the cursor has typed it. |
+| `park` | `tool`, `prompt` | The tool is waiting for the person. |
 | `result` | `tool`, `result`, `ms` | The tool answered the agent. |
 | `error` | `tool`, `error`, `ms` | The tool failed. |
 | `cancel` | `tool` | The call was cancelled. |
-| `yield` | `reason` | The user started interacting; the cursor got out of the way. |
-| `resume` | — | The user was quiet long enough for the cursor to show again. |
+| `yield` | `reason` | The person started interacting; the cursor got out of the way. |
+| `resume` | none | The person was quiet long enough for the cursor to show again. |
 
 ## Returns
 
 Nothing.
-
-## Example
-
-From `apps/ecommerce/src/Root.tsx`: a tool that isn't about the cart closes the drawer first, so the agent never works on a page hidden behind it.
-
-```tsx
-import { useAgentEvents } from "@webmcp-agents/react";
-
-function CloseDrawerForOtherTools() {
-  const { cartOpen, closeCart } = useUi();
-  useAgentEvents((e) => {
-    if (e.type === "start" && cartOpen && !drawerSafeTools.has(e.tool)) closeCart();
-  });
-  return null;
-}
-```
 
 ## Notes
 
@@ -59,6 +53,7 @@ function CloseDrawerForOtherTools() {
 
 ## See also
 
+- [Devtools](../../build/devtools.mdx), a timeline built on the same events
 - [`onAgentEvent`](../core/on-agent-event.md)
 - [`waitingForUser`](../core/waiting-for-user.md) (emits `park`)
 - [`installAgentVisuals`](../core/install-agent-visuals.md) (its `log` option gets the same events)

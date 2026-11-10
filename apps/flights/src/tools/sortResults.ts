@@ -1,8 +1,9 @@
-/** Imperative WebTool: sort_results (results route). The cursor presses the sort bar. */
+/** sort_results, on a results page (`match`). The cursor presses that sort's button in the sort bar ("Price: low to high"). */
 import { defineWebTool } from "@webmcp-agents/react";
 import { z } from "zod";
-import { SORTS } from "../data/flights";
-import { app } from "./context";
+import { SORT_LABEL, SORTS } from "../data/flights";
+import { RESULTS_PATTERN } from "../lib/searchParams";
+import { booking } from "../store/booking";
 
 export const sortResults = defineWebTool({
   id: "sort_results",
@@ -10,6 +11,8 @@ export const sortResults = defineWebTool({
   description:
     "Sort the current results by price (either way), shortest duration or earliest departure. Needs: a search (search_flights). Next: list_results.",
   inputSchema: z.object({ by: z.enum(SORTS).describe("price-asc, price-desc, duration or depart") }),
-  annotations: { idempotentHint: true },
-  execute: ({ by }, ctx) => app(ctx).booking.setSort(by),
+  repeatable: true,
+  match: RESULTS_PATTERN,
+  target: ({ by }) => ({ role: "button", name: SORT_LABEL[by] }),
+  execute: ({ by }) => booking.setSort(by),
 });

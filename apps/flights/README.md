@@ -12,29 +12,37 @@ pnpm --filter @webmcp-agents/example-flights e2e     # Playwright, desktop + Pix
 Open the devtools (bottom right, Alt+Shift+A), or from the browser console:
 
 ```js
-await agent.run("search_flights", { from: "LHR", to: "DXB", date: "2026-11-20" });
-await agent.run("filter_results", { stops: "0" });
-await agent.run("list_results", { limit: 3 });                 // ids for select_flight
-await agent.run("select_flight", { flightId: "F-…" });
+await agent.invoke("search_flights", { from: "RUH", to: "DXB", date: "2027-03-12" });
+await agent.invoke("filter_results", { stops: "0" });
+await agent.invoke("list_results", { limit: 3 });                 // ids for select_flight
+await agent.invoke("select_flight", { flightId: "F-…" });
 ```
 
 ## Tools
 
-| id | kind | on | confirm |
+| id | where | on | confirm |
 |---|---|---|---|
-| `search_flights` | declarative | home and results pages | no |
-| `get_booking` | `defineWebTool`, read-only | global | no |
-| `get_location` | `defineWebTool`, read-only; city, region, country, coordinates and nearest airports. Location from the browser (asks once), city from BigDataCloud's free reverse geocoding (the coordinates leave the browser for that lookup), else a time-zone guess | global | no |
-| `get_time` | `defineWebTool`, read-only; the user's date, time and time zone, and what tomorrow / this weekend / next week / the next 14 days are (week start and weekend from the locale) | global | no |
-| `filter_results` | `defineWebTool` | results route | no |
-| `sort_results` | `defineWebTool` | results route | no |
-| `list_results` | `defineWebTool`, read-only | results route | no |
-| `select_flight` | `defineWebTool` | results route | no |
-| `fill_traveler_details` | declarative | booking page | no |
-| `book_flight` | declarative | booking page | **yes**: the agent ticks the fare rules, the person clicks "Book flight" |
+| `search_flights` | `useWebTool` + React Hook Form (types into every field) | home and results pages | no |
+| `get_booking` | catalog, read-only | everywhere | no |
+| `get_location` | catalog, read-only: the common `getLocation` from `@webmcp-agents/tools` with a `lookup` (BigDataCloud's free reverse geocoding: the coordinates leave the browser for it), plus Skyline's nearest airports; else a time-zone guess | everywhere | no |
+| `get_time` | catalog: the common `getTime()` from `@webmcp-agents/tools` with Skyline's description (dates as YYYY-MM-DD for search_flights) | everywhere | no |
+| `filter_results` | catalog, `match` (ticks the stops radio; on a phone, the Filters button) | a results page | no |
+| `sort_results` | catalog, `match` (that sort's button) | a results page | no |
+| `list_results` | catalog, `match`, read-only | a results page | no |
+| `select_flight` | catalog, `match` (that flight's own Select button) | a results page | no |
+| `fill_traveler_details` | `useWebTool` + **TanStack Form** | the booking page | no |
+| `book_flight` | `useWebTool` + React Hook Form, `fill` | the booking page | **yes**: the cursor ticks the fare rules and parks on "Book flight" until the person clicks |
 
 ## Notes
 
+- The provider line is `<WebAgentsProvider tools={tools}>`. The results tools say where they are on themselves
+  (`match: RESULTS_PATTERN`); the library follows the URL, so nothing comes from React Router.
+- Nothing in the markup is for the cursor: a tool finds its control by its `title` ("Search flights", "Book flight")
+  or by a locator `target` built from the call (`{ role: "button", name: "Select Meridian MR 210" }`), and types each
+  parameter into the field with that `name`. The devtools' Tools tab shows what each tool resolves to.
+- The booking store is outside React (`src/store/booking.ts`): components read it with `useBooking()`, catalog tools
+  import it, and tools navigate with the router's own `router.navigate` (`src/lib/navigate.ts`). `search_flights` puts
+  the search in the store before it navigates: the results tools turn on with the URL, before the results page renders.
 - The search is the URL: `/flights/lhr/dxb/oneway/economy/1/0/0/2026-11-20?return=…`. A loader
   validates it; a bad URL renders a readable error, not a blank page.
 - Searches pretend to take ~450 ms so the cursor is seen against skeletons. `?latency=0` turns that

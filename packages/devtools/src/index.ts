@@ -27,6 +27,7 @@ export type {
   TimelineMarker,
   ToolView,
 } from "./store";
+export type { ControlView, FieldView, FlagView } from "./inspect";
 export { bridgeStoreToEventClient, webAgentsEventClient } from "./event-client";
 export type { WebAgentsEvents } from "./event-client";
 export { SchemaForm } from "./schema-form/schema-form";
@@ -34,7 +35,7 @@ export type { SchemaFormProps } from "./schema-form/schema-form";
 export { defaultValueFor } from "./schema-form/defaults";
 export { parseSchema } from "./schema";
 export type { SchemaNode } from "./schema";
-export { toAgentRunCode, toExecuteToolCode } from "./copy-as-code";
+export { toAgentInvokeCode, toAgentRunCode, toExecuteToolCode } from "./copy-as-code";
 
 /** @deprecated Options of the old agent console; use `installWebAgentsDevtools`. */
 export interface AgentConsoleOptions {

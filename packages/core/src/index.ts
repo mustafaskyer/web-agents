@@ -20,11 +20,19 @@ export type {
   RegisteredContext,
   TargetFn,
   ToModelContextToolOptions,
+  ToolTarget,
   WebTool,
   WebToolAnnotations,
   WebToolConfig,
   WebToolContext,
 } from "./web-tool";
+export { locate } from "./locate";
+export type { FieldTarget, ToolLocator } from "./locate";
+export { createWebAgents, inspectTools, watchPathname } from "./web-agents";
+export { loadWebMCPPolyfill, whenModelContext } from "./model-context";
+export type { PolyfillOption } from "./model-context";
+export type { AvailableTools, ToolInspection, WebAgents, WebAgentsOptions, WebToolCatalog } from "./web-agents";
+export type { ToolControls } from "./confirm";
 export { createToolRegistry } from "./registry";
 export type { ToolRegistry, ToolRegistryOptions } from "./registry";
 export { createCallTracker, deferRelease, RESPONSE_GRACE_MS } from "./deferred";

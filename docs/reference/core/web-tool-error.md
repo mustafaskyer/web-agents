@@ -1,62 +1,47 @@
+---
+description: "An error to throw from a tool's execute to pick the code the agent gets."
+---
+
 # `WebToolError`
 
-An error to throw from a tool's `execute` to pick the code the agent gets. Without it, a thrown error is coded `failed`.
+An error to throw from a tool's `execute` to pick the code the agent gets. Without it, a thrown error is coded `failed`; with it the agent can tell bad input from a missing page from a person who must decide.
+
+## Import
 
 ```ts
 import { WebToolError } from "@webmcp-agents/core";
 ```
 
-## Signature
+## Example
 
-```ts
-class WebToolError extends Error {
-  name: "WebToolError";
-  readonly code: ToolErrorCode;
-  constructor(code: ToolErrorCode, message: string);
-}
-```
+A lookup that tells the agent its input was wrong, so it can fix the reference and retry.
 
-## Parameters
+<include meta='title="tools/get-booking.ts"'>/_examples/shared/reference/core/web-tool-error.ts</include>
+
+The agent gets `Error [invalid_input]: No booking SK-0000. Check the reference.`, with `structuredContent.error` set to `{ code: "invalid_input", retryable: true }`.
+
+## Options
+
+`new WebToolError(code, message)`.
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `code` | `ToolErrorCode` | — | One of the codes listed in [`toolError`](./tool-error.md). |
-| `message` | `string` | — | What the agent reads. Say what to do next. |
+| `code` | `ToolErrorCode` | required | Why the call failed: `cancelled`, `interrupted`, `timeout`, `unavailable`, `invalid_input`, `needs_user` or `failed`. See the table under [`toolError`](./tool-error.md#error-codes). Readable afterwards as `error.code`. |
+| `message` | `string` | required | What the agent reads. Say what to do next: "No booking SK-0000. Check the reference." beats "Not found". |
 
 ## Returns
 
-An `Error` instance with `code`.
-
-## Example
-
-From the flights app (`apps/flights/src/tools/getBooking.ts`):
-
-```ts
-import { defineWebTool, WebToolError } from "@webmcp-agents/core";
-import { z } from "zod";
-
-export const getBooking = defineWebTool({
-  id: "get_booking",
-  title: "Look up a booking",
-  description: "Look up a confirmed booking's itinerary by its reference (SK-…), from any page.",
-  inputSchema: z.object({ reference: z.string().regex(/^SK-[A-Z0-9]{6}$/i) }),
-  annotations: { readOnlyHint: true },
-  execute: ({ reference }, ctx) => {
-    const booking = app(ctx).booking.getBooking(reference);
-    if (!booking) throw new WebToolError("invalid_input", `No booking ${reference.toUpperCase()}.`);
-    return itineraryText(booking);
-  },
-});
-```
-
-The agent gets `Error [invalid_input]: No booking SK-7F3K2Q.` with `structuredContent.error` set to `{ code: "invalid_input", retryable: true }`.
+An `Error` subclass with `name` `"WebToolError"` and the readonly property `code: ToolErrorCode`.
 
 ## Notes
 
-- [`errorResult`](./error-result.md) uses the error's `code` over its own default, so the code survives [`toModelContextTool`](./to-model-context-tool.md).
+- [`errorResult`](./error-result.md) uses the error's `code` over its own default, so the code survives [`toModelContextTool`](./to-model-context-tool.md) and reaches the agent.
+- [`useWebTool`](../react/use-web-tool.md) and [`defineWebTool`](./define-web-tool.md)'s `invoke` reject with a `WebToolError` carrying the agent's code, so your own UI can branch on `error.code`.
+- An abort (`AbortError`) is never wrapped: a cancelled call stays a cancellation.
 
 ## See also
 
-- [`toolError`](./tool-error.md)
-- [`errorResult`](./error-result.md)
-- [`defineWebTool`](./define-web-tool.md)
+- [Errors](../../concepts/errors.mdx), the codes and when to use each
+- [`toolError`](./tool-error.md), the result it becomes
+- [`errorResult`](./error-result.md), how a thrown value is turned into a result
+- [`defineWebTool`](./define-web-tool.md), where `execute` lives

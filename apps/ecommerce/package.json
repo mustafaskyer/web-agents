@@ -12,6 +12,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.3",
     "@webmcp-agents/chat": "workspace:*",
     "@webmcp-agents/core": "workspace:*",
     "@webmcp-agents/local-agent": "workspace:*",
@@ -19,6 +20,7 @@
     "@webmcp-agents/vercel-api": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
     "react-router": "^7.18.5",
     "zod": "^4.6.7"
   },
@@ -29,7 +31,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "@webmcp-agents/devtools": "workspace:*",
-    "@webmcp-agents/polyfill": "workspace:*",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
   },

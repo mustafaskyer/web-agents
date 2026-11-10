@@ -1,48 +1,50 @@
 /**
- * Declarative WebMCP tool: add_to_cart_<sku>
+ * add_to_cart_<sku>: a tool with input is a form. One schema checks the agent's call and the person's submit (React
+ * Hook Form's zod resolver); `add` is what both run. When an agent calls it, the cursor types the quantity into this
+ * card's Qty field (the field named `qty`, nearest the button), presses the button, and `add` runs.
  *
- * Pure. The form knows nothing about cursors or animations:
- *  - `toolname` / `tooldescription` register it with the browser
- *  - `toolautosubmit` lets the agent submit without a confirmation pause
- *    (low-risk, reversible: the Chrome guidance's "add to cart" case)
- *  - the submit handler returns a result to the agent via `respondWith`
+ * Three cards each have an "Add to cart" button, so each button's accessible name says which product it adds: that
+ * name is the tool's title, and how the cursor finds the right one.
  */
-import { useState, type FormEvent } from "react";
-import { settle, useCart, type Product } from "../store";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useWebTool } from "@webmcp-agents/react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { cart, type Product } from "../store";
+
+const schema = z.object({
+  qty: z.number().int().min(1).max(20).describe("How many to add, 1–20, e.g. 2"),
+});
+
+type AddToCartInput = z.infer<typeof schema>;
 
 export function AddToCartForm({ product }: { product: Product }) {
-  const cart = useCart();
-  const [qty, setQty] = useState(1);
+  const form = useForm<AddToCartInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { qty: 1 },
+  });
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const native = e.nativeEvent as SubmitEvent; // carries agentInvoked / respondWith
-    const result = settle(() => cart.add(product.sku, Number(new FormData(e.currentTarget).get("qty"))));
-    if (native.agentInvoked) native.respondWith?.(result);
-  }
+  const add = ({ qty }: AddToCartInput) => cart.add(product.sku, qty);
 
+  // An agent calls this.
+  useWebTool({
+    id: `add_to_cart_${product.sku}`,
+    title: `Add to cart: ${product.name}`,
+    description: `Add ${product.name} to the cart, with a quantity. Use when the user asks for this product. Next: place_order (apply_promo first for a code).`,
+    inputSchema: schema,
+    execute: add,
+  });
+
+  // A person submits this.
   return (
-    <form
-      toolname={`add_to_cart_${product.sku}`}
-      tooldescription={`Add ${product.name} to the cart, with a quantity. Use when the user asks for this product. Next: checkout (apply_promo first for a code).`}
-      toolautosubmit=""
-      onSubmit={onSubmit}
-      className="tool-form"
-    >
+    <form onSubmit={form.handleSubmit(add)} className="tool-form">
       <label>
         Qty
-        <input
-          name="qty"
-          type="number"
-          min="1"
-          max="20"
-          required
-          value={qty}
-          onChange={(e) => setQty(Number(e.target.value))}
-          toolparamdescription="How many to add, 1–20, e.g. 2"
-        />
+        <input type="number" min={1} max={20} {...form.register("qty", { valueAsNumber: true })} />
       </label>
-      <button type="submit">Add to cart</button>
+      <button type="submit" aria-label={`Add to cart: ${product.name}`}>
+        Add to cart
+      </button>
     </form>
   );
 }

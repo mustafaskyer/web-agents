@@ -1,10 +1,7 @@
 /**
  * Helpers for the browser-mode tests. Not exported from the package.
- *
- * The polyfill is imported from source by relative path: core can't depend on
- * @webmcp-agents/polyfill (the polyfill depends on core's types).
  */
-import { installWebMCPPolyfill } from "../../polyfill/src/index";
+import { installWebMCPPolyfill } from "./polyfill/index";
 import { type AgentEvent, onAgentEvent } from "./events";
 
 export const modelContext = (): ModelContext => installWebMCPPolyfill() as ModelContext;

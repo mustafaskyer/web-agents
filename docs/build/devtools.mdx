@@ -1,0 +1,138 @@
+---
+title: Devtools
+description: See which tools are on for the current page and what the cursor will do for each, run them from a form made from their schema, and watch a timeline of every call, yours or a real agent's.
+sidebar:
+  label: 10. Devtools
+---
+
+`@webmcp-agents/devtools` is a panel for your page in development. It lists every tool that is on and what the cursor
+will do for it, lets you play the agent with a form made from each tool's schema, and records every call, yours or a
+real agent's. Open it with the button in the bottom-right corner, or **Alt+Shift+A**.
+
+## A complete example
+
+You added it at installation: the highlighted lines load the panel in development only, so a production build leaves
+it out.
+
+<View title="Vite">
+
+<include meta='title="src/main.tsx" {13-18}'>/_examples/vite/src/main.chat.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="app/providers.tsx" {11,14-21}'>/_examples/nextjs/app/providers.chat.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/providers.tsx" {9,12-19}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/providers.tsx" {9,12-19}'>/_examples/astro/src/components/providers.chat.tsx</include>
+
+</View>
+
+The panel lives in a shadow root, so no CSS leaks either way, and its host carries `data-web-agents-ui`, so using it
+never makes the cursor get out of the way.
+
+## What the Tools tab shows
+
+Every tool that is registered, refreshed as tools, the URL and the page change. Under each tool's name, what the cursor
+will do for it, so nobody has to guess:
+
+| Line | Shows | For example |
+|---|---|---|
+| **Control** | The control the cursor goes to, as a screen reader names it. | `button · Add to cart`, `3 matches`, `none: runs unseen`, `none: confirmation fails`, `depends on the call` |
+| **Fields** | Each parameter, and the field it will be typed into. | `quantity → spinbutton · Quantity`, `cabin → not typed` |
+| **Match** | Where a catalog tool is on, and whether the current path fits. | `/orders, /orders/:id` |
+| **Flags** | A badge per flag, and one for a tool that needs confirmation. | read-only, destructive, external |
+
+A warning marks a confirm-gated tool that would fail: nothing to click, or several controls with its name
+([Confirm before it runs](/build/confirm-before-it-runs#it-needs-exactly-one-control)). A catalog tool whose `match`
+does not fit is listed **off here**, with its Run disabled. **Locate** scrolls to a tool's control and flashes it.
+
+![The Tools tab: every tool on the page with a form generated from its schema and a Run button](../media/devtools/tools.png)
+
+## Runner, Timeline, Settings
+
+- **Runner.** A form made from the tool's JSON Schema (strings, enums, dates, numbers, booleans, nested objects and
+  arrays), with a raw JSON fallback. **Run** with `⌘/Ctrl+Enter`, and copy the call as `agent.invoke(…)` code.
+- **Timeline.** Newest first: the arguments, the fields the cursor typed, "waiting for you" while a tool is parked, the
+  result or error with its code, a duration bar, a marker where you took over from the cursor, and **Re-run**.
+- **Settings.** The dock's position and size, and the cursor's spotlight and yield-to-user switches. Saved in
+  `localStorage`.
+
+![The Timeline tab: each call with its arguments, result and timing](../media/devtools/timeline.png)
+
+The cursor switches need the panel to know your cursor. Render the panel as a component inside the provider instead of
+calling `installWebAgentsDevtools()`:
+
+```tsx
+import { WebAgentsDevtools } from "@webmcp-agents/devtools/react";
+
+<WebAgentsProvider tools={tools}>
+  {children}
+  <WebAgentsDevtools />
+</WebAgentsProvider>
+```
+
+Import it behind the same development check, with a lazy `import()`, so production leaves it out. With TanStack
+Devtools, `webAgentsDevtoolsPlugin()` from the same entry adds the panel as a "Web Agents" tab.
+
+## From the console
+
+The devtools put `agent` on `window`:
+
+```js
+await agent.list();
+await agent.invoke("add_to_cart", { size: "L", quantity: 3 });
+```
+
+`agent.invoke(name, args)` calls a tool by name, the way an agent would, and resolves to its answer. Calls made this way
+show on the Timeline too. End-to-end tests drive tools the same way: the example apps' Playwright tests do.
+
+## Limits
+
+- Two calls of the same tool at once can mix their fills on the Timeline: agent events carry no call id.
+- For a real agent's call, the Timeline shows the fields the cursor typed, not the agent's arguments.
+- **Cancel** stops a run started from the panel everywhere, but another agent's call only with the polyfill: native
+  Chrome lets only the caller cancel.
+- The hotkey is real keyboard input, so pressing it makes the cursor get out of the way for a moment. In a scripted
+  check, call tools about a second after it.
+
+## Try it
+
+Open `/orders`, press **Alt+Shift+A**, and find `list_orders`: **Match** shows `/orders` and that it fits. Expand it,
+set `limit` to 1 and press **Run**: the answer appears under the form and on the Timeline. Go back to `/`: the tool is
+listed **off here**.
+
+## Options you'll use most
+
+| `installWebAgentsDevtools` option | What it is for |
+|---|---|
+| `initialOpen` | Open the panel on load. Default `false`. |
+| `hotkey` | The shortcut that toggles it. Default `"Alt+Shift+A"`; `false` for none. |
+| `visuals` | The cursor its Settings drive, when it is not inside your provider. |
+| `initialSettings` | Settings to start from, below what the person saved. |
+
+Every option: [`installWebAgentsDevtools`](/reference/devtools/install-web-agents-devtools) and
+[`<WebAgentsDevtools>`](/reference/devtools/web-agents-devtools).
+
+## Next
+
+That is the whole path. From here, learn why it works and what else the packages do:
+
+<CardGroup cols={2}>
+  <Card title="Concepts" href="/concepts/how-it-works" icon="lightbulb">
+    How it works, the agent cursor, the tool lifecycle, errors, and how to write a good tool description.
+  </Card>
+  <Card title="More" href="/more/on-device-agent" icon="layers">
+    An on-device model, shadcn chat blocks, declarative forms, the polyfill and deploying.
+  </Card>
+</CardGroup>

@@ -1,8 +1,11 @@
 /**
  * Field Store's agents (defineWebAgent): shared by the client components (<AgentChat agent>, the shadcn chat block) and
- * the route handler, so the model reads the same instructions wherever it runs. No DOM, no secrets.
+ * the route handler, so the model reads the same instructions wherever it runs. No DOM, no secrets. The app-wide tools
+ * are listed by reference (tools/index.ts has no React, so the route can import it); the checkout page's own tools
+ * (`useWebTool` in a component) by their ids.
  */
 import { defineWebAgent } from "@webmcp-agents/chat/agent";
+import { tools } from "@/tools";
 
 export const checkout = defineWebAgent({
   id: "checkout",
@@ -14,7 +17,7 @@ export const checkout = defineWebAgent({
     "Apply a promo code only when the user gave one; never invent a code. Then call checkout with the details you were given; the user confirms the order on the page.",
     "Answer with what was ordered, the total, and the order reference.",
   ],
-  tools: ["get_cart", "go_to_page", "apply_promo", "checkout"],
+  tools: [tools.getCart, tools.goToPage, "apply_promo", "checkout"],
   maxSteps: 5,
 });
 

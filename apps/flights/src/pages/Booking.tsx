@@ -11,7 +11,7 @@ import styles from "./Booking.module.css";
 
 export function Booking() {
   const booking = useBooking();
-  // Booking clears the selection: keep this page (and its tool) until the agent has its answer and we move on.
+  // Booking clears the selection: keep showing this flight (no redirect home) until the page moves to the booking.
   const [snapshot, setSnapshot] = useState<{
     query: NonNullable<typeof booking.query>;
     flight: NonNullable<typeof booking.selected>;
@@ -21,6 +21,7 @@ export function Booking() {
   const flight = snapshot?.flight ?? booking.selected;
   if (!query || !flight) return <Navigate to="/" replace />;
   const fare = fareFor(query, flight);
+  const kinds = travelerKinds(query);
 
   return (
     <div className="page">
@@ -30,10 +31,10 @@ export function Booking() {
       </div>
       <div className={styles.layout}>
         <div className={styles.main}>
-          <TravelerDetailsForm kinds={travelerKinds(query)} />
+          <TravelerDetailsForm kinds={kinds} />
           <section className={`card ${styles.review}`} aria-labelledby="review-title">
             <h2 id="review-title">Review and book</h2>
-            <BookFlightForm total={fare.total} onBooked={() => setSnapshot({ query, flight })} />
+            <BookFlightForm total={fare.total} travelers={kinds.length} onBooked={() => setSnapshot({ query, flight })} />
           </section>
         </div>
         <BookingSummary query={query} flight={flight} fare={fare} />

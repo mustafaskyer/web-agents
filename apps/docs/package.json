@@ -8,15 +8,15 @@
     "dev": "blume dev",
     "build": "blume build",
     "preview": "blume preview",
-    "test": "blume validate",
+    "test": "blume validate && node scripts/check-docs.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "4.3.5",
     "@hugeicons/react": "1.1.10",
     "@webmcp-agents/core": "workspace:*",
-    "@webmcp-agents/polyfill": "workspace:*",
     "@webmcp-agents/react": "workspace:*",
+    "@webmcp-agents/tools": "workspace:*",
     "blume": "^2.2.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",

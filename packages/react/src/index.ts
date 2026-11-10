@@ -1,9 +1,10 @@
 /**
  * @webmcp-agents/react: WebMCP tools for React apps.
  *
- *   <WebAgentsProvider tools={catalog} global={["get_cart"]} routes={{ "/orders": ["list_orders"] }} context={cart}>
+ *   <WebAgentsProvider tools={tools} availableTools={[tools.getCart]}>
+ *   const addToCart = useWebTool({ id: "add_to_cart", …, execute: add });   addToCart.invoke({ quantity: 2 });
  *   useEnableTools(["remove_promo"]);  <EnableTools names={["remove_promo"]} />
- *   useWebTool(tool, { enabled });     useToolAnswer();     useAgentEvents(listener);
+ *   useToolAnswer();                   useAgentEvents(listener);
  */
 export type {} from "./jsx";
 
@@ -23,4 +24,14 @@ export { usePathname } from "./use-pathname";
 // The common path in one import.
 export { defineWebTool, waitingForUser, WebToolError } from "@webmcp-agents/core";
 export type { ToolErrorCode } from "@webmcp-agents/core";
-export type { Register, WebTool, WebToolConfig, WebToolContext } from "@webmcp-agents/core";
+export type {
+  AvailableTools,
+  FieldTarget,
+  PolyfillOption,
+  Register,
+  ToolLocator,
+  WebTool,
+  WebToolCatalog,
+  WebToolConfig,
+  WebToolContext,
+} from "@webmcp-agents/core";

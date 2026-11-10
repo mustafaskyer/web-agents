@@ -15,19 +15,30 @@ import {
   type AgentVisuals,
   errorText,
   executeTool,
+  inspectTools,
   isAbortError,
   type ModelContextToolInfo,
   type ModelContextToolResult,
   onAgentEvent,
+  type ToolInspection,
   toToolResult,
+  watchPathname,
+  whenModelContext,
 } from "@webmcp-agents/core";
 import { isFailure, NAVIGATED } from "./execute";
+import { type ControlView, controlView, type FieldView, type FlagView, fieldViews, flagViews, hintsOf, matchText } from "./inspect";
 import { parseSchema, type SchemaNode } from "./schema";
 
 declare global {
   interface Window {
     /** Set by the devtools: play the agent from the browser console. */
     agent?: {
+      /**
+       * Call a tool the way an agent would (cursor, typing, confirmation), recorded in the timeline:
+       * `await agent.invoke("add_to_cart", { quantity: 2 })`. Resolves with the tool's result.
+       */
+      invoke(name: string, args?: Record<string, unknown>): Promise<ModelContextToolResult | undefined>;
+      /** The same as `invoke` (its earlier name). */
       run(name: string, args?: Record<string, unknown>): Promise<ModelContextToolResult | undefined>;
       list(): Promise<ModelContextToolInfo[]>;
     };
@@ -44,10 +55,22 @@ export interface ToolView {
   annotations: Record<string, unknown>;
   /** `declarative`: a `<form toolname>`; `imperative`: registered with `registerTool`. */
   kind: "declarative" | "imperative";
-  /** Its `toolname` element is in the document, so Locate can find it and the cursor can show it. */
+  /** It has a control on the page (its form, the control core resolves, or a `toolname` element), so Locate can find it. */
   onScreen: boolean;
-  /** A declarative form without `toolautosubmit`: the browser waits for the user's click. */
+  /** The browser or the tool waits for the user's click: a form without `toolautosubmit`, or `requireConfirmation`. */
   confirms: boolean;
+  /** Registered with `document.modelContext` right now. False for a catalog tool whose `match` does not fit here. */
+  registered: boolean;
+  /** A tool from `defineWebTool`: where the cursor acts, as core resolves it right now. Absent for other tools. */
+  control?: ControlView;
+  /** A tool from `defineWebTool`: each parameter and the field the cursor would type it into. */
+  fields?: FieldView[];
+  /** Its `match` as written (`/orders`, `/cart, /checkout`, a RegExp). Absent: on everywhere. */
+  match?: string;
+  /** Its `match` fits the current path (true without one). */
+  fits: boolean;
+  /** Its flags (`readOnly`, `destructive`, …) as badges, from its WebMCP annotations. */
+  flags: FlagView[];
 }
 
 /** `waiting`: the browser paused for the user's confirmation click. */
@@ -174,6 +197,15 @@ const LOCATE_CSS = `
 @keyframes web-agents-locate { from { outline-offset: 10px; } }
 @media (prefers-reduced-motion: reduce) { [${LOCATE_ATTR}] { animation: none; } }`;
 
+/** Core's inspection; a page whose tools come from another copy of core (or none) simply has none. */
+const inspect = (): ToolInspection[] => {
+  try {
+    return inspectTools();
+  } catch {
+    return [];
+  }
+};
+
 /** Still running, or waiting for the user's click. */
 export const isOpen = (c: CallRecord): boolean => c.status === "running" || c.status === "waiting";
 
@@ -202,7 +234,8 @@ export function createDevtoolsStore({
   initialSettings,
   now = Date.now,
 }: DevtoolsStoreOptions = {}): DevtoolsStore {
-  const mc = typeof document === "undefined" ? undefined : document.modelContext;
+  // Bound once the page has it: the store may start before the polyfill that `createWebAgents` loads.
+  let mc = typeof document === "undefined" ? undefined : document.modelContext;
   const saved = typeof document === "undefined" ? {} : readSaved(storageKey);
   let state: DevtoolsState = {
     tools: [],
@@ -254,13 +287,14 @@ export function createDevtoolsStore({
   let refreshQueued = false;
   let refreshSeq = 0;
   function refreshTools(): void {
-    if (!mc || refreshQueued || destroyed) return;
+    const context = mc;
+    if (!context || refreshQueued || destroyed) return;
     // Coalesce: one React commit can register and unregister many tools.
     refreshQueued = true;
     queueMicrotask(async () => {
       refreshQueued = false;
       const mine = ++refreshSeq;
-      const infos = await mc.getTools().catch(() => []);
+      const infos = await context.getTools().catch(() => []);
       if (mine !== refreshSeq || destroyed) return; // a newer refresh is on its way
       // One pass over the page instead of two queries per tool. A form wins over other elements of the same name.
       const elements = new Map<string, Element>();
@@ -268,25 +302,86 @@ export function createDevtoolsStore({
         const name = el.getAttribute("toolname") ?? "";
         if (!elements.has(name) || el instanceof HTMLFormElement) elements.set(name, el);
       }
-      const tools = infos.map((info): ToolView => {
+      // WebTools, found the way the cursor finds their controls; catalog tools that are off here too
+      const inspected = new Map(inspect().map((t) => [t.tool.id, t]));
+      const view = (info: ModelContextToolInfo, registered: boolean): ToolView => {
         const el = elements.get(info.name);
         const form = el instanceof HTMLFormElement ? el : null;
+        const web = form ? undefined : inspected.get(info.name);
+        const annotations = (registered ? info.annotations : undefined) ?? (web ? hintsOf(web.tool) : {});
+        const control = web && controlView(web);
         return {
           name: info.name,
           title: info.title,
           description: info.description ?? "",
           schema: parseSchema(info.inputSchema),
-          annotations: info.annotations ?? {},
+          annotations,
           kind: form ? "declarative" : "imperative",
-          onScreen: !!el,
-          confirms: !!form && !form.hasAttribute("toolautosubmit"),
+          onScreen: control ? control.count > 0 : !!el,
+          confirms: form ? !form.hasAttribute("toolautosubmit") : !!web?.tool.requireConfirmation,
+          registered,
+          ...(control && { control, fields: fieldViews(web.fields) }),
+          ...(web?.tool.match !== undefined && { match: matchText(web.tool.match) }),
+          fits: web?.fits ?? true,
+          flags: flagViews(annotations),
         };
-      });
-      set({ tools: tools.sort((a, b) => a.name.localeCompare(b.name)) });
+      };
+      const listed = new Set(infos.map((info) => info.name));
+      const tools = [
+        ...infos.map((info) => view(info, true)),
+        ...[...inspected.values()]
+          .filter(({ tool }) => !listed.has(tool.id))
+          .map(({ tool }) =>
+            view({ name: tool.id, title: tool.title, description: tool.description, inputSchema: tool.jsonSchema }, false),
+          ),
+      ].sort((a, b) => a.name.localeCompare(b.name));
+      // the page changes often (see below): only a real difference is a new snapshot
+      if (JSON.stringify(tools) !== JSON.stringify(state.tools)) set({ tools });
     });
   }
-  mc?.addEventListener("toolchange", refreshTools, { signal: lifetime.signal });
-  refreshTools();
+  // What the cursor would find changes with the page, not only with the tools: the URL (`match`), and the controls
+  // rendered (a button appears, a label changes). Attribute changes are limited to what naming and visibility read;
+  // `style` and `class` move with every animation frame of the cursor.
+  let offPath = (): void => {};
+  let mutated = 0;
+  const observer =
+    typeof MutationObserver !== "undefined"
+      ? new MutationObserver(() => {
+          clearTimeout(mutated);
+          mutated = window.setTimeout(refreshTools, 250);
+        })
+      : null;
+  const stopWaiting = whenModelContext((found) => {
+    if (destroyed) return;
+    mc = found;
+    if (!state.supported) set({ supported: true, canCancel: !!found.cancelTool });
+    found.addEventListener("toolchange", refreshTools, { signal: lifetime.signal });
+    offPath = watchPathname(refreshTools);
+    observeTools();
+    refreshTools();
+  });
+  function observeTools(): void {
+    observer?.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributeFilter: [
+        "aria-label",
+        "aria-labelledby",
+        "aria-hidden",
+        "aria-disabled",
+        "disabled",
+        "hidden",
+        "inert",
+        "role",
+        "toolname",
+        "name",
+        "title",
+        "placeholder",
+        "href",
+      ],
+    });
+  }
 
   // ---------- 3. calls ----------
   const push = (call: CallRecord): CallRecord => {
@@ -389,7 +484,8 @@ export function createDevtoolsStore({
   let located: Element | null = null;
   let style: HTMLStyleElement | null = null;
   function locate(name: string): boolean {
-    const el = document.querySelector(`[toolname="${CSS.escape(name)}"]`);
+    // what the cursor would act on (core's resolver), else the tool's form or `toolname` element
+    const el = inspect().find((t) => t.tool.id === name)?.controls[0] ?? document.querySelector(`[toolname="${CSS.escape(name)}"]`);
     if (!el) return false;
     if (!style) {
       style = document.createElement("style");
@@ -411,8 +507,10 @@ export function createDevtoolsStore({
 
   // ---------- 5. window.agent (the README's console helper) ----------
   const previousAgent = typeof window === "undefined" ? undefined : window.agent;
+  const invoke = (name: string, args?: Record<string, unknown>) => runTool(name, args).then((call) => call.result);
   const agentApi: NonNullable<Window["agent"]> = {
-    run: (name, args) => runTool(name, args).then((call) => call.result),
+    invoke,
+    run: invoke,
     list: async () => (mc ? mc.getTools() : []),
   };
   if (typeof window !== "undefined") window.agent = agentApi;
@@ -437,6 +535,10 @@ export function createDevtoolsStore({
       destroyed = true;
       lifetime.abort();
       offEvents();
+      stopWaiting();
+      offPath();
+      observer?.disconnect();
+      clearTimeout(mutated);
       clearTimeout(applySaved);
       clearTimeout(locateTimer);
       located?.removeAttribute(LOCATE_ATTR);

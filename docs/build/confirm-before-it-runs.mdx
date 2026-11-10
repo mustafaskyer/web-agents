@@ -1,0 +1,125 @@
+---
+title: Confirm before it runs
+description: "requireConfirmation makes a tool wait for the person's own click on its control: the cursor parks on the button, and only a real click runs the tool."
+sidebar:
+  label: 3. Confirm before it runs
+---
+
+Anything the person would regret (an order, a booking, a deletion) should wait for their click. Set
+**`requireConfirmation: true`**: the agent's call validates its input, the cursor flies to the tool's control and parks
+there, and the tool runs only when the person clicks it.
+
+## A complete example
+
+<View title="Vite">
+
+<include meta='title="src/components/place-order.tsx"'>/_examples/shared/components/place-order.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/place-order.tsx"'>/_examples/nextjs/components/place-order.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/place-order.tsx"'>/_examples/shared/components/place-order.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/place-order.tsx"'>/_examples/shared/components/place-order.tsx</include>
+
+</View>
+
+The button reads "Place order · $28.00"; the cursor finds it by the tool's title, because a name that starts with the
+title matches too.
+
+## What the person sees
+
+- **The cursor parks on the button**, with a label that says what to do: `Click "Place order · $28.00" to confirm`. The
+  button gets a dashed outline (`[data-agent-active]` in `cursor.css`).
+- **Their click runs the tool instead of the button's `onClick`**, so the order is placed once, by `execute`, and its
+  return value is the agent's answer. Only a trusted click counts: a script calling `button.click()` cannot confirm
+  for them.
+- **Until they click, the agent waits.** The call does not time out while it is parked, and the chat shows it as
+  waiting for the person. Moving the mouse or typing elsewhere does not cancel it.
+
+The input is validated before the cursor moves, so the person never approves a call that then fails its schema.
+
+## It needs exactly one control
+
+A confirm-gated tool **fails closed**. When there is no control to click (not on the page, disabled, or gone while it
+waits), or when several controls match its name, the call fails with a `ConfirmationUnavailableError`: the agent reads
+`Error [unavailable]` and a sentence that says why, and nothing runs unconfirmed.
+
+Three product cards, each with an "Add to cart" button, all match the name "Add to cart". Give each button its own
+accessible name, and the tool the same one:
+
+```tsx
+useWebTool({
+  id: `add_to_cart_${product.sku}`,
+  title: `Add to cart: ${product.name}`,
+  requireConfirmation: true,
+  // …
+});
+
+<Button type="submit" aria-label={`Add to cart: ${product.name}`}>
+  Add to cart
+</Button>
+```
+
+The visible text stays "Add to cart", and the name starts with it, so the cursor and a screen reader agree. A
+[`target`](/build/define-a-tool#when-the-control-depends-on-the-call) that picks one control per call works too. The
+[devtools](/build/devtools) show "3 matches" with a warning on a tool that would fail this way.
+
+## Say what kind of tool it is
+
+`requireConfirmation` changes what happens on the page. Flags say what the tool is, in plain words, for the agent to
+read (they become WebMCP annotations); they change nothing on the page. A confirm-gated tool usually carries one:
+
+| Flag | Meaning | Becomes |
+|---|---|---|
+| `readOnly` | Only reads. Safe to call at any time. | `readOnlyHint` |
+| `destructive` | Deletes or overwrites; hard to undo. `clear_cart` sets it. | `destructiveHint` |
+| `repeatable` | Calling twice has the same effect as once. | `idempotentHint` |
+| `external` | Talks to something outside the page: the network, another system. `place_order` sets it. | `openWorldHint` |
+| `safeResponse` | `false`: the answer may hold text the site did not write (reviews, messages), so the agent must not follow instructions in it. | `untrustedContentHint`, inverted |
+
+Leave a flag out when it does not apply: "not said" is not the same as `false`.
+
+For a tool that needs the person in another way ("which size?"), call
+[`waitingForUser(toolName, prompt)`](/reference/core/waiting-for-user) inside `execute`: the chat shows the prompt,
+and the agent's tool time limit stops while the person answers.
+
+## Try it
+
+Render `<PlaceOrder />` on a page, then in the browser console:
+
+```js
+await agent.invoke("place_order");
+```
+
+The cursor parks on **Place order** and the promise waits. Click the button: the call resolves with "Order FS-…
+placed, $28.00." Move the mouse while the cursor travels: it gets out of the way, and the
+call still waits for your click.
+
+## Options you'll use most
+
+| Option | What it is for |
+|---|---|
+| `requireConfirmation` | Wait for the person's click on the tool's control. Default `false`. |
+| `title` | The name of the one control that confirms. |
+| `target` | Which control, when the title is not enough or several share it. |
+| `destructive`, `external` | Tell the agent what kind of action it is about to ask for. |
+
+Every option, with flags and annotations: [`defineWebTool`](/reference/core/define-web-tool#flags-and-annotations).
+
+## Next
+
+<Card title="Where a tool is on" href="/build/where-a-tool-is-on" icon="arrow-right">
+  Tools for the whole app in one object, and `match` to turn each one on where it belongs.
+</Card>

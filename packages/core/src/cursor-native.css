@@ -1,0 +1,24 @@
+/* @webmcp-agents/core/cursor-native.css (optional)
+   Chrome's native WebMCP states for declarative tools: :tool-form-active on the form an agent is filling,
+   :tool-submit-active on the submit button the browser paused on for the person's click.
+
+   Only needed on a page that runs Chrome's native WebMCP WITHOUT installAgentVisuals(): with the visuals installed,
+   the cursor, its ring and the parked state already show both, and cursor.css styles the polyfill's
+   [data-tool-form-active] / [data-tool-submit-active] and the visuals' [data-agent-active].
+
+   Kept out of cursor.css because some CSS parsers refuse an unknown pseudo-class: Turbopack (Next.js) fails the
+   build, Lightning CSS (Vite) warns. One rule per pseudo-class: a browser that doesn't know one drops the whole rule.
+   The colours fall back to cursor.css's defaults, so this file also works on its own. */
+
+/* biome-ignore lint/correctness/noUnknownPseudoClass: native WebMCP pseudo-class (Chrome), unknown to linters */
+form:tool-form-active {
+  outline: 2px dashed var(--agent-strong, #111111);
+  outline-offset: 6px;
+  background: rgba(17, 17, 17, 0.03);
+}
+
+/* biome-ignore lint/correctness/noUnknownPseudoClass: native WebMCP pseudo-class (Chrome), unknown to linters */
+button:tool-submit-active {
+  outline: 2px dashed var(--agent-wait, #111111);
+  outline-offset: 3px;
+}

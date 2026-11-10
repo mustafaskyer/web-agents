@@ -1,9 +1,9 @@
 /**
- * The three things a developer does to get an agent on their page, each with the lines that matter: define a tool
- * with defineWebTool and mark the element it acts on, add the provider, add the chat with an agent. The snippets
- * follow docs/getting-started/quickstart.mdx, docs/reference/core/define-web-tool.md and docs/guides/agents.mdx; keep
- * them in step. Plain data: the page (pages/index.astro) highlights `code` at build time, <Steps> lays it out, and
- * `copy_step_code` copies it.
+ * The three things a developer does to get an agent on their page, each with the lines that matter: a tool beside the
+ * button it belongs to, a tool with input (a form), and the provider with an agent and the chat. Steps 1 and 2 are
+ * examples 1 and 2 of .agents/plans/14-imperative-tools.md, shadcn/ui and React Hook Form, wrapped and spaced like
+ * them; keep the docs' quickstart in step. Plain data: the page (pages/index.astro) highlights `code` at build time,
+ * <Steps> lays it out, and `copy_step_code` copies it.
  */
 export interface StepData {
   title: string;
@@ -15,50 +15,110 @@ export interface StepData {
 export const STEPS: readonly StepData[] = [
   {
     title: "Define a tool",
-    text: "One definition: an id, a description the agent reads, an input schema and execute. Put toolname on the element it acts on and the cursor clicks it there; requireConfirmation waits for the person's own click.",
-    code: `// tools.ts
-import { defineWebTool } from "@webmcp-agents/react";
-import { z } from "zod";
+    text: "One function with two callers: the person's click and the agent's call. useWebTool gives it an id, a title and a description the agent reads. The cursor finds the button by its name; requireConfirmation waits for the person's own click.",
+    code: `export function ClearCart() {
+  const cart = useCart();
 
-export const addToCart = defineWebTool({
-  id: "add_to_cart",
-  description: "Add the open product to the cart. Use after open_product.",
-  inputSchema: z.object({ qty: z.number().int().min(1).describe("How many, e.g. 2") }),
-  execute: ({ qty }, ctx) => ctx.context!.cart.add(qty),
+  const clear = () => cart.clear();
+
+  // An agent calls this.
+  useWebTool({
+    id: "clear_cart",
+    title: "Clear cart",
+    description: "Empty the cart. The user confirms on the page.",
+    destructive: true,
+    requireConfirmation: true,
+    execute: clear,
+  });
+
+  // A person clicks this.
+  return (
+    <Button variant="destructive" onClick={clear}>
+      Clear cart
+    </Button>
+  );
+}`,
+  },
+  {
+    title: "Give it a form",
+    text: "A tool with an input schema is a form. The cursor types each value into the field with that name or label, React Hook Form hears it like any typing, and execute is the function the form already submits to.",
+    code: `const schema = z.object({
+  quantity: z.number().int().min(1),
 });
 
-// Product.tsx: the element the cursor flies to
-<button toolname="add_to_cart">Add to cart</button>`,
-  },
-  {
-    title: "Add the provider",
-    text: "It registers each tool when it should be on (everywhere, or on a route) and installs the cursor before the first one. The devtools run any tool by hand, in development only.",
-    code: `// App.tsx
-import { WebAgentsProvider } from "@webmcp-agents/react";
-import "@webmcp-agents/core/cursor.css";
-import { addToCart, getCart } from "./tools";
+type AddToCartInput = z.infer<typeof schema>;
 
-<WebAgentsProvider
-  tools={[addToCart, getCart]}
-  global={["get_cart"]}
-  routes={{ "/product/:slug": ["add_to_cart"] }}
->
-  <App />
-  {import.meta.env.DEV && <WebAgentsDevtools />}
-</WebAgentsProvider>`,
+export function AddToCart({ product }: { product: Product }) {
+  const cart = useCart();
+
+  const form = useForm<AddToCartInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { quantity: 1 },
+  });
+
+  const add = ({ quantity }: AddToCartInput) => {
+    cart.add(product.id, quantity);
+    return \`Added \${quantity} × \${product.name}.\`;
+  };
+
+  // An agent calls this.
+  useWebTool({
+    id: "add_to_cart",
+    title: "Add to cart",
+    description:
+      "Add this product to the cart. Use after open_product. " +
+      "Next: open_cart or checkout.",
+    inputSchema: schema,
+    execute: add,
+  });
+
+  // A person submits this.
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(add)}
+        className="flex items-end gap-2"
+      >
+        <FormField
+          control={form.control}
+          name="quantity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Quantity</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit">Add to cart</Button>
+      </form>
+    </Form>
+  );
+}`,
   },
   {
-    title: "Add a chat and an agent",
-    text: "defineWebAgent is one definition for the browser and the server: instructions, which tools it may use, helpers. The key stays in the handler; the page sends only the agent's id.",
-    code: `// agents.ts (shared)
+    title: "Add the provider and an agent",
+    text: "The same provider line in Vite, TanStack Start, Next.js and Astro: it follows the URL and installs the cursor. An agent is instructions plus the tools it may use; the key stays in the handler, and the page sends only the agent's id.",
+    code: `// App.tsx
+<WebAgentsProvider tools={tools}>
+  <App />
+  <AgentChat agent={shopper} />
+</WebAgentsProvider>
+
+// agents.ts (shared by the page and the server)
 export const shopper = defineWebAgent({
   id: "shopper",
   instructions: "Open a product before adding it to the cart.",
-  tools: ["open_product", "add_to_cart", "get_cart"],
+  tools: [tools.getCart, tools.listOrders],
 });
-
-// in the page
-<AgentChat adapters={[createCloudAdapter()]} agent={shopper} />
 
 // on the server, with WEB_AGENTS_MODEL=anthropic/claude-opus-5-5
 export default createChatHandler({ agents: [shopper] });`,

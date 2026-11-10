@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.3",
     "@webmcp-agents/chat": "workspace:*",
     "@webmcp-agents/core": "workspace:*",
     "@webmcp-agents/local-agent": "workspace:*",
@@ -16,6 +17,7 @@
     "@webmcp-agents/vercel-api": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -25,7 +27,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "@webmcp-agents/devtools": "workspace:*",
-    "@webmcp-agents/polyfill": "workspace:*",
     "vite": "^8.3.6"
   },
   "engines": {

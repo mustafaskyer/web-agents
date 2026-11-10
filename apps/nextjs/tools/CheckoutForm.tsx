@@ -1,66 +1,141 @@
 "use client";
 /**
- * Declarative tool: checkout (checkout page). No `toolautosubmit`: the browser pauses on "Place order" until the person
- * clicks it. That pause is the confirm gate: nothing is ordered without a human click.
+ * checkout, on the checkout page: plan example 3. The cursor types the email, name and address, visits the Country
+ * select (a custom widget), `fill` puts every value in the form, and the cursor parks on "Place order" until the
+ * person clicks it (`requireConfirmation`). Nothing is ordered without a human click.
  */
-import { errorText, RESPONSE_GRACE_MS } from "@webmcp-agents/core";
-import { useToolAnswer } from "@webmcp-agents/react";
-import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
-import { type Contact, type Order, useCart } from "@/lib/cart";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { errorText } from "@webmcp-agents/core";
+import { useWebTool, WebToolError } from "@webmcp-agents/react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cart, type Order } from "@/lib/cart";
 import { money } from "@/lib/catalog";
+import { navigate } from "@/lib/navigate";
+
+const COUNTRIES = ["Saudi Arabia", "United Arab Emirates", "United States", "United Kingdom", "Germany", "Egypt"] as const;
+
+const checkoutSchema = z.object({
+  email: z.email().describe("Email for the receipt"),
+  name: z.string().min(1).describe("The recipient's full name"),
+  address: z.string().min(1).describe("Street, city and postcode"),
+  country: z.enum(COUNTRIES).describe("The country to ship to, e.g. Saudi Arabia"),
+});
+
+type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(order: Order): void }) {
-  const cart = useCart();
-  const router = useRouter();
-  const { answer } = useToolAnswer();
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const event = e.nativeEvent as SubmitEvent;
-    const form = e.currentTarget;
-    const invalid = [...form.querySelectorAll<HTMLInputElement>(":invalid")].filter((el) => el.name);
-    if (invalid.length) {
-      form.reportValidity();
-      answer(event, Promise.resolve(`Error: Fill in ${invalid.map((el) => el.name).join(", ")} first.`));
-      return;
-    }
-    const data = Object.fromEntries(new FormData(form)) as Record<keyof Contact, string>;
+  const form = useForm<CheckoutInput>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: { email: "", name: "", address: "", country: "Saudi Arabia" },
+  });
+
+  const placeOrder = (contact: CheckoutInput) => {
+    let order: Order;
     try {
-      const order = cart.placeOrder(data);
-      onPlaced(order);
-      answer(
-        event,
-        Promise.resolve(`Order ${order.id} placed for ${money(order.totals.total)}. A confirmation goes to ${order.contact.email}.`),
-      );
-      // leaving the page unmounts this form: wait until the agent has its answer (Chrome cancels a call whose tool disappears)
-      setTimeout(() => router.push(`/cart?placed=${order.id}`), event.agentInvoked ? RESPONSE_GRACE_MS : 0);
+      order = cart.placeOrder(contact);
     } catch (err) {
-      answer(event, Promise.resolve(`Error: ${errorText(err)}`));
+      throw new WebToolError("failed", errorText(err));
     }
-  }
-  const field = "h-9 rounded-md border bg-background px-2 text-sm";
+    onPlaced(order); // the page keeps showing this order until it moves on
+    navigate(`/cart?placed=${order.id}`);
+    return `Order ${order.id} placed for ${money(order.totals.total)}. A confirmation goes to ${order.contact.email}.`;
+  };
+
+  // An agent calls this.
+  useWebTool({
+    id: "checkout",
+    title: "Place order",
+    description:
+      "Place the order. Needs items in the cart. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page.",
+    inputSchema: checkoutSchema,
+    requireConfirmation: true,
+
+    // Optional: put every value on screen first (the Select too).
+    fill: (values) => form.reset(values),
+
+    execute: placeOrder,
+  });
+
+  // A person submits this.
   return (
-    <form
-      toolname="checkout"
-      tooldescription="Place the order for everything in the cart, shipped to the user's address. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page (Place order)."
-      onSubmit={onSubmit}
-      className="flex flex-col gap-3"
-    >
-      <label className="flex flex-col gap-1 text-sm">
-        <span>Email</span>
-        <input name="email" type="email" required autoComplete="email" toolparamdescription="Email for the receipt" className={field} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span>Full name</span>
-        <input name="name" required autoComplete="name" toolparamdescription="The recipient's full name" className={field} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span>Address</span>
-        <input name="address" required autoComplete="street-address" toolparamdescription="Street, city and postcode" className={field} />
-      </label>
-      <button type="submit" className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
-        Place order · {money(total)}
-      </button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(placeOrder)} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" autoComplete="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full name</FormLabel>
+              <FormControl>
+                <Input autoComplete="name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input autoComplete="street-address" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <Select value={field.value} onValueChange={(v) => v && field.onChange(v)}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" size="lg">
+          Place order · {money(total)}
+        </Button>
+      </form>
+    </Form>
   );
 }

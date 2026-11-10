@@ -4,7 +4,7 @@
  * parse keeps the last valid value and says why.
  */
 import { type KeyboardEvent, useState } from "react";
-import { toAgentRunCode, toExecuteToolCode } from "../copy-as-code";
+import { toAgentInvokeCode, toExecuteToolCode } from "../copy-as-code";
 import { textOf } from "../execute";
 import { SchemaForm } from "../schema-form/schema-form";
 import { type DevtoolsStore, isOpen, type ToolView } from "../store";
@@ -73,8 +73,8 @@ export function ToolRunner({ store, tool, initial, gone = false, id, onRun }: To
           </button>
         </fieldset>
         <span className="grow" />
-        <CopyButton text={() => toAgentRunCode(tool.name, args)} label="Copy as agent.run()">
-          agent.run()
+        <CopyButton text={() => toAgentInvokeCode(tool.name, args)} label="Copy as agent.invoke()">
+          agent.invoke()
         </CopyButton>
         <CopyButton text={() => toExecuteToolCode(tool.name, args)} label="Copy as executeTool()">
           executeTool()

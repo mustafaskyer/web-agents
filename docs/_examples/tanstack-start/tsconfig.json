@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    // The installation pages import relatively (a starter may set no
+    // "@/" alias): src and shared are one folder
+    "rootDirs": ["./src", "../shared"],
+    "paths": {
+      "@/components/ui/*": ["../../../apps/nextjs/components/ui/*"],
+      "@/*": ["./src/*", "../shared/*"]
+    }
+  },
+  "include": ["src", "../shared"]
+}

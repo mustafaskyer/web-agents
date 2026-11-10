@@ -27,5 +27,5 @@ export default defineConfig({
 
 ## Docs
 
-- [Run the agent on the device](https://github.com/mustafaskyer/web-agents/blob/main/docs/guides/on-device-agent.mdx): models, consent, site instructions, memory limits
+- [Run the agent on the device](https://github.com/mustafaskyer/web-agents/blob/main/docs/more/on-device-agent.mdx): models, consent, site instructions, memory limits
 - [API reference](https://github.com/mustafaskyer/web-agents/blob/main/docs/reference/local-agent/README.md)

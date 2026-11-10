@@ -5,14 +5,14 @@ import "./styles/base.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
+import { setNavigate } from "./lib/navigate";
+import { routes } from "./routes";
 
-// 1. (dev only) give browsers without native WebMCP a document.modelContext, before any tool registers.
-//    Phase 7: ship it in the deployed demo behind VITE_WEBMCP_POLYFILL, or most visitors see no tools.
-if (import.meta.env.DEV) await import("@webmcp-agents/polyfill/auto");
-
-// 2. the app: <WebAgentsProvider> in Root installs the agent cursor before its first tool registers.
-const { routes } = await import("./routes");
+// <WebAgentsProvider> in Root loads the WebMCP polyfill where the browser has none (every visitor gets the tools),
+// and installs the agent cursor before its first tool registers.
 const router = createBrowserRouter(routes);
+// the catalog's tools navigate with the router: same-document, so no call is lost to a page load
+setNavigate((to) => void router.navigate(to));
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root is missing from index.html");

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { list, open, run } from "./agent";
+import { list, open, parkedOn, run } from "./agent";
 
 test.beforeEach(async ({ page }) => {
   // A clean cart once per test; later page loads in the same test keep it (it's in sessionStorage).
@@ -76,7 +76,7 @@ test("add_to_cart without a size: 'Not now' tells the agent to ask", async ({ pa
 test("add_to_cart with a bad quantity: the agent and the page get the same error", async ({ page }) => {
   await open(page, "/product/nesting-bowls");
   await expect.poll(() => list(page)).toContain("add_to_cart");
-  expect(await run(page, "add_to_cart", { qty: 9 })).toBe("Error: Quantity must be a whole number from 1 to 3, got 9.");
+  expect(await run(page, "add_to_cart", { qty: 9 })).toBe("Error [invalid_input]: Quantity must be a whole number from 1 to 3, got 9.");
   await expect(page.getByRole("alert")).toHaveText("Quantity must be a whole number from 1 to 3, got 9.");
 });
 
@@ -147,7 +147,7 @@ test("apply_promo: a bad code shows the error, WELCOME10 updates the totals", as
   await page.waitForFunction(() => !!window.agent);
   await expect.poll(() => list(page)).toContain("apply_promo");
 
-  expect(await run(page, "apply_promo", { code: "NOPE" })).toBe('Error: Promo code "NOPE" is not valid.');
+  expect(await run(page, "apply_promo", { code: "NOPE" })).toBe('Error [invalid_input]: Promo code "NOPE" is not valid.');
   await expect(page.getByRole("alert")).toHaveText('Promo code "NOPE" is not valid.');
 
   expect(await run(page, "apply_promo", { code: "WELCOME10" })).toMatch(/^Promo WELCOME10 applied: 10% off\. New total \$51\.20/);
@@ -175,7 +175,10 @@ test("checkout waits for the person's click (confirm gate)", async ({ page }) =>
   };
   const pending = run(page, "checkout", contact);
   const placeOrder = page.getByRole("button", { name: /^Place order/ });
-  await expect(placeOrder).toHaveAttribute("data-tool-submit-active", "");
+  await parkedOn(page, placeOrder);
+  // the agent's values are in the form while it waits (typed, and the country picked)
+  await expect(page.getByLabel("Email")).toHaveValue("mustafa@mail.test");
+  await expect(page.getByLabel("Country")).toHaveValue("Saudi Arabia");
   // still waiting for the person
   const early = await Promise.race([pending.then(() => "settled"), page.waitForTimeout(500).then(() => "pending")]);
   expect(early).toBe("pending");
@@ -204,11 +207,46 @@ test("leaving checkout while it waits for the click ends the call and the parked
     country: "Saudi Arabia",
   };
   const pending = run(page, "checkout", contact);
-  await expect(page.getByRole("button", { name: /^Place order/ })).toHaveAttribute("data-tool-submit-active", "");
+  await parkedOn(page, page.getByRole("button", { name: /^Place order/ }));
 
-  await page.locator("header a[href='/']").first().click(); // the person navigates away instead
-  expect(await pending).toMatch(/left the page before the user confirmed/);
+  await page.getByRole("link", { name: "Field Store" }).click(); // the person navigates away instead
+  expect(await pending).toMatch(/^Error \[unavailable\]: "checkout" needs the user's confirmation, but there is nothing to confirm on/);
   await expect(page.locator(".agent-cursor.is-waiting, .agent-ring.is-waiting")).toHaveCount(0);
+});
+
+test("an imperative tool types into the page: search_products writes its query into the header's search field", async ({ page }) => {
+  await open(page, "/");
+  expect(await run(page, "search_products", { query: "mug" })).toMatch(/^\d+ results? for "mug":/);
+  await expect(page.getByRole("searchbox", { name: "Search products" })).toHaveValue("mug");
+  await expect(page).toHaveURL(/\/products\?q=mug$/);
+});
+
+test("a tool's control is found by the call: remove_from_cart presses that line's Remove button", async ({ page }) => {
+  await open(page, "/product/stoneware-mug");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  await run(page, "add_to_cart", { qty: 1 });
+  await run(page, "open_product", { slug: "canvas-tote" });
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  await run(page, "add_to_cart", { qty: 2 });
+  const drawer = page.getByRole("dialog", { name: /Your cart/ });
+  await expect(drawer).toBeVisible();
+  await expect.poll(() => list(page)).toContain("remove_from_cart");
+  expect(await run(page, "remove_from_cart", { slug: "stoneware-mug" })).toMatch(/^Removed Stoneware Mug\. 1 line left\./);
+  await expect(drawer.getByRole("button", { name: /^Remove Stoneware Mug/ })).toHaveCount(0);
+  await expect(drawer.getByLabel(/^Quantity of Canvas Tote/)).toHaveValue("2");
+});
+
+test("subscribe_newsletter types the email, ticks consent and waits for the person's click", async ({ page }) => {
+  await open(page, "/");
+  await expect.poll(() => list(page)).toContain("subscribe_newsletter");
+  const pending = run(page, "subscribe_newsletter", { email: "mustafa@mail.test", consent: true });
+  const subscribe = page.getByRole("button", { name: "Subscribe" });
+  await parkedOn(page, subscribe);
+  await expect(page.getByPlaceholder("you@example.com")).toHaveValue("mustafa@mail.test");
+  await expect(page.getByRole("checkbox", { name: /one email a month/ })).toBeChecked();
+  await subscribe.click();
+  expect(await pending).toBe("Subscribed mustafa@mail.test to the Field Store newsletter.");
+  await expect(page.getByRole("status").filter({ hasText: "subscribed as" })).toHaveText("You're subscribed as mustafa@mail.test.");
 });
 
 test.describe("with motion", () => {
@@ -220,5 +258,18 @@ test.describe("with motion", () => {
     await expect(page.locator(".agent-cursor.is-visible")).toBeVisible();
     expect(await done).toMatch(/^Opened the cart\./);
     await expect(page.getByRole("dialog", { name: /Your cart/ })).toBeVisible();
+  });
+
+  test("the person moving the mouse hides the cursor; the tool still completes", async ({ page, isMobile }) => {
+    test.skip(isMobile, "a phone has no mouse to move");
+    await open(page, "/product/ocean-tee");
+    await expect.poll(() => list(page)).toContain("add_to_cart");
+    const done = run(page, "add_to_cart", { variant: "L", qty: 3 });
+    await expect(page.locator(".agent-cursor.is-visible")).toBeVisible();
+    await page.mouse.move(200, 300);
+    await page.mouse.move(600, 500, { steps: 10 });
+    await expect(page.locator(".agent-cursor.is-visible")).toHaveCount(0);
+    expect(await done).toMatch(/^Added 3 × Ocean Tee \(L\) to the cart/);
+    await expect(page.getByRole("dialog", { name: /Your cart/ }).getByLabel("Quantity of Ocean Tee (L)")).toHaveValue("3");
   });
 });

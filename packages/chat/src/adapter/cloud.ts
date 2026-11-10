@@ -240,3 +240,11 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
     },
   };
 }
+
+let shared: AgentAdapter | undefined;
+
+/**
+ * The adapter `agent.invoke`, `useWebAgent` and `<AgentChat>` use when given none: one `createCloudAdapter()` per
+ * page, created on first use, so they share its availability check.
+ */
+export const getDefaultAdapter = (): AgentAdapter => (shared ??= createCloudAdapter());

@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    // api/chat.ts imports "../src/agents": src and shared are one folder
+    "rootDirs": ["./src", "../shared"],
+    "paths": {
+      // shadcn/ui components: the copies in apps/nextjs stand in for the reader's own
+      "@/components/ui/*": ["../../../apps/nextjs/components/ui/*"],
+      // "@/" is src/ in a Vite app; a file that is the same in every framework lives in ../shared
+      "@/*": ["./src/*", "../shared/*"]
+    }
+  },
+  "include": ["src", "api", "../shared"]
+}

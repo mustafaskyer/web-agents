@@ -1,5 +1,6 @@
 ---
 slug: reference/vercel-api
+description: "The examples' /api/chat as Vercel web handlers."
 ---
 
 # `@webmcp-agents/vercel-api`
@@ -10,8 +11,7 @@ check, per-IP rate limits and a global daily budget on model calls.
 The package is private (`"private": true`). It is not published to npm. The example apps (`apps/playground`,
 `apps/ecommerce`, `apps/flights`) use it as a workspace dependency.
 
-```ts
-// apps/<app>/api/chat.ts
+```ts apps/playground/api/chat.ts
 import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
 
 export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" });
@@ -21,7 +21,7 @@ Env is read when the route is created (at the function's cold start), never at i
 
 ## Deployment
 
-Project settings, environment variables, Upstash Redis and the smoke test are in [Deploy to Vercel](../../guides/deploy.md).
+Project settings, environment variables, Upstash Redis and the smoke test are in [Deploy](../../more/deploy.md).
 
 ## How a request flows
 
@@ -36,8 +36,8 @@ Project settings, environment variables, Upstash Redis and the smoke test are in
 
 ## API reference
 
-| File | API |
+| API | What it is |
 |---|---|
-| [create-vercel-chat-route.md](./create-vercel-chat-route.md) | `createVercelChatRoute`, `VercelChatRouteOptions`, env vars |
-| [guards.md](./guards.md) | `Guard`, `composeGuards`, `originGuard`, `rateLimitGuard`, `budgetGuard`, `clientIp` |
-| [limiter.md](./limiter.md) | `createLimiter`, `createMemoryLimiter`, `redisCredentials`, `Env`, `Limiter`, `LimiterOptions`, `LimitResult` |
+| [`createVercelChatRoute`](./create-vercel-chat-route.md) | The `/api/chat` handlers for a Vercel Function, with every limit as an environment variable. Includes `VercelChatRouteOptions`. |
+| [Guards](./guards.md) | `Guard`, `composeGuards`, `originGuard`, `rateLimitGuard`, `budgetGuard`, `clientIp`: what runs before the model. |
+| [`createLimiter`](./limiter.md) | Sliding-window counters, on Upstash Redis or in memory. Includes `createMemoryLimiter`, `redisCredentials`, `Env`, `Limiter`, `LimiterOptions`, `LimitResult`. |

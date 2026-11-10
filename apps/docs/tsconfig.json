@@ -20,6 +20,6 @@
     },
     "types": ["node"]
   },
-  "include": ["components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts", "types.d.ts"],
+  "include": ["components.ts", "components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts", "types.d.ts"],
   "exclude": ["node_modules", ".blume", "dist", "components/**/example.tsx"]
 }

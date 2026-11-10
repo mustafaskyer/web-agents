@@ -7,8 +7,7 @@ import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@webmcp-agents/devto
 
 const TANSTACK = new URLSearchParams(location.search).has("tanstack");
 
-/** `spotlight`: what the provider's cursor was installed with, so the Settings switch starts in sync. */
-export default function Devtools({ spotlight }: { spotlight: boolean }) {
-  if (TANSTACK) return <TanStackDevtools plugins={[webAgentsDevtoolsPlugin({ initialSettings: { spotlight } })]} />;
-  return <WebAgentsDevtools initialSettings={{ spotlight }} />;
+export default function Devtools() {
+  if (TANSTACK) return <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />;
+  return <WebAgentsDevtools />;
 }

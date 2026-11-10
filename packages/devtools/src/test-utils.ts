@@ -1,5 +1,5 @@
 /** Helpers for the browser-mode tests. Not exported from the package. */
-import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
+import { installWebMCPPolyfill } from "@webmcp-agents/core/polyfill";
 
 export const modelContext = (): ModelContext => installWebMCPPolyfill() as ModelContext;
 

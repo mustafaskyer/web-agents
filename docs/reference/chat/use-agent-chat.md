@@ -1,103 +1,78 @@
+---
+description: "The chat as a useChat-shaped React hook: the conversation as AI SDK UIMessages, the adapter choice and its memory, the adapter's status and models, and the suggestions."
+---
+
 # `useAgentChat`
 
-The chat as a `useChat`-shaped React hook: the conversation as AI SDK `UIMessage`s, the adapter choice and its memory,
-the adapter's status and models, the suggestions. `<AgentChat>` is built on it; use it to render the chat with your own
-components (shadcn/ui's AI patterns, or anything that reads `UIMessage` parts).
+The chat as a `useChat`-shaped React hook: the conversation as AI SDK `UIMessage`s, the adapter choice and its memory, the adapter's status and models, and the suggestions. Use it to render the chat with your own components (shadcn/ui's AI patterns, or anything that reads `UIMessage` parts). [`<AgentChat>`](./agent-chat.md) is built on it, so a custom UI and the built-in widget agree on every state.
+
+## Import
 
 ```ts
 import { useAgentChat } from "@webmcp-agents/chat";
-import type { AgentChatState, ToolPhase, UseAgentChatOptions } from "@webmcp-agents/chat";
+import type {
+  AgentChatState,
+  ToolPhase,
+  UseAgentChatOptions,
+} from "@webmcp-agents/chat";
 ```
-
-## Signature
-
-```ts
-function useAgentChat(options: UseAgentChatOptions): AgentChatState;
-
-interface UseAgentChatOptions {
-  adapter?: AgentAdapter;
-  adapters?: readonly AgentAdapter[];
-  agent?: WebAgent;
-  storageKey?: string | false;
-}
-
-interface AgentChatState {
-  messages: UIMessage[];
-  status: "submitted" | "streaming" | "ready" | "error";
-  error?: SessionError;
-  sendMessage(input: { text: string }): void;
-  stop(): void;
-  regenerate(): void;
-  clear(): void;
-  tools: ToolDescriptor[];
-  suggestions: string[];
-  adapters: readonly AgentAdapter[];
-  adapter: AgentAdapter;
-  selectAdapter(id: string): void;
-  adapterStatus: AdapterStatus;
-  models: readonly ModelChoice[];
-  selectModel?(id: string): Promise<void>;
-  prepare?(signal?: AbortSignal): Promise<void>;
-  agent?: WebAgent;
-  toolPhase(part: UIMessage["parts"][number]): ToolPhase | undefined;
-  session: AgentSession;
-}
-
-interface ToolPhase {
-  phase: "running" | "parked" | "done" | "error" | "cancelled";
-  prompt?: string;
-  agent?: { id: string; messages: UIMessage[] };
-}
-```
-
-## Options
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `adapter` / `adapters` | `AgentAdapter` / `readonly AgentAdapter[]` | — | One is required. With several, the person's choice is remembered in localStorage (`web-agents:chat:adapter`); the first is the default. |
-| `agent` | `WebAgent` | — | The page's agent ([`defineWebAgent`](./define-web-agent.md)). |
-| `storageKey` | `string \| false` | `"web-agents:chat"` | sessionStorage key for the conversation; `false` keeps it in memory. |
-
-## Returns
-
-| Field | Description |
-|---|---|
-| `messages` | AI SDK `UIMessage`s for rendering: `text` and `reasoning` parts carry `state` (`streaming` on the last part while the run streams), tool calls are `dynamic-tool` parts with `input-available` (running or parked), `output-available` or `output-error` (`errorText`; a cancelled call carries `Error [cancelled]: …`). Messages left empty are kept. |
-| `status` | AI SDK `ChatStatus` names: `submitted` until the reply's first part, then `streaming`, then `ready`; `error` after a failed run. |
-| `sendMessage({ text })` / `stop()` / `regenerate()` / `clear()` | Send, stop, resume the interrupted turn from its last finished tool call, start over. |
-| `tools`, `suggestions` | What the model sees (through the agent's filter), and starter prompts from the tools. |
-| `adapters`, `adapter`, `selectAdapter(id)`, `adapterStatus` | The switcher's data. |
-| `models`, `selectModel(id)`, `prepare(signal)` | The current adapter's models and opt-in setup (a model download), when it has them. |
-| `toolPhase(part)` | For a tool part: `parked` (waiting for the person's click on the page, with the `prompt` to show), `running`, `done`, `error`, `cancelled`; and for a `delegate_to_<id>` call, `agent` with the sub-agent's nested run as `UIMessage`s. `undefined` for non-tool parts. |
-| `session` | The underlying [`AgentSession`](./use-agent-session.md), for UIs that render the chat's own message shape. |
 
 ## Example
 
-```tsx
-const chat = useAgentChat({ adapters, agent: shopper });
+A minimal chat: text parts, a tool call that says when it is parked on the page for the person's click, the starter prompts, and Stop and Try again.
 
-{chat.messages.map((m) =>
-  m.parts.map((part) => {
-    if (part.type === "text") return <Streamdown>{part.text}</Streamdown>;
-    if (part.type !== "dynamic-tool") return null;
-    const phase = chat.toolPhase(part);
-    if (phase?.phase === "parked") return <Item>Confirm on the page: {phase.prompt}</Item>;
-    return <Tool part={part} />;
-  }),
-)}
-```
+<include meta='title="components/my-chat.tsx"'>/_examples/shared/reference/chat/use-agent-chat.tsx</include>
 
-See the `agent-chat` block of the `@webmcp-agents` registry for a complete chat ([Use your shadcn components](../../guides/ai-elements.mdx)).
+The `agent-chat` block of the `@webmcp-agents` registry is a complete chat built this way: see [Use your shadcn components](../../more/shadcn-chat-blocks.mdx).
+
+## Options
+
+`useAgentChat(options?)` takes a `UseAgentChatOptions`; every option is optional.
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `adapter` | `AgentAdapter` | one shared `createCloudAdapter()` | The one adapter that runs the model. With neither `adapter` nor `adapters`, the chat uses the shared cloud adapter (your `/api/chat`) that [`<AgentChat>`](./agent-chat.md), `agent.invoke` and [`useWebAgent`](./use-web-agent.md) use. |
+| `adapters` | `readonly AgentAdapter[]` | not set | Several adapters (cloud, on-device…) for a switcher. The first is the default; the person's choice is remembered in localStorage (`web-agents:chat:adapter`) while that adapter is still offered. |
+| `agent` | `WebAgent` | not set | The page's agent ([`defineWebAgent`](./define-web-agent.md)): its instructions, the tools it may use and its sub-agents. Without it the model sees every page tool and no instructions. |
+| `storageKey` | `string \| false` | `"web-agents:chat"` | sessionStorage key for the conversation, so it survives route changes and reloads. `false` keeps it in memory only. |
+
+## Returns
+
+An `AgentChatState`:
+
+| Name | Type | Description |
+|---|---|---|
+| `messages` | `UIMessage[]` | The conversation for rendering. `text` and `reasoning` parts carry `state` (`streaming` on the last part while the run streams); tool calls are `dynamic-tool` parts with `input-available` (running or parked), `output-available` or `output-error` (`errorText`; a cancelled call carries `Error [cancelled]: …`). Messages left empty are kept. |
+| `status` | `"submitted" \| "streaming" \| "ready" \| "error"` | AI SDK `ChatStatus` names: `submitted` until the reply's first part, then `streaming`, then `ready`; `error` after a failed run. |
+| `error` | `SessionError` | The last run's failure: `{ message, code? }`. |
+| `sendMessage({ text })` | `(input: { text: string }) => void` | Send a message. Ignored when empty or while streaming. |
+| `stop()` | `() => void` | Stop the run; open tool calls become `cancelled`. |
+| `regenerate()` | `() => void` | Resume the interrupted turn from its last finished tool call, so nothing is done twice. |
+| `clear()` | `() => void` | Stop and start a new conversation. |
+| `tools` | `ToolDescriptor[]` | What the model sees right now: the page's tools through the agent's filter, plus its delegate tools. |
+| `suggestions` | `string[]` | Starter prompts derived from the page's tools. |
+| `adapters` | `readonly AgentAdapter[]` | The adapters on offer. |
+| `adapter` | `AgentAdapter` | The one in use. |
+| `selectAdapter(id)` | `(id: string) => void` | Switch adapter and remember the choice. |
+| `adapterStatus` | `AdapterStatus` | Whether the adapter is ready: see [`AdapterStatus`](./adapter-types.md#adapterstatus). |
+| `models` | `readonly ModelChoice[]` | The current adapter's models, when it offers any (otherwise empty). |
+| `selectModel(id)` | `(id: string) => Promise<void>` | Switch the adapter's model. Absent when the adapter has none to choose. |
+| `prepare(signal)` | `(signal?: AbortSignal) => Promise<void>` | Start the adapter's opt-in setup, such as a model download; aborting `signal` cancels it. Absent when the adapter needs none. |
+| `agent` | `WebAgent \| undefined` | The agent in use. |
+| `toolPhase(part)` | `(part: UIMessage["parts"][number]) => ToolPhase \| undefined` | The web-agents state of a tool part: `phase` is `"parked"` (waiting for the person's click on the page, with `prompt` to show), `"running"`, `"done"`, `"error"` or `"cancelled"`; for a `delegate_to_<id>` call, `agent` holds the sub-agent's id and its nested run as `UIMessage`s. `undefined` for parts that are not tool calls. |
+| `session` | `AgentSession` | The underlying [`AgentSession`](./use-agent-session.md), for UIs that render the chat's own message shape. |
 
 ## Notes
 
 - The `UIMessage` shape is canonical: nothing web-agents-specific is added to parts. `toolPhase` is the one extra.
-- Reasoning parts keep their `providerMetadata` (signed thinking); the hook renders what the session has, it never
-  mutates it.
-- `<AgentChat>` uses this hook internally, so a custom UI and the built-in widget agree on every state.
+- Reasoning parts keep their `providerMetadata` (signed thinking); the hook renders what the session has and never mutates it.
+- Create custom adapters once, at module scope: the session and the status hook key on the adapter object.
+- Render it under `<WebAgentsProvider>` (or any page with `document.modelContext`); without WebMCP `tools` is empty.
 
 ## See also
 
-- [`useAgentSession`](./use-agent-session.md)
-- [`AgentChat`](./agent-chat.md)
+- [Add the chat](../../build/add-the-chat.mdx) and [Use your shadcn components](../../more/shadcn-chat-blocks.mdx)
+- [`<AgentChat>`](./agent-chat.md), the built-in widget
+- [`useAgentSession`](./use-agent-session.md), the same session in the chat's own message shape
+- [`useWebAgent`](./use-web-agent.md), to run an agent with no chat
 - [Adapter types](./adapter-types.md)

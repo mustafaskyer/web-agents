@@ -42,7 +42,7 @@ test("chat: a tool call card and a sub-agent card (needs a model key)", async ({
   await sleep(500);
   await still(page, info, "chat/subagent");
   await page
-    .locator("[data-tool-submit-active]")
+    .locator("[data-agent-active]")
     .click()
     .catch(() => {});
   await run(page, "get_cart").catch(() => {});

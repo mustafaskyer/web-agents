@@ -1,7 +1,7 @@
 /**
  * The header and footer every custom page of the site shares (home, Demos), so Home, Demos and Docs are one click
- * away from each other. The brand links home. Links a tool acts on carry `toolName` (plain anchors with `toolname`):
- * the Demos link (`show_demo` from the home page), the Quickstart links, the GitHub links (`open_github`).
+ * away from each other. The brand links home. Nothing here is for the cursor: the site's tools find these links by
+ * their names (the Demos link for `show_demo`, Quickstart and Docs for `open_docs`, GitHub for `open_github`).
  */
 import { FooterWordmark } from "@/components/opendesigns/velora-footer-wordmark/component";
 import { NavbarFloating } from "@/components/opendesigns/velora-navbar-floating/component";
@@ -15,30 +15,29 @@ export const SiteHeader = ({ page }: { page: SitePage }) => (
     homeAction={{ href: "/", label: "WebMCP Agents home" }}
     activeHref={page === "demos" ? DEMOS : undefined}
     items={[
-      // on the home page `show_demo` opens the Demos page through this link; there the frames are its targets
-      { href: DEMOS, id: "demos", label: "Demos", toolName: page === "home" ? "show_demo" : undefined },
+      { href: DEMOS, id: "demos", label: "Demos" },
       { href: "/#how", id: "how", label: "How it works" },
       { href: "/#faq", id: "faq", label: "FAQ" },
       { href: DOCS, id: "docs", label: "Docs" },
     ]}
     extra={<ThemeToggle />}
-    primaryAction={{ href: REPO, id: "github", label: "GitHub", toolName: "open_github" }}
-    secondaryAction={{ href: QUICKSTART, id: "quickstart", label: "Quickstart", toolName: "open_docs" }}
+    primaryAction={{ href: REPO, id: "github", label: "GitHub" }}
+    secondaryAction={{ href: QUICKSTART, id: "quickstart", label: "Quickstart" }}
   />
 );
 
-export const SiteFooter = ({ page, year }: { page: SitePage; year: number }) => (
+export const SiteFooter = ({ year }: { year: number }) => (
   <FooterWordmark
     compact
     homeAction={{ href: "/", label: "WebMCP Agents home" }}
     contactAction={{ href: `${REPO}/issues`, label: "Open an issue" }}
     links={[]}
     auxiliaryLinks={[
-      { href: DEMOS, id: "demos", label: "Demos", toolName: page === "home" ? "show_demo" : undefined },
-      { href: QUICKSTART, id: "quickstart", label: "Quickstart", toolName: "open_docs" },
-      { href: `${DOCS}/guides/agents`, id: "agents", label: "Define an agent" },
+      { href: DEMOS, id: "demos", label: "Demos" },
+      { href: QUICKSTART, id: "quickstart", label: "Quickstart" },
+      { href: `${DOCS}/build/define-an-agent`, id: "agents", label: "Define an agent" },
       { href: `${DOCS}/reference`, id: "reference", label: "API reference" },
-      { href: REPO, id: "github", label: "GitHub", toolName: "open_github" },
+      { href: REPO, id: "github", label: "GitHub" },
     ]}
     policyLinks={[{ href: `${REPO}/blob/main/LICENSE`, id: "license", label: "MIT license" }]}
     copyright={`© ${year} WebMCP Agents`}

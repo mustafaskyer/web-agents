@@ -1,0 +1,26 @@
+---
+title: Installation
+description: Choose your framework. Every page is the same six steps, from an empty folder to a tool the agent cursor runs.
+sidebar:
+  hidden: true
+---
+
+Pick your framework. Each page is the same six steps, and the pages after it show that framework's code.
+
+<include>/_partials/frameworks.mdx</include>
+
+## The six steps
+
+| | Step | What you do |
+|---|---|---|
+| 01 | Create a project | A new app from your framework's own starter, or skip it and use yours. |
+| 02 | Install the packages | `@webmcp-agents/core` and `@webmcp-agents/react`, plus the devtools for development. |
+| 03 | Add the styles | One stylesheet: the agent cursor. |
+| 04 | Add the provider | `<WebAgentsProvider>` around your app. It is the same line in every framework, and it loads a WebMCP polyfill by itself where the browser has none. |
+| 05 | Add your first tool | One component: a plain button a person clicks and an agent calls. |
+| 06 | Run it | Call the tool from the devtools panel and watch the cursor. |
+
+The chat is not part of installation. It is [step 8 of the path](/build/add-the-chat), once you have tools for it to
+call.
+
+<include>/_partials/not-on-npm.mdx</include>

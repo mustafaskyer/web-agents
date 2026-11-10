@@ -10,3 +10,47 @@
   --blume-border: oklch(1 0 0 / 10%);
   --blume-code-background: oklch(0.18 0 0);
 }
+
+/*
+ * The framework picker (Blume's view picker, on every page written in <View> blocks). Blume renders a bare select;
+ * here it gets a label, so it reads "Framework: Next.js", and a rule under it, so it is not mistaken for part of
+ * the page's first paragraph.
+ */
+blume-view-switcher {
+  border-bottom: 1px solid var(--blume-border);
+  padding-bottom: 1rem;
+}
+blume-view-switcher::before {
+  color: var(--blume-muted-foreground);
+  content: "Framework";
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/*
+ * The six steps of an installation page: `<div class="install-steps">` around plain `##` headings, numbered 01 to 06.
+ * Not Blume's <Steps>: its body is `not-prose`, where a code block loses its header, and with it the file name.
+ */
+.install-steps {
+  counter-reset: install-step;
+}
+.install-steps > h2 {
+  counter-increment: install-step;
+}
+.install-steps > h2::before {
+  color: var(--blume-muted-foreground);
+  content: counter(install-step, decimal-leading-zero);
+  font-family: var(--blume-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-inline-end: 0.75rem;
+}
+
+/*
+ * Complete example files are the point of a Build page: show them whole. Blume caps a code block at 24rem and
+ * scrolls inside it, which hides half of a 40-line component behind a nested scrollbar. A block that is long for its
+ * page says `expandable` in its fence meta and starts folded instead.
+ */
+.prose :where(pre:not(.twoslash, .twoslash pre, blume-panel-tabs *) > code) {
+  max-height: none;
+}

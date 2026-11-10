@@ -1,120 +1,126 @@
 ---
 title: How it works
-description: The three layers of an agent-ready page, why the visual layer is driven only by WebMCP events, and how it keeps the page in step with the cursor.
+description: The three layers of an agent-ready page, why the cursor is driven only by WebMCP events, and how it keeps the page in step with each call.
+related:
+  - /concepts/agent-cursor
+  - /concepts/tool-lifecycle
+  - /build/define-a-tool
 ---
 
 An agent-ready page has three layers, and each one knows as little as possible about the others.
 
 | Layer | What it is | Knows about |
 |---|---|---|
-| **Tools** | Forms with `toolname`, and `WebTool`s registered through the provider or a registry | the page's own state, nothing else |
-| **WebMCP** | `document.modelContext`: native in Chrome, or the [polyfill](/guides/polyfill) | the registered tools; dispatches lifecycle events |
-| **The visual layer** | `installAgentVisuals()`: the cursor, the spotlight, yielding | WebMCP events and the DOM, never a tool |
+| **Tools** | A tool in a component (`useWebTool`) or in your app's catalog (`<WebAgentsProvider tools>`) | the page's own state, nothing else |
+| **WebMCP** | `document.modelContext`: native in Chrome, or the [polyfill](/more/polyfill) | the registered tools; dispatches lifecycle events |
+| **The visual layer** | `installAgentVisuals()`: the cursor, the spotlight, yielding | WebMCP events and the DOM, never a tool's code |
+
+You never wire them together. The provider (or [`createWebAgents`](/installation/no-framework)) installs the visual layer
+before the first tool registers, and that is the whole connection.
 
 ## Tools never know the cursor exists
 
-A tool doesn't call the cursor, import it, or report to it. The **only** contract is an attribute: the element a tool
-acts on carries `toolname="<tool name>"`. Declarative forms have it by definition; a `WebTool` puts it on its button,
-or points at an element with its `target` selector.
+A tool does not call the cursor, import it or report to it. It is `execute`, plus an optional `target`. Nothing is added
+to your markup: **the library finds the control the way a person would, by its role and its name.** When an agent calls
+`clear_cart`, the visual layer looks for a button named like the tool's `title` ("Clear cart"); a `target` says which
+control when the name is not enough ([How the cursor finds the control](/build/define-a-tool#how-the-cursor-finds-the-control)).
 
-That keeps tools plain and testable, lets you add or remove the cursor without touching them, and means tools from
-other libraries (anything that calls `registerTool`) animate too.
+That keeps tools plain and testable, lets you add or remove the cursor without touching them, and means tools from other
+libraries (anything that calls `registerTool`) animate too, when a control on the page is named like them.
 
-## Driven by events
+The one thing the cursor reads from a tool is a small description of the call, which `defineWebTool` keeps beside the
+tool: which control it acts on, and which field each parameter is typed into. Core builds it from the tool's `title`,
+`target`, `fields` and input schema before anything moves, so a bad input answers at once and never moves the cursor.
 
-`installAgentVisuals()` subscribes to the WebMCP lifecycle and works everything else out from the DOM at that moment:
+## One call, start to finish
 
-| Signal | What the layer does |
-|---|---|
-| `toolactivated` | finds `[toolname="<name>"]` and glides the cursor there |
-| `input` (capture phase) | timestamps each tool-form field as it changes: the fields that change as a run starts are the agent's |
-| `submit` with `event.agentInvoked` | replays the agent's values, moves to the submit button, clicks; delays `respondWith` until the animation ends |
-| `:tool-submit-active` | parks the cursor on the submit button: "Click Place order to confirm" |
-| `toolcancel` | clears highlights and hides the cursor |
-| the person's own mouse moves, clicks, scrolls, touches and keys | they took over: [yield](/concepts/agent-cursor#yielding-to-the-person) |
+`installAgentVisuals()` subscribes to the WebMCP lifecycle and works everything else out from the DOM at that moment.
 
 ```mermaid
 sequenceDiagram
   participant A as Agent
   participant B as Browser (WebMCP)
   participant V as Visual layer
-  participant F as Tool form
-  A->>B: call add_to_cart { qty: 3 }
-  B->>F: fill qty = 3 (input event)
-  B->>V: toolactivated
-  V->>F: put the old value back, glide to the form
-  V->>F: type "3", click "Add to cart"
-  F->>F: submit handler runs, cart updates
-  F->>B: respondWith(result)
-  V-->>B: result released after the click animation
-  B->>A: "Added 3 mugs."
+  participant P as Page (the form)
+  A->>B: call add_to_cart { quantity: 3 }
+  B->>V: the call, before it runs
+  V->>V: check the input, find the button and the field
+  V->>P: glide to "Add to cart", then the Quantity field
+  V->>P: type "3" (input events: your form library hears it)
+  V->>P: press "Add to cart"
+  P->>P: execute runs, the cart updates
+  P->>B: the returned text
+  V-->>B: answer released after the press
+  B->>A: "Added 3 × Ocean Tee."
 ```
 
-Native Chrome and the polyfill fire these in different orders (Chrome fills, submits, then activates; the polyfill
-activates first), so a run starts on whichever signal arrives first.
+| Signal | What the layer does |
+|---|---|
+| A tool call arrives | validates the input, finds the control and each parameter's field, then glides there |
+| `toolcancel` | clears highlights and hides the cursor |
+| The person's own mouse, scroll, touch or keys | they took over: [the cursor yields](/concepts/agent-cursor#yielding-to-the-person) |
+| `toolactivated`, `input`, `submit` with `agentInvoked` | the same run for a [declarative form](/more/declarative-forms), whose fields the browser fills itself |
 
-## In step with the page
+Native Chrome and the polyfill fire the lifecycle events in different orders (Chrome fills, submits, then activates; the
+polyfill activates first), so a run starts on whichever signal arrives first.
+
+## The page reacts at the click
 
 <video autoPlay loop muted playsInline data-no-zoom width="960">
   <source src="../media/cursor/typing.webm" type="video/webm" />
   <source src="../media/cursor/typing.mp4" type="video/mp4" />
 </video>
 
-*The page reacts at the cursor's click, not before: the add happens when it looks like it should.*
+*The cart updates when the cursor clicks, not before.*
 
-The browser runs an agent's action the instant it's called. A cursor that animated afterwards would always look
-late: the cart would update, and only then would the cursor drift over to "Add to cart".
-
-So by default (`sync: true`) the layer makes the page wait for the cursor instead:
+The browser runs an agent's action the instant it is called. A cursor that animated afterwards would always look late:
+the cart would update, and only then would the cursor drift over to "Add to cart". So by default (`sync: true`) the
+layer makes the page wait for the cursor instead.
 
 | Tool kind | Without the layer | With it |
 |---|---|---|
-| Declarative form | fields fill and `submit` fires at once | old values go back; the cursor types the agent's values when it arrives; `submit` is held and re-dispatched at the click |
-| `WebTool` with a `toolname` element | `execute()` runs at once | `execute()` runs when the cursor presses the element |
-| Tool with nothing on screen | `execute()` runs | still runs at once: there's nothing to show |
+| A tool with a control on the page | `execute()` runs at once, fields never move | the cursor goes to the control, types each value into its field, runs `fill`, presses the control; `execute()` runs at the press |
+| A tool that needs confirmation | `execute()` waits for a click | the same, but the cursor parks on the control and `execute()` runs on the person's click |
+| A tool with nothing on screen | `execute()` runs | still runs at once: there is nothing to show |
 
-Your tool code doesn't change; it just runs at the click, so the page reacts in the same frame as the ripple. The
-agent gets its answer roughly half a second to a second later than it would without the cursor. A held `execute` is
-never held for more than 2.5 s, and cancelling releases it. `sync: false` runs everything at once and animates after
-the fact.
+Your tool code does not change; it just runs at the click, so the page reacts in the same frame as the ripple. The agent
+gets its answer roughly half a second to a second later than it would without the cursor. A held call is never held for
+more than 2.5 s plus 2.5 s per field it types, and cancelling releases it: at that point the tool writes the values the
+cursor had not and runs. `sync: false` runs everything at once and animates after the fact.
 
 :::tip[For every tool to be in sync]
-Install the visual layer before any tool registers (`<WebAgentsProvider>` does), and give each tool's control
-`toolname="<tool name>"`.
+Install the visual layer before any tool registers (the provider and `createWebAgents` do), and give each tool a control
+the cursor can find: a `title` that names its button, or a `target`.
 :::
-
-## What the browser does for you
-
-WebMCP's declarative side gives you a lot for free:
-
-- **The schema.** It comes from the form's controls; `toolparamdescription`, or the `<label>`, describes each one.
-- **The confirm gate.** Leave out `toolautosubmit` and the browser fills the form, then pauses on the submit button
-  until the person clicks. Use it for orders, payments and deletions.
-- **Styling hooks.** `form:tool-form-active` and `button:tool-submit-active` are native pseudo-classes, so CSS alone
-  can show that an agent is working. The polyfill mirrors them as `[data-tool-form-active]` and
-  `[data-tool-submit-active]`; `@webmcp-agents/core/cursor.css` styles both.
 
 ## Limits
 
-- `toolactivated` carries only the tool's name, not its arguments, and for declarative forms the browser fills the
-  fields itself. So the layer watches `input` events: the fields that change as a run starts are the agent's. Their
-  previous values come from a snapshot it refreshes every 400 ms while nothing is running.
-- Keystroke-by-keystroke typing of the arguments is only possible for `WebTool`s, whose `execute` receives them.
-- If Chrome rejects a fill (a `qty` above the field's `max`, say), it never submits. The layer closes that run after
-  `linger`, so the next call starts fresh.
-- Wrapping `registerTool` (in sync mode) is the one place the layer patches anything.
+- **What the cursor cannot type into, it only visits.** A custom select or a date picker has no text to type; show its
+  value with [`fill`](/build/tools-with-input#how-the-cursor-fills-a-form).
+- **`toolactivated` carries only the tool's name**, not its arguments. For a declarative form the layer therefore
+  watches `input` events: the fields that change as a run starts are the agent's, and their previous values come from a
+  snapshot it refreshes every 400 ms while nothing runs.
+- **A declarative fill Chrome rejects never submits** (a quantity above the field's `max`). The layer closes that run
+  after `linger`, so the next call starts fresh.
+- **One patch.** In sync mode the layer wraps `registerTool`; following the URL patches `history.pushState` and
+  `replaceState` only where the browser has no Navigation API, and only while something watches.
 
 ## Events for everything else
 
-Every run emits events you can subscribe to, with no access to internals:
+Every run emits events you can subscribe to, with no access to internals: `start`, `fill`, `park`, `result`, `error`,
+`cancel`, `yield` and `resume`. The [devtools](/build/devtools) timeline and the chat are built on exactly these events.
+In code, [`onAgentEvent`](/reference/core/on-agent-event); in React, [`useAgentEvents`](/reference/react/use-agent-events).
 
-```ts
-import { onAgentEvent } from "@webmcp-agents/core";
+## Where to go next
 
-onAgentEvent((e) => {
-  // start | fill | park | result | error | cancel | yield | resume
-});
-```
-
-The devtools timeline and the chat widget are built on exactly these events. In React, use
-[`useAgentEvents`](/reference/react/use-agent-events).
+<CardGroup cols={3}>
+  <Card title="The agent cursor" href="/concepts/agent-cursor" icon="mouse-pointer">
+    How it moves, parks for a confirmation and gets out of the person's way.
+  </Card>
+  <Card title="Tool lifecycle" href="/concepts/tool-lifecycle" icon="refresh-cw">
+    Why a tool is never unregistered in the middle of a call.
+  </Card>
+  <Card title="Define a tool" href="/build/define-a-tool" icon="arrow-right">
+    Start building: one function, two callers.
+  </Card>
+</CardGroup>

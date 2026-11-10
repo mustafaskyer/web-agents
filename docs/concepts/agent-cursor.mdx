@@ -1,34 +1,17 @@
 ---
 title: The agent cursor
-description: How the ghost cursor moves, waits for confirmation and gets out of the person's way, plus its options, the spotlight and how to restyle it.
+description: How the ghost cursor moves, waits for a confirmation and gets out of the person's way, plus its options, the spotlight and how to restyle it.
+related:
+  - /concepts/how-it-works
+  - /build/confirm-before-it-runs
+  - /reference/core/install-agent-visuals
 ---
 
-The cursor is the visible half of `web-agents`. It shows _where_ the agent is working and _what_ it's typing, parks
+The cursor is the visible half of WebMCP Agents. It shows _where_ the agent is working and _what_ it is typing, parks
 where the person has to decide, and disappears the moment they move.
 
-```ts
-import { installAgentVisuals } from "@webmcp-agents/core";
-import "@webmcp-agents/core/cursor.css";
-
-const visuals = installAgentVisuals({ spotlight: true, name: "Assistant" });
-```
-
-In React, `<WebAgentsProvider visuals={…}>` does this for you, before its first tool registers.
-
-## Options
-
-| Option | Default | |
-|---|---|---|
-| `sync` | `true` | Hold the agent's values and submit until the cursor gets there, so the page reacts at the click. See [In step with the page](/concepts/how-it-works#in-step-with-the-page). |
-| `spotlight` | `false` | Blur and dim everything except the tool being worked in. `true`, or `{ blur, dim, padding }`. |
-| `yieldToUser` | `true` | Hide the cursor when the person interacts. `false`, or `{ moveThreshold, resumeAfter, ignore }`. |
-| `linger` | `1200` | Milliseconds the cursor stays after a tool finishes. |
-| `name` | `""` | A tag shown beside the cursor. |
-| `log` | — | Receives every [agent event](/reference/core/on-agent-event). |
-
-`installAgentVisuals()` returns `{ setSpotlight, setYieldToUser, destroy }`, so both switches can change at runtime
-(the devtools' Settings tab is wired to them). Full reference:
-[`installAgentVisuals`](/reference/core/install-agent-visuals).
+The provider installs it before its first tool registers (the [installation](/installation) pages show the line), so the
+rest of this page is what the person sees and what you can tune.
 
 ## Yielding to the person
 
@@ -40,17 +23,18 @@ In React, `<WebAgentsProvider visuals={…}>` does this for you, before its firs
 *The person moves the mouse while the agent is adding to the cart: the cursor vanishes and the tool still completes.*
 
 A real person always wins. When they move the mouse more than a few pixels, click, scroll, touch or press a key, the
-cursor, its tag and the spotlight fade out in 80 ms, and every pending step fast-forwards: moves arrive at once,
-typing writes the final value, and a held submit or `execute()` runs immediately. **The tool still completes and
-answers the agent**; it just stops waiting for the animation.
+cursor, its tag and the spotlight fade out in 80 ms, and every pending step fast-forwards: moves arrive at once, typing
+writes the final value, and a held press or `execute()` runs immediately. **The tool still completes and answers the
+agent**; it just stops waiting for the animation.
 
-- Only trusted input counts. The agent's own fills never make the cursor yield.
-- While the browser waits for a confirmation click, the ring on that button stays, so the person knows where to
-  confirm.
-- After `resumeAfter` ms (800 by default) without input, the next tool call shows the cursor again, entering from where
-  the person's pointer was.
-- Input inside an element marked with `data-web-agents-ui` ([`UI_HOST_ATTR`](/reference/core/ui-host-attr)) never
-  counts: that's the person driving the agent from a chat or the devtools. Mark your own agent UI the same way.
+- **Only trusted input counts.** The agent's own fills never make the cursor yield.
+- **A confirmation keeps its ring.** While the browser waits for a confirming click, the ring on that button stays, so
+  the person knows where to confirm.
+- **It comes back on the next call.** After `resumeAfter` ms (800 by default) without input, the next tool call shows
+  the cursor again, entering from where the person's pointer was.
+- **Your own agent UI never counts.** Input inside an element marked with `data-web-agents-ui`
+  ([`UI_HOST_ATTR`](/reference/core/ui-host-attr)) is the person driving the agent from a chat or the devtools. The chat
+  and the devtools set it; mark your own panel the same way.
 
 ## Confirmation
 
@@ -61,13 +45,15 @@ answers the agent**; it just stops waiting for the animation.
 
 *The agent fills checkout and the cursor parks on Place order until the person clicks it.*
 
-Two kinds of tool make the agent wait for the person:
+A tool with **`requireConfirmation: true`** makes the agent wait for the person: the cursor types what it can, then
+parks on the tool's control with a `Click "…" to confirm` prompt, and the call waits for a trusted click on it. That
+click is the only thing that completes the call, and there is no timeout while it waits. A
+[declarative form](/more/declarative-forms) without `toolautosubmit` gets the same pause from the browser.
 
-- a **declarative form without `toolautosubmit`**: the browser pauses on its submit button;
-- a **`WebTool` with `requireConfirmation: true`**: the call waits for a trusted click on the tool's element.
-
-Either way the cursor parks on the button with a "Click … to confirm" prompt. The person's click is the only thing
-that completes the call. See [Tools](/concepts/tools#asking-for-confirmation).
+The control that is parked on carries `data-agent-active`, and the cursor has the `is-waiting` class (what the example
+apps' tests look for before they click). If the name of the control matches two buttons, or none, the call fails with
+`unavailable` instead of parking somewhere wrong. [Confirm before it runs](/build/confirm-before-it-runs) is the page
+for writing one.
 
 ## How it moves
 
@@ -78,46 +64,61 @@ that completes the call. See [Tools](/concepts/tools#asking-for-confirmation).
 
 *Minimum-jerk travel, a spring on arrival, the values typed in place.*
 
-One `requestAnimationFrame` loop drives everything, and every animation uses transforms and opacity only.
+The cursor goes to the tool's control, then to each field it types into, then back to press the control. One
+`requestAnimationFrame` loop drives everything, and every animation uses transforms and opacity only.
 
-- **Curved paths.** The target point travels an arc with a minimum-jerk profile, the curve a human reach follows.
-  The arrow chases it on a near-critically-damped spring, so a new move mid-flight bends the path instead of
-  restarting it.
-- **Fitts's-law timing.** Travel takes 180 to 650 ms depending on distance and target size, and each step waits for
-  _arrival_, not a fixed delay.
-- **Anchored to the page until the click.** On the way, positions are re-read every frame, so the cursor rides along
-  with scrolling and layout shifts. After the click it stays put, even if the action moves the button.
-- **At rest** it sways gently around its tip, a little more while waiting for the person.
-- **Reduced motion.** Under `prefers-reduced-motion`, everything snaps and fades.
+| Part | What it does |
+|---|---|
+| **Curved paths** | The target point travels an arc with a minimum-jerk profile, the curve a human reach follows. The arrow chases it on a near-critically-damped spring, so a new move mid-flight bends the path instead of restarting it. |
+| **Fitts's-law timing** | Travel takes 180 to 650 ms depending on distance and target size, and each step waits for _arrival_, not a fixed delay. |
+| **Anchored until the click** | Positions are re-read every frame, so the cursor rides along with scrolling and layout shifts. After the click it stays put, even if the action moves the button. |
+| **At rest** | It sways gently around its tip, a little more while waiting for the person. |
+| **Reduced motion** | Under `prefers-reduced-motion`, everything snaps and fades. |
 
 Tool status is also announced in a polite live region for screen readers.
 
 ## Spotlight
 
-`spotlight: true` blurs and dims the page except the tool being worked in (the nearest `[toolname]` element, such as a
-whole product form), and the clear window glides from tool to tool. Tune it with
+`spotlight: true` blurs and dims the page except the control being worked in (for a declarative form, the whole
+`[toolname]` form), and the clear window glides from tool to tool. Tune it with
 `spotlight: { blur: 4, dim: 0.08, padding: 12 }`. It never takes pointer events, so the person can still click to
 confirm.
+
+## Options
+
+You pass these as the provider's `visuals` prop, or to `installAgentVisuals()` yourself.
+
+| Option | Default | What it does |
+|---|---|---|
+| `sync` | `true` | Hold the agent's call until the cursor has typed and reached the control, so the page reacts at the click ([how](/concepts/how-it-works#the-page-reacts-at-the-click)). |
+| `spotlight` | `false` | Blur and dim everything except the tool being worked in. `true`, or `{ blur, dim, padding }`. |
+| `yieldToUser` | `true` | Hide the cursor when the person interacts. `false`, or `{ moveThreshold, resumeAfter, ignore }`. |
+| `linger` | `1200` | Milliseconds the cursor stays after a tool finishes. |
+| `name` | `""` | A tag shown beside the cursor. |
+| `log` | none | Receives every [agent event](/reference/core/on-agent-event). |
+
+`installAgentVisuals()` returns `{ setSpotlight, setYieldToUser, destroy }`, so both switches can change at runtime (the
+devtools' Settings tab is wired to them). Every option and the return value:
+[`installAgentVisuals`](/reference/core/install-agent-visuals).
 
 ## Styling
 
 The cursor is a black multiplayer-style arrow with a white edge, readable on light and dark surfaces. Its colours are
-custom properties at the top of `@webmcp-agents/core/cursor.css`:
+custom properties at the top of `@webmcp-agents/core/cursor.css`. To brand it, override them in a stylesheet that loads
+after it:
 
-```css
+```css styles.css
 :root {
-  --agent: #111111;        /* fill for the arrow and the tag */
+  --agent: #4f46e5;        /* fill for the arrow and the tag */
+  --agent-strong: #4338ca; /* outlines, rings and borders */
   --agent-ink: #ffffff;    /* text on the tag */
-  --agent-strong: #111111; /* outlines, rings and borders */
-  --agent-wait: #111111;   /* while waiting for the person to confirm */
+  --agent-wait: #4f46e5;   /* while waiting for the person to confirm */
 }
 ```
 
-To brand it, override them after the import: `:root { --agent: #4f46e5; --agent-strong: #4338ca; }`.
-
-See [`cursor.css`](/reference/core/cursor-css) for every class and state.
+[`cursor.css`](/reference/core/cursor-css) lists every custom property, class and state.
 
 :::warning[Don't use showModal() for drawers]
-The top layer of a modal `<dialog>` hides the cursor (and makes the devtools inert). Use a non-modal
-`role="dialog"` panel and make the page behind it `inert` instead, as the [examples](/examples/field-store) do.
+The top layer of a modal `<dialog>` hides the cursor (and makes the devtools inert). Use a non-modal `role="dialog"` panel
+and make the page behind it `inert` instead, as the [examples](/examples/field-store) do.
 :::

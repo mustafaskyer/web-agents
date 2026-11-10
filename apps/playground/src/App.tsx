@@ -1,14 +1,14 @@
 import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
 import { createLocalAdapter, DEFAULT_MODEL } from "@webmcp-agents/local-agent";
-import { EnableTools, usePathname, WebAgentsProvider } from "@webmcp-agents/react";
+import { usePathname, useWebTool, WebAgentsProvider } from "@webmcp-agents/react";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 import { Orders } from "./Orders";
-import { CartProvider, PRODUCTS, money, useCart } from "./store";
+import { cart, money, PRODUCTS, useCart } from "./store";
 import { AddToCartForm } from "./tools/AddToCartForm";
 import { ApplyPromoForm } from "./tools/ApplyPromoForm";
-import { CheckoutForm } from "./tools/CheckoutForm";
-import { catalog } from "./tools/catalog";
 import { ClearCartButton } from "./tools/ClearCartButton";
+import { tools } from "./tools";
+import { PlaceOrderButton } from "./tools/PlaceOrderButton";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => null;
@@ -16,55 +16,55 @@ const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => 
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ models: [DEFAULT_MODEL, "onnx-community/Qwen3-1.7B-ONNX"] })];
 
-const GLOBAL_TOOLS = ["get_cart"];
-const ROUTE_TOOLS = { "/orders": ["list_orders"] };
-const VISUALS = {
-  log: (entry: unknown) => console.debug("[agent-visuals]", entry),
-  spotlight: false, // blur the page except the tool the agent is working in (toggle in devtools Settings)
-};
+/** remove_promo: on while the applied code (and its Remove button) is shown, because this component is mounted. */
+function RemovePromo({ code }: { code: string }) {
+  const remove = () => cart.removePromo();
+
+  // An agent calls this; the cursor finds the button by its name, "Remove promo 123", which starts with the title.
+  useWebTool({
+    id: "remove_promo",
+    title: "Remove promo",
+    description: "Take the applied promo code off the cart. Use when the user asks to drop it.",
+    execute: remove,
+  });
+
+  return (
+    <button type="button" className="link" onClick={remove} aria-label={`Remove promo ${code}`}>
+      Remove
+    </button>
+  );
+}
 
 function Totals() {
-  const cart = useCart();
-  const { subtotal, discount, total } = cart.totals;
+  const { items, promo, totals } = useCart();
   // Nothing to total; but an applied code stays visible so it can be removed.
-  if (cart.items.length === 0 && !cart.promo) return null;
+  if (items.length === 0 && !promo) return null;
   return (
     <dl className="totals">
       <div>
         <dt>Subtotal</dt>
-        <dd>{money(subtotal)}</dd>
+        <dd>{money(totals.subtotal)}</dd>
       </div>
-      {cart.promo && (
+      {promo && (
         <div className="discount">
           <dt>
-            Promo <code>{cart.promo}</code>{" "}
-            <button
-              type="button"
-              className="link"
-              toolname="remove_promo"
-              onClick={() => cart.removePromo()}
-              aria-label={`Remove promo ${cart.promo}`}
-            >
-              Remove
-            </button>
-            {/* The agent can remove the code only while it's shown. */}
-            <EnableTools names={["remove_promo"]} />
+            Promo <code>{promo}</code> <RemovePromo code={promo} />
           </dt>
-          <dd>−{money(discount)}</dd>
+          <dd>−{money(totals.discount)}</dd>
         </div>
       )}
       <div className="total">
         <dt>Total</dt>
-        <dd>{money(total)}</dd>
+        <dd>{money(totals.total)}</dd>
       </div>
     </dl>
   );
 }
 
 function Cart() {
-  const cart = useCart();
-  const count = cart.items.reduce((n, i) => n + i.qty, 0);
-  const lastOrder = cart.orders.at(-1);
+  const { items, orders } = useCart();
+  const count = items.reduce((n, i) => n + i.qty, 0);
+  const lastOrder = orders.at(-1);
   return (
     <section className="cart">
       <header>
@@ -73,11 +73,11 @@ function Cart() {
         </h2>
         <ClearCartButton />
       </header>
-      {cart.items.length === 0 ? (
+      {items.length === 0 ? (
         <p className="muted">Empty.</p>
       ) : (
         <ul>
-          {cart.items.map((i) => (
+          {items.map((i) => (
             <li key={i.sku}>
               {i.qty} × {i.name} <span className="muted">{money(i.price * i.qty)}</span>
             </li>
@@ -86,7 +86,7 @@ function Cart() {
       )}
       <Totals />
       <ApplyPromoForm />
-      <CheckoutForm />
+      <PlaceOrderButton />
       {lastOrder && (
         <p className="muted">
           Last order: {lastOrder.id} · {money(lastOrder.total)}
@@ -101,7 +101,10 @@ function Shop() {
   return (
     <section className="catalog">
       <h1>Storefront</h1>
-      <p className="muted">Each card is a declarative WebMCP tool. Open the devtools (bottom right, or Alt+Shift+A) to call one.</p>
+      <p className="muted">
+        Each card is a WebMCP tool (<code>useWebTool</code> on a React Hook Form form). Open the devtools (bottom right, or Alt+Shift+A) to
+        call one.
+      </p>
       <div className="grid">
         {PRODUCTS.map((p) => (
           <article key={p.sku} className="card">
@@ -119,10 +122,7 @@ function NavLink({ to, path, children }: { to: string; path: string; children: R
   function onClick(e: MouseEvent<HTMLAnchorElement>) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let the browser open a new tab
     e.preventDefault();
-    if (to === path) return;
-    history.pushState(null, "", to);
-    // pushState fires no event; the Navigation API reports it, but browsers without it need this.
-    dispatchEvent(new PopStateEvent("popstate"));
+    if (to !== path) history.pushState(null, "", to); // the library follows the URL: usePathname and `match` see it
   }
   return (
     <a href={to} onClick={onClick} aria-current={to === path ? "page" : undefined}>
@@ -131,12 +131,10 @@ function NavLink({ to, path, children }: { to: string; path: string; children: R
   );
 }
 
-/** Inside CartProvider, so the tools' `ctx.context` can be the cart. */
-function Shell() {
-  const cart = useCart();
+export default function App() {
   const path = usePathname();
   return (
-    <WebAgentsProvider tools={catalog} global={GLOBAL_TOOLS} routes={ROUTE_TOOLS} pathname={path} context={cart} visuals={VISUALS}>
+    <WebAgentsProvider tools={tools}>
       <nav className="tabs" aria-label="Sections">
         <NavLink to="/" path={path}>
           Shop
@@ -151,16 +149,8 @@ function Shell() {
       </main>
       <AgentChat adapters={ADAPTERS} position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
-        <Devtools spotlight={VISUALS.spotlight} />
+        <Devtools />
       </Suspense>
     </WebAgentsProvider>
-  );
-}
-
-export default function App() {
-  return (
-    <CartProvider>
-      <Shell />
-    </CartProvider>
   );
 }

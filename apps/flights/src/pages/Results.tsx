@@ -57,7 +57,7 @@ export function Results() {
         <FiltersSidebar results={ready ? results : []} filters={booking.filters} onChange={booking.setFilters} />
         <div className={styles.main}>
           <SortBar value={booking.sort} onChange={booking.setSort} />
-          <div className={styles.list} toolname="select_flight" aria-busy={!ready}>
+          <div className={styles.list} aria-busy={!ready}>
             {!ready ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: identical placeholders
               Array.from({ length: 4 }, (_, i) => <FlightCardSkeleton key={i} />)

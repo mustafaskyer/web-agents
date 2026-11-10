@@ -1,0 +1,17 @@
+# This repo is installed with pnpm (`packageManager` in package.json), never bun.
+#
+# `bun install` / `bun add` here ignore pnpm-workspace.yaml (overrides, allowBuilds), write node_modules/.bun and a
+# bun.lock, and that bun.lock then wins lockfile detection (shadcn, ni) over pnpm-lock.yaml, so every later `add`
+# goes through bun again. The mixed node_modules breaks Vite's dependency scan and Blume's single satteri copy.
+#
+# Bun runs a root `preinstall` only after it has already linked node_modules, so a script guard is too late.
+# Instead, every bun install below resolves against a registry that does not exist and fails before it writes
+# anything ("FailedToOpenSocket downloading package manifest …"). Run `pnpm install` instead.
+# `bun dev` / `bun run <script>` still work: they only run package.json scripts.
+
+[install]
+registry = "http://this-repo-uses-pnpm--run-pnpm-install.invalid/"
+auto = "disable"
+
+[install.lockfile]
+save = false

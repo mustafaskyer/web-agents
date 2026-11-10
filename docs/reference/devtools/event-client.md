@@ -1,69 +1,57 @@
+---
+description: "An optional bridge to TanStack Devtools' event bus, so other TanStack panels (or your own) can follow tool calls."
+---
+
 # `webAgentsEventClient`
 
-An optional bridge to TanStack Devtools' event bus, so other TanStack panels (or your own) can follow tool calls.
-`bridgeStoreToEventClient` posts a devtools store's tools and calls, and forwards every agent event.
+An optional bridge to TanStack Devtools' event bus, so other TanStack panels (or your own) can follow tool calls. `bridgeStoreToEventClient` posts a devtools store's tools and calls and forwards every agent event.
+
+## Import
 
 ```ts
 import { bridgeStoreToEventClient, webAgentsEventClient } from "@webmcp-agents/devtools";
 import type { WebAgentsEvents } from "@webmcp-agents/devtools";
 ```
 
-## Signature
-
-```ts
-/** The shared client (plugin id `web-agents`). */
-const webAgentsEventClient: EventClient<WebAgentsEvents>;
-
-function bridgeStoreToEventClient(store: DevtoolsStore, client?: EventClient<WebAgentsEvents>): () => void;
-
-interface WebAgentsEvents {
-  state: Pick<DevtoolsState, "tools" | "calls">;
-  "agent-event": AgentEvent;
-}
-```
-
 `EventClient` comes from `@tanstack/devtools-event-client`.
 
-## Parameters
+## Example
+
+Listen to agent events on the bus, and bridge a store you made yourself.
+
+<include meta='title="src/agent-events.ts"'>/_examples/shared/reference/devtools/event-client.ts</include>
+
+## Options
+
+`bridgeStoreToEventClient(store, client?)`. `webAgentsEventClient` is the shared client (plugin id `web-agents`) and takes none.
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `store` | `DevtoolsStore` | — | The store whose tools and calls are posted. |
-| `client` | `EventClient<WebAgentsEvents>` | `webAgentsEventClient` | The client to emit on. |
+| `store` | `DevtoolsStore` | required | The store whose tools and calls are posted. |
+| `client` | `EventClient<WebAgentsEvents>` | `webAgentsEventClient` | The client to emit on. Pass your own to post somewhere else. |
 
-## Returns
+### Events
 
-A disposer that cancels a pending frame, unsubscribes from the store and stops forwarding agent events.
-
-## Events
+`WebAgentsEvents` names what is posted. Names are bare here; the bus prefixes them with the plugin id.
 
 | Name on the bus | Payload | When |
 |---|---|---|
 | `web-agents:state` | `{ tools, calls }` from the store's snapshot | Once on bridge, then at most once a frame after a change, and only when `tools` or `calls` changed identity. |
 | `web-agents:agent-event` | `AgentEvent` from core's `onAgentEvent` | Every agent event (`start`, `fill`, `park`, `result`, `error`, `cancel`, `yield`, `resume`). |
 
-Event names are bare in `WebAgentsEvents`; the bus prefixes them with the plugin id.
+## Returns
 
-## Example
-
-```ts
-import { webAgentsEventClient } from "@webmcp-agents/devtools";
-
-const off = webAgentsEventClient.on("agent-event", (e) => {
-  console.log(e.payload.type, e.payload.tool);
-});
-```
+`bridgeStoreToEventClient` returns a disposer that cancels a pending frame, unsubscribes from the store and stops forwarding agent events.
 
 ## Notes
 
-- Every devtools host (`installWebAgentsDevtools`, `<WebAgentsDevtools>`, the TanStack plugin) bridges its store
-  automatically unless `eventClient: false`. Call `bridgeStoreToEventClient` yourself only for a store from
-  `createDevtoolsStore`.
+- Every devtools host ([`installWebAgentsDevtools`](./install-web-agents-devtools.md), [`<WebAgentsDevtools>`](./web-agents-devtools.md), the TanStack plugin) bridges its store automatically unless `eventClient: false`. Call `bridgeStoreToEventClient` yourself only for a store from `createDevtoolsStore`.
 - The client is a no-op outside development, like every TanStack event client.
 - State is posted at most once per animation frame because snapshots can be large.
 
 ## See also
 
-- [web-agents-devtools-plugin.md](./web-agents-devtools-plugin.md)
-- [create-devtools-store.md](./create-devtools-store.md): `DevtoolsState`
-- [install-web-agents-devtools.md](./install-web-agents-devtools.md): the `eventClient` option
+- [`webAgentsDevtoolsPlugin`](./web-agents-devtools-plugin.md)
+- [`createDevtoolsStore`](./create-devtools-store.md): `DevtoolsState`
+- [`installWebAgentsDevtools`](./install-web-agents-devtools.md): the `eventClient` option
+- [`useAgentEvents`](../react/use-agent-events.md), the same events without TanStack

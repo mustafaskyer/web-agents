@@ -1,6 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+  # the code the docs show, type-checked (docs/README.md "How these docs are written")
+  - "docs/_examples"
 allowBuilds:
   esbuild: true
   # transformers.js' Node-only deps: the browser (Web Worker) build never uses them

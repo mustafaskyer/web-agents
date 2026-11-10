@@ -1,28 +1,24 @@
 /**
- * The layout every page renders in: stores, the WebMCP provider, header,
- * cart drawer and (dev only) the devtools. The provider gets the router's
- * pathname, since React Router's pushState is invisible without the Navigation API.
+ * The layout every page renders in: the WebMCP provider, header, cart drawer and (dev only) the devtools. The
+ * provider follows the URL itself, so it needs nothing from React Router.
  */
 import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
 import { createLocalAdapter, DEFAULT_MODEL } from "@webmcp-agents/local-agent";
 import { useAgentEvents, WebAgentsProvider } from "@webmcp-agents/react";
+import { lazy, Suspense } from "react";
+import { Outlet, ScrollRestoration } from "react-router";
 import { shopper } from "./agents";
-import { lazy, Suspense, useMemo } from "react";
-import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { CartDrawer } from "./components/CartDrawer";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
-import { CartProvider, useCart } from "./store/cart";
-import { UiProvider, useUi } from "./store/ui";
-import { catalog, drawerSafeTools, globalTools } from "./tools/catalog";
-import type { StoreContext } from "./tools/context";
+import { ui, useUi } from "./store/ui";
+import { DRAWER_SAFE, tools } from "./tools";
 
 // Dev only: the condition guards the import() itself, so the production bundle has no devtools.
 const Devtools = import.meta.env.DEV
   ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
   : () => null;
 
-const VISUALS = { spotlight: false };
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 // Both follow the `shopper` agent (src/agents.ts): the cloud reads it from the server registry, the on-device model here.
 // two on-device models to pick from: the default, and a larger one for machines with the memory for it
@@ -30,28 +26,22 @@ const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ models: [DEFAULT_MO
 
 /** A tool that isn't about the cart closes the drawer first: the agent never works on a page hidden behind it. */
 function CloseDrawerForOtherTools() {
-  const { cartOpen, closeCart } = useUi();
   useAgentEvents((e) => {
-    if (e.type === "start" && cartOpen && !drawerSafeTools.has(e.tool)) closeCart();
+    if (e.type === "start" && ui.cartOpen && !DRAWER_SAFE.has(e.tool)) ui.closeCart();
   });
   return null;
 }
 
-function Shell() {
-  const cart = useCart();
-  const ui = useUi();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const context = useMemo<StoreContext>(() => ({ cart, ui, navigate: (to) => void navigate(to) }), [cart, ui, navigate]);
-
+export function Root() {
+  const { cartOpen } = useUi();
   return (
-    <WebAgentsProvider tools={catalog} global={globalTools} pathname={pathname} context={context} visuals={VISUALS}>
+    <WebAgentsProvider tools={tools}>
       <a href="#main" className="skip">
         Skip to content
       </a>
       {/* inert while the drawer is open: the drawer behaves as a modal without entering the top layer,
           where it would hide the agent cursor and block the devtools */}
-      <div className="shell" inert={ui.cartOpen}>
+      <div className="shell" inert={cartOpen}>
         <Header />
         <main id="main">
           <Outlet />
@@ -63,19 +53,9 @@ function Shell() {
       {/* inside the provider: the assistant sees exactly the tools this page has on */}
       <AgentChat adapters={ADAPTERS} agent={shopper} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
       <Suspense>
-        <Devtools initialSettings={{ spotlight: VISUALS.spotlight }} />
+        <Devtools />
       </Suspense>
       <ScrollRestoration />
     </WebAgentsProvider>
-  );
-}
-
-export function Root() {
-  return (
-    <CartProvider>
-      <UiProvider>
-        <Shell />
-      </UiProvider>
-    </CartProvider>
   );
 }

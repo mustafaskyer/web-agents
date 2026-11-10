@@ -1,0 +1,9 @@
+{
+  // Shared by every framework folder here; each has its own tsconfig.json with that framework's "@/" alias.
+  // `pnpm --filter @webmcp-agents/docs-examples typecheck` runs them all (part of `pnpm check`).
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "files": []
+}

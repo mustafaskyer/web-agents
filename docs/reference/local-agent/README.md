@@ -1,5 +1,6 @@
 ---
 slug: reference/local-agent
+description: "An on-device agent for @webmcp-agents/chat: the model runs in the visitor's browser."
 ---
 
 # `@webmcp-agents/local-agent`
@@ -26,7 +27,7 @@ const ADAPTERS = [createCloudAdapter(), createLocalAdapter()]; // once per page
 
 With Vite, let it see the worker unbundled:
 
-```ts
+```ts vite.config.ts
 export default defineConfig({
   optimizeDeps: { exclude: ["@webmcp-agents/local-agent", "@huggingface/transformers"] },
   worker: { format: "es" },
@@ -53,17 +54,17 @@ stay in the browser's Cache API, so a returning visitor loads from disk without 
 
 ## API
 
-| API | File |
+| API | What it is |
 |---|---|
-| `createLocalAdapter`, `LocalAdapterOptions` | [create-local-adapter.md](./create-local-adapter.md) |
-| `detectLocalProviders` | [detect-local-providers.md](./detect-local-providers.md) |
-| `runLocalAgent`, `LocalLoopOptions` | [run-local-agent.md](./run-local-agent.md) |
-| `createPromptApiProvider` | [create-prompt-api-provider.md](./create-prompt-api-provider.md) |
-| `createTransformersProvider`, `TransformersProviderOptions`, `MODELS`, `DEFAULT_GPU_MODEL`, `DEFAULT_CPU_MODEL` | [create-transformers-provider.md](./create-transformers-provider.md) |
-| `parseToolCalls`, `createProseFilter`, `ParsedCall`, `ParseResult` | [tool-call-parser.md](./tool-call-parser.md) |
-| `rankTools`, `compactSchema`, `validateArgs` | [tools.md](./tools.md) |
-| `LocalProvider`, `ProviderAvailability`, `CallFormat`, `CompactTool`, `ChatTurn`, `GenerateRequest`, `GenerateResult` | [provider-types.md](./provider-types.md) |
-| `@webmcp-agents/local-agent/worker` | [worker.md](./worker.md) |
+| [`createLocalAdapter`](./create-local-adapter.md) | The on-device `AgentAdapter` for `<AgentChat>`: picks a provider, handles download consent and caching. |
+| [`createTransformersProvider`](./create-transformers-provider.md) | The transformers.js engine: which models, quantization, the freeze guards. Includes `TransformersProviderOptions`, `MODELS`, `DEFAULT_MODEL`. |
+| [`createPromptApiProvider`](./create-prompt-api-provider.md) | The engine backed by Chrome's built-in model. |
+| [`detectLocalProviders`](./detect-local-providers.md) | Each provider's availability right now, for a settings screen. |
+| [`runLocalAgent`](./run-local-agent.md) | The agent loop around any provider. Includes `LocalLoopOptions`. |
+| [Provider types](./provider-types.md) | The contract for your own engine: `LocalProvider`, `ProviderAvailability`, `CallFormat`, `CompactTool`, `ChatTurn`, `GenerateRequest`, `GenerateResult`. |
+| [`parseToolCalls`, `createProseFilter`](./tool-call-parser.md) | Tool calls out of a small model's free text. Includes `ParsedCall`, `ParseResult`. |
+| [`rankTools`, `compactSchema`, `validateArgs`](./tools.md) | Short tool lists, short schemas, and a check of a call's arguments. |
+| [`@webmcp-agents/local-agent/worker`](./worker.md) | The transformers.js model worker, for bundlers that cannot find it themselves. |
 
 ## Limits
 

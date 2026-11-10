@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: { conditions: ["@webmcp-agents/source", ...defaultClientConditions] },
+  // Browser tests define tools with zod: a dependency discovered mid-run reloads Vite and the test with it.
+  optimizeDeps: { include: ["zod"] },
   test: {
     projects: [
       {

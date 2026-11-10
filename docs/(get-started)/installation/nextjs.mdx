@@ -1,0 +1,93 @@
+---
+title: Install in a Next.js app
+description: Six steps, from an empty folder to a tool the agent cursor runs, on the Next.js App Router.
+# The page ends with its own "Next" card; the sidebar neighbours would say something else.
+pagination: false
+sidebar:
+  label: Next.js
+---
+
+<RememberFramework name="Next.js" />
+
+Six steps, from an empty folder to a tool the agent cursor runs. This is how `apps/nextjs`
+([Field Store on Next.js](/examples/nextjs)) is set up: Next.js 16, the App Router and Turbopack.
+
+<include>/_partials/not-on-npm.mdx</include>
+
+<div class="install-steps">
+
+## Create a project
+
+Skip this if you already have a Next.js app. The recommended defaults are what this page uses: TypeScript, the App
+Router, Turbopack and the `@/` import alias.
+
+```package-install
+npx create-next-app@latest
+```
+
+## Install the packages
+
+The agent cursor and the React bindings, then the devtools panel for development. Browsers without WebMCP need
+nothing more: the provider loads a polyfill for them.
+
+```package-install
+npm install @webmcp-agents/core @webmcp-agents/react
+```
+
+```package-install
+npm install -D @webmcp-agents/devtools
+```
+
+## Add the styles
+
+Import the cursor's stylesheet in the root layout, next to your own.
+
+```tsx app/layout.tsx
+import "@webmcp-agents/core/cursor.css"; // [!code highlight]
+import "./globals.css";
+```
+
+## Add the provider
+
+`<WebAgentsProvider>` installs the cursor and registers your tools; in a browser without WebMCP it loads a polyfill
+first, by itself. It lives in a client component, which Next.js still renders on the server with your page. In
+development that component also loads the devtools.
+
+<include meta='title="app/providers.tsx"'>/_examples/nextjs/app/providers.tsx</include>
+
+Wrap the page in it in the root layout. The highlighted lines are the ones you add.
+
+<include meta='title="app/layout.tsx" {3,5,15}'>/_examples/nextjs/app/layout.tsx</include>
+
+## Add your first tool
+
+The action is one function with two callers: a person clicks the button, an agent calls the tool. `useWebTool`
+registers the tool while the component is on the page. A plain `<button>` is enough: the cursor finds it by its role
+and name.
+
+<include meta='title="components/clear-cart.tsx"'>/_examples/nextjs/components/clear-cart.install.tsx</include>
+
+Render it on a page. The page itself stays a Server Component.
+
+<include meta='title="app/page.tsx"'>/_examples/nextjs/app/page.tsx</include>
+
+## Run it
+
+Start the app and open it.
+
+```package-install
+npm run dev
+```
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `clear_cart` and press **Run**. The cursor flies
+to **Clear cart** and waits there. Click the button yourself: the cart empties, and the tool answers "The cart is
+empty."
+
+</div>
+
+## Next
+
+<Card title="Define a tool" href="/build/define-a-tool?view=Next.js" icon="arrow-right">
+  What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
+  not enough.
+</Card>

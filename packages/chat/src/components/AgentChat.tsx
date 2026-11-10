@@ -25,7 +25,7 @@ import { Suggestions } from "./Suggestions";
 
 /** Props of `<AgentChat>`. */
 export interface AgentChatProps {
-  /** The agent. Pass this or `adapters`. */
+  /** What runs the model. Default: one shared `createCloudAdapter()` (your `/api/chat`), when `adapters` is not given either. */
   adapter?: AgentAdapter;
   /** Several agents: the panel shows a switcher (cloud, in-browser…). The first is the default. */
   adapters?: readonly AgentAdapter[];
@@ -83,7 +83,6 @@ export function AgentChat({
   className,
   storageKey,
 }: AgentChatProps) {
-  if (!adapter && !adapters?.length) throw new Error("<AgentChat> needs an `adapter` (or `adapters`), e.g. createCloudAdapter().");
   // one state source, shared with custom UIs: the adapter choice, the session, the adapter's status and models
   const chat = useAgentChat({ adapter, adapters, agent, storageKey });
   const { adapters: all, adapter: current, selectAdapter: choose, session } = chat;

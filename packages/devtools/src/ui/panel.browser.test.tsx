@@ -98,8 +98,8 @@ describe("devtools panel", () => {
   it("copies the call as code", async () => {
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
     const runner = await openTool();
-    await userEvent.click(byText(runner, "button", "agent.run()") as HTMLElement);
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining(`await agent.run("${name}"`));
+    await userEvent.click(byText(runner, "button", "agent.invoke()") as HTMLElement);
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining(`await agent.invoke("${name}"`));
     await until(() => !!byText(runner, "button", "Copied"), 1000, "Copied");
   });
 

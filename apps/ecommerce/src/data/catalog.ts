@@ -3,8 +3,8 @@
  * No React, no DOM, so tools, pages and the node tests share them.
  * Prices are integer cents, so totals never drift.
  */
-import categoriesJson from "./categories.json";
-import productsJson from "./products.json";
+import categoriesJson from "./categories.json" with { type: "json" };
+import productsJson from "./products.json" with { type: "json" };
 
 export interface Category {
   slug: string;

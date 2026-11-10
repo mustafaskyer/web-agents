@@ -1,0 +1,149 @@
+---
+title: Define a tool
+description: A tool is the function that does the work, plus an optional hint about which control it belongs to. Nothing is added to your JSX.
+sidebar:
+  label: 1. Define a tool
+---
+
+A tool is something an agent can do on your page. You write one as **`execute`**, the function that does the work,
+plus an optional **`target`** when the cursor needs to be told which control the tool belongs to. Nothing is added to
+your JSX for the cursor: no attribute, no ref, no id.
+
+:::note[shadcn/ui and React Hook Form are optional]
+The Build examples use [shadcn/ui](https://ui.shadcn.com) components and React Hook Form, because that is how most
+React apps are built today. To follow them as written, add the components they use:
+
+```package-install
+npx shadcn@latest add button input form
+```
+
+Any component library, or plain elements, works the same: the cursor finds a control by its role and name.
+:::
+
+## A complete example
+
+One component, one function, two callers.
+
+<View title="Vite">
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/clear-cart.tsx"'>/_examples/nextjs/components/clear-cart.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</View>
+
+`useWebTool` registers the tool while the component is on the page. When an agent calls `clear_cart`, the cursor
+finds the button named "Clear cart", parks on it because of `requireConfirmation`, and `clear` runs after the
+person's own click. What `clear` returns is the agent's answer.
+
+A tool that belongs to the whole app rather than to one component takes the same definition through `defineWebTool`:
+see [Where a tool is on](/build/where-a-tool-is-on).
+
+## How the cursor finds the control
+
+The cursor needs one thing from a tool: which control on the page it belongs to. It looks for it by role and name,
+the way a screen reader names things.
+
+- **The name it looks for is the tool's `title`**, or its `id` read as words (`clear_cart` is "clear cart"), among
+  buttons, links, tabs, menu items and switches.
+- **A control's name is its accessible name**: `aria-labelledby`, `aria-label`, its `<label>`, its `placeholder`,
+  then its visible text, `alt` and `title`. Case and extra spaces do not matter, and an exact match beats one that
+  only starts with the name ("Place order" finds "Place order · $46.00").
+- **Icon-only buttons need an `aria-label`.** It is their name for the cursor, and for screen readers.
+- **No control, no cursor.** A tool with nothing to point at runs at once, unseen, which is right for a read like
+  `get_cart`. In development, the console says so once for any other tool.
+
+## When the control depends on the call
+
+Say which control with `target`: a locator, a CSS selector, or a function of the call's input that returns either.
+Here each row has its own button, so the tool picks one per call.
+
+<View title="Vite">
+
+<include meta='title="src/components/cart-lines.tsx"'>/_examples/shared/components/cart-lines.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/cart-lines.tsx"'>/_examples/nextjs/components/cart-lines.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/cart-lines.tsx"'>/_examples/shared/components/cart-lines.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/cart-lines.tsx"'>/_examples/shared/components/cart-lines.tsx</include>
+
+</View>
+
+| `target` | Example | Use it when |
+|---|---|---|
+| A locator `{ role?, name?, within? }` | `{ role: "button", name: "Empty the cart" }` | The button's name differs from the tool's title. `name` takes a string or a RegExp; `within` narrows to a part of the page. |
+| A CSS selector | `"#empty-cart"` | The control has an id and no good name. |
+| A function of the input | `` ({ lineId }) => ({ role: "button", name: `Remove ${lines[lineId]}` }) `` | The control depends on the call, as above, or on the UI's language: `() => ({ role: "button", name: t("cart.clear") })`. |
+
+## What the agent reads
+
+Two things reach the agent: the `description`, before it calls, and what `execute` returns, after.
+
+- **`description`** is how the agent decides. Say what the tool does, when to use it, what it needs first and what
+  comes next. [Writing tool descriptions](/concepts/tool-descriptions) has the four things to say.
+- **The return value is the answer.** A sentence ("The cart is empty."), or data. Throw when the tool cannot do its
+  job: the agent reads the message as an error result with a [code](/concepts/errors), and the cursor never moves for
+  input that fails the schema.
+
+## Try it
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `clear_cart` and press **Run**. Or call the tool
+from the browser console, the way an agent would. `agent` is there in development, put there by the devtools.
+
+```js
+await agent.invoke("clear_cart");
+```
+
+Either way the cursor parks on **Clear cart** until you click it. Move the mouse while it travels: it gets out of the
+way, and the tool still finishes.
+
+## Options you'll use most
+
+| Option | What it is for |
+|---|---|
+| `id` | The tool's name, unique on the page. Snake case reads best to agents: `clear_cart`. |
+| `title` | A human name, and the name the cursor looks for. |
+| `description` | What the agent reads to decide when to call it. |
+| `inputSchema` | The tool's parameters, as a zod (or any Standard Schema) object or JSON Schema. [Tools with input](/build/tools-with-input). |
+| `execute` | The work. Its return value is the agent's answer. |
+| `target` | Which control, when the name is not enough. |
+| `requireConfirmation` | Wait for the person's own click. [Confirm before it runs](/build/confirm-before-it-runs). |
+| `readOnly`, `destructive`, `repeatable`, `external` | Say what kind of tool it is, in plain words. Agents read them as WebMCP annotations. |
+
+Every option, with its type and default: [`useWebTool`](/reference/react/use-web-tool) and
+[`defineWebTool`](/reference/core/define-web-tool).
+
+## Next
+
+<Card title="Tools with input" href="/build/tools-with-input" icon="arrow-right">
+  Add an `inputSchema` and the cursor types the agent's values into the form you already have.
+</Card>

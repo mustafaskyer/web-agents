@@ -32,9 +32,10 @@ test("clip-confirm", async ({ page }) => {
     postcode: "N1 1AA",
     country: "United Kingdom",
   }).catch(() => undefined);
-  await page.locator("[data-tool-submit-active]").waitFor({ timeout: 20_000 });
+  // parked: the cursor waits on the control the tool found (Place order) after typing every field
+  await page.locator(".agent-cursor.is-waiting").waitFor({ timeout: 20_000 });
   await sleep(2500); // the parked cursor, waiting
-  await page.locator("[data-tool-submit-active]").click();
+  await page.locator("[data-agent-active]").click();
   await pending;
   await sleep(1500);
 });

@@ -1,10 +1,11 @@
 ---
 slug: reference/react
+description: "React bindings for WebMCP tools."
 ---
 
 # `@webmcp-agents/react`
 
-React bindings for WebMCP tools. Say once which tools the agent may see, turn them on globally, per route or per mounted component, and get the agent cursor without any ordering rules.
+React bindings for WebMCP tools. Write a tool in a component with `useWebTool`, put the app's catalog in one provider, and get the agent cursor without any ordering rules. Nothing is added to your JSX for the cursor: it finds controls by role and accessible name.
 
 ```sh
 pnpm add @webmcp-agents/react @webmcp-agents/core
@@ -13,47 +14,40 @@ pnpm add @webmcp-agents/react @webmcp-agents/core
 React is a peer dependency (`react >= 18`).
 
 ```tsx
-import { defineWebTool, EnableTools, useWebTool, WebAgentsProvider } from "@webmcp-agents/react";
+import { WebAgentsProvider } from "@webmcp-agents/react";
 import "@webmcp-agents/core/cursor.css";
 
-// Module level (or memoised): the catalog of every tool the app may expose.
-const catalog = [getCart, listOrders, removePromo];
-
-<WebAgentsProvider
-  tools={catalog}
-  global={["get_cart"]}                       // always on
-  routes={{ "/orders": ["list_orders"] }}     // on while the pathname matches
-  context={cart}                              // reaches execute as ctx.context
-  visuals={{ spotlight: true }}               // AgentVisualsOptions, or false
->
+// Module level: the catalog of every tool the app has. Each says where it is on with `match`.
+<WebAgentsProvider tools={tools}>
   <App />
-</WebAgentsProvider>
-
-// In a component: on while it is mounted.
-<EnableTools names={["remove_promo"]} />      // or useEnableTools(["remove_promo"])
+</WebAgentsProvider>;
 ```
 
-The page needs `document.modelContext`: a WebMCP-enabled Chrome, or [`@webmcp-agents/polyfill`](../polyfill/README.md) in development.
+A tool that lives in a component is on while the component is mounted:
+
+<include meta='title="components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+The page needs `document.modelContext`: a browser with WebMCP, or the [polyfill](../polyfill/README.md), which `<WebAgentsProvider>` loads by itself where the browser has none.
 
 ## APIs
 
-| File | Description |
+| API | Description |
 |---|---|
-| [`WebAgentsProvider`](./web-agents-provider.md) | The tool catalog, global and route-scoped tools, `ctx.context`, and the agent cursor. Includes `WebAgentsProviderProps`. |
+| [`WebAgentsProvider`](./web-agents-provider.md) | The tool catalog (`tools`, `availableTools`) and the agent cursor, on `createWebAgents`. The earlier `global`, `routes`, `pathname` and `context` props are documented there too. Includes `WebAgentsProviderProps`. |
+| [`useWebTool`](./use-web-tool.md) | Write a tool in a component: the definition, `execute`, an optional `target`. Returns `{ invoke, registered, supported }`. Includes `UseWebToolOptions`, `WebToolState`. |
 | [`useWebAgents`](./use-web-agents.md) | The nearest provider's registry, cursor controls and pathname. Includes `useOptionalWebAgents`, `WebAgentsContextValue`, `WebAgentsVisuals`. |
-| [`useEnableTools`](./use-enable-tools.md) | Enable catalog tools while a component is mounted. Includes the `EnableTools` component. |
 | [`useEnabledTools`](./use-enabled-tools.md) | The catalog tool ids registered right now. |
-| [`useWebTool`](./use-web-tool.md) | Register a tool that lives in a component and closes over its state. Includes `UseWebToolOptions`, `WebToolState`. |
-| [`useToolAnswer`](./use-tool-answer.md) | Answer a declarative form's agent submit and keep the form until the agent has its answer. Includes `ToolAnswer` and the deprecated `useAnswerGrace`. |
 | [`useAgentEvents`](./use-agent-events.md) | Every agent event while mounted. |
-| [`usePathname`](./use-pathname.md) | The browser's pathname, as the provider tracks it. |
-| [JSX attributes](./jsx-attributes.md) | Types for `toolname`, `tooldescription`, `toolautosubmit`, `toolparamdescription`. |
+| [`usePathname`](./use-pathname.md) | The browser's pathname, followed without any router wiring. |
+| [`useEnableTools`](./use-enable-tools.md) | Earlier form: enable catalog tools while a component is mounted. Includes the `EnableTools` component. |
+| [`useToolAnswer`](./use-tool-answer.md) | Earlier form, for declarative forms: answer an agent's submit and keep the form until the agent has its answer. Includes `ToolAnswer` and the deprecated `useAnswerGrace`. |
+| [JSX attributes](./jsx-attributes.md) | Earlier form: types for a declarative form's `toolname`, `tooldescription`, `toolautosubmit`, `toolparamdescription`. |
 
 ## Re-exported from core
 
 The package re-exports the common path from `@webmcp-agents/core`, so one import is enough. They are documented there:
 
-- [`defineWebTool`](../core/define-web-tool.md), with the types `WebTool`, `WebToolConfig`, `WebToolContext`, `Register`
+- [`defineWebTool`](../core/define-web-tool.md), with the types `WebTool`, `WebToolConfig`, `WebToolContext`, `WebToolCatalog`, `AvailableTools`, `ToolLocator`, `FieldTarget`, `Register`
 - [`waitingForUser`](../core/waiting-for-user.md)
 - [`WebToolError`](../core/web-tool-error.md)
 - [`ToolErrorCode`](../core/tool-error.md) (type)
@@ -64,6 +58,8 @@ Chrome cancels a running call when its tool's definition changes or the tool is 
 
 ## See also
 
+- [Installation](<../../(get-started)/installation/index.mdx>) and [Define a tool](../../build/define-a-tool.mdx), the path that teaches these APIs
 - [`@webmcp-agents/core`](../core/README.md)
-- [`@webmcp-agents/polyfill`](../polyfill/README.md)
-- Example apps: `apps/playground`, `apps/ecommerce`, `apps/flights`
+- [The polyfill](../polyfill/README.md)
+- [`@webmcp-agents/tools`](../tools/README.md) (common tools for the catalog)
+- Example apps: `apps/playground`, `apps/ecommerce`, `apps/flights`, `apps/nextjs`

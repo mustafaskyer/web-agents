@@ -19,5 +19,4 @@ blob-report/
 apps/nextjs/.next/
 apps/nextjs/next-env.d.ts
 apps/docs/public/r/
-apps/nextjs/public/web-agents/
 capture/out/

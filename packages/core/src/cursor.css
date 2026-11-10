@@ -230,16 +230,10 @@
   white-space: nowrap;
 }
 
-/* ---------- browser-native agent states ----------
-   Chrome exposes :tool-form-active / :tool-submit-active for declarative tools.
-   The dev polyfill mirrors them as data attributes. Keep the rules separate:
-   a browser that doesn't know a pseudo-class drops the whole rule it appears in. */
-/* biome-ignore lint/correctness/noUnknownPseudoClass: native WebMCP pseudo-class (Chrome), unknown to linters */
-form:tool-form-active {
-  outline: 2px dashed var(--agent-strong);
-  outline-offset: 6px;
-  background: rgba(17, 17, 17, 0.03);
-}
+/* ---------- agent states on declarative forms ----------
+   The polyfill marks the form an agent is filling and the submit button it paused on with data attributes.
+   Chrome's native pseudo-classes for the same states live in cursor-native.css (optional): some CSS parsers
+   (Turbopack's) refuse an unknown pseudo-class, so this file has none and imports in every framework. */
 form[data-tool-form-active] {
   outline: 2px dashed var(--agent-strong);
   outline-offset: 6px;
@@ -253,11 +247,6 @@ form[toolname] {
 }
 
 /* the submit button the browser paused on: the ghost ring handles its glow */
-/* biome-ignore lint/correctness/noUnknownPseudoClass: native WebMCP pseudo-class (Chrome), unknown to linters */
-button:tool-submit-active {
-  outline: 2px dashed var(--agent-wait);
-  outline-offset: 3px;
-}
 button[data-tool-submit-active] {
   outline: 2px dashed var(--agent-wait);
   outline-offset: 3px;

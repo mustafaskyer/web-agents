@@ -4,16 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "turbo run build --filter=@webmcp-agents/example-nextjs^... && node scripts/copy-cursor-css.mjs",
+    "predev": "turbo run build --filter=@webmcp-agents/example-nextjs^...",
     "dev": "next dev -p 5176",
-    "prebuild": "node scripts/copy-cursor-css.mjs",
     "build": "next build",
     "start": "next start -p 5176",
-    "typecheck": "node scripts/copy-cursor-css.mjs && next typegen && tsc -p tsconfig.json",
+    "typecheck": "next typegen && tsc -p tsconfig.json",
     "e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@hookform/resolvers": "^7.0.3",
     "@shadcn/react": "^0.3.1",
     "@webmcp-agents/chat": "workspace:*",
     "@webmcp-agents/core": "workspace:*",
@@ -26,6 +26,7 @@
     "next": "16.4.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
     "server-only": "^0.0.1",
     "shadcn": "^4.23.0",
     "shiki": "^4.6.0",
@@ -40,7 +41,6 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@webmcp-agents/devtools": "workspace:*",
-    "@webmcp-agents/polyfill": "workspace:*",
     "tailwindcss": "^4",
     "typescript": "~6.0.3"
   },

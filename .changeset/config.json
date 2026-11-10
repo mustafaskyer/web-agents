@@ -14,7 +14,8 @@
       "@webmcp-agents/react",
       "@webmcp-agents/devtools",
       "@webmcp-agents/chat",
-      "@webmcp-agents/local-agent"
+      "@webmcp-agents/local-agent",
+      "@webmcp-agents/tools"
     ]
   ],
   "linked": [],
@@ -27,6 +28,7 @@
     "@webmcp-agents/example-flights",
     "@webmcp-agents/vercel-api",
     "@webmcp-agents/docs",
+    "@webmcp-agents/docs-examples",
     "@webmcp-agents/example-nextjs"
   ]
 }

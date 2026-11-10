@@ -9,10 +9,10 @@
  * call settles and the agent has its answer.
  */
 import { type CallTracker, createCallTracker, deferRelease, RESPONSE_GRACE_MS } from "./deferred";
-import { registerWebTool, type WebTool, webToolSignature as signatureOf } from "./web-tool";
+import { isDev, registerWebTool, type WebTool, webToolSignature as signatureOf } from "./web-tool";
 
 export interface ToolRegistryOptions {
-  /** Called before the first WebMCP registration: install the visuals here so they can gate the tool. */
+  /** Called before each WebMCP registration: install the visuals here so they can gate the tool (installing is idempotent). */
   beforeRegister?: () => void;
   /** Read on every call and passed to execute as `ctx.context`. */
   context?: () => unknown;
@@ -50,8 +50,6 @@ function indexCatalog(catalog: readonly WebTool[]): Map<string, WebTool> {
   return byId;
 }
 
-const isDev = (): boolean => (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !== "production";
-
 export function createToolRegistry(catalog: readonly WebTool[], { beforeRegister, context }: ToolRegistryOptions = {}): ToolRegistry {
   let byId = indexCatalog(catalog);
   const entries = new Map<string, Entry>();
@@ -83,14 +81,7 @@ export function createToolRegistry(catalog: readonly WebTool[], { beforeRegister
     if (!tool) return;
     beforeRegister?.();
     // Calls go to whatever definition the catalog holds now, so a new `execute` needs no re-registration.
-    const latest = (): WebTool => byId.get(id) ?? tool;
-    const live: WebTool = {
-      ...tool,
-      parse: (input) => latest().parse(input),
-      execute: (input, ctx) => latest().execute(input, ctx),
-      run: (input, ctx) => latest().run(input, ctx),
-    };
-    entry.unregister = registerWebTool(live, { context, calls: entry.calls });
+    entry.unregister = registerWebTool(() => byId.get(id) ?? tool, { context, calls: entry.calls });
     entry.signature = signatureOf(tool);
   };
 

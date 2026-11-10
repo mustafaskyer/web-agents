@@ -1,0 +1,122 @@
+---
+title: Define an agent
+description: One definition for what the assistant knows, which tools it may use and which helpers it hands work to. The page and your server read the same file.
+sidebar:
+  label: 7. Define an agent
+---
+
+Your tools say what *can* be done on the page. An **agent** says how: the order the tools go in, what to ask the
+person, what to avoid, and which tools are its own. `defineWebAgent` is the one place you write that, the way
+`defineWebTool` is the one place you write a tool. It is plain data, so the chat in the browser and your `/api/chat`
+route read the same file.
+
+## A complete example
+
+Two agents: `shopper` on every page, and `orders`, a helper it hands questions about past orders to.
+
+<View title="Vite">
+
+<include meta='title="src/agents.ts"'>/_examples/shared/agents.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="agents.ts"'>/_examples/shared/agents.ts</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/agents.ts"'>/_examples/shared/agents.ts</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/agents.ts"'>/_examples/shared/agents.ts</include>
+
+</View>
+
+Import `defineWebAgent` from `@webmcp-agents/chat/agent`: that entry has no React and no DOM, so a server file can
+import it. Install the package if you have not yet:
+
+```package-install
+npm install @webmcp-agents/chat
+```
+
+## Instructions
+
+`instructions` is a string or a list of lines, added to the system prompt under "About this site". Write what the
+model cannot read from the tools: the order of a task ("list_orders before track_order"), where a tool is on, what to
+ask the person, and what never to do. Tool descriptions say what each tool does; instructions say how they fit.
+
+The browser sends only the agent's **id**. The server reads the instructions from its own copy of this file, so page
+text never writes your system prompt.
+
+## The tools it may use
+
+Left out, `tools` is every tool on the page. A list narrows it, and takes both kinds of tool, mixed:
+
+- **A catalog tool, by reference**: `tools.getCart`. The object stands for its id.
+- **A component's tool, by its id**: `"add_to_cart"`. A tool written with `useWebTool` has no object to import.
+
+The list is an allow-list on both sides: the browser offers the model only these tools, and the server refuses a call
+to any other. Listing a catalog tool by reference makes this file import your catalog, which is why catalog files use
+`defineWebTool` from `@webmcp-agents/core` and import no React.
+
+A function over the page's tool descriptors works too, for rules a list cannot say:
+
+```ts
+tools: (tools) => tools.filter((tool) => tool.name !== "place_order"),
+```
+
+## Sub-agents
+
+`agents` gives an agent helpers. Each one becomes a tool named `delegate_to_<id>` (here `delegate_to_orders`) that
+takes a `task`. When the parent calls it, the chat runs the helper's own loop, with its own instructions, tools and
+model, and hands its final answer back as the tool's result.
+
+- **Write a `description` on a sub-agent.** It becomes the delegate tool's description, which is how the parent knows
+  when to call it.
+- **A sub-agent sees only the task**, not the parent's conversation, so the parent has to hand over a complete one.
+- **It still works the page.** The helper's tools run in the browser under the cursor, and anything confirm-gated
+  still waits for the person's click. In the chat, the delegate call shows as a card with the helper's own calls inside
+  it.
+
+Register only the top-level agents on the server (the `agents` export above): a sub-agent is found through its parent.
+Ids must be unique across the whole tree.
+
+## A model per agent
+
+`model` names the agent's model as `"<provider>/<model>"`. Without it, the agent uses the server's default
+(`WEB_AGENTS_MODEL`, else `anthropic/claude-opus-5-5`). Give a narrow helper a faster model, as `orders` does.
+
+It is a string, never a key: the server resolves it with the provider's key from its own environment. A provider
+other than the default needs its key and its SDK on the server ([Add the chat](/build/add-the-chat#pick-a-model)).
+
+## Try it
+
+An agent needs a model to run, and the next page adds one: the chat and its `/api/chat` route. Then ask the chat
+"Where is my last order?". `shopper` calls `delegate_to_orders`, and the card for it shows the helper going to
+`/orders`, calling `list_orders` and then `track_order`.
+
+## Options you'll use most
+
+| Option | What it is for |
+|---|---|
+| `id` | The agent's name, 1–64 of `a-z A-Z 0-9 _ . -`. The browser sends it; the server looks it up. |
+| `instructions` | How the tools fit together: a string or lines. |
+| `tools` | The tools it may use: catalog tools and ids, mixed, or a function. Default: every tool on the page. |
+| `agents` | Helpers it hands work to, each as a `delegate_to_<id>` tool. |
+| `description` | For a sub-agent: what it does, in one sentence. |
+| `model` | `"<provider>/<model>"`. Default: the server's. |
+| `maxSteps` | Model steps per message for this agent. |
+
+Every option: [`defineWebAgent`](/reference/chat/define-web-agent).
+
+## Next
+
+<Card title="Add the chat" href="/build/add-the-chat" icon="arrow-right">
+  Put the agent on the page in a chat, and serve `/api/chat` with your model's key on the server.
+</Card>

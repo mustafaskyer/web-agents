@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { list, open, run } from "./agent";
+import { list, open, parkedOn, run } from "./agent";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -22,18 +22,35 @@ test("open_product → add_to_cart → checkout parks on Place order until a rea
   expect(await run(page, "open_product", { slug: "ocean-tee" })).toMatch(/^Opened Ocean Tee \(\$48\.00\)\. Size: S, M, L\./);
   await expect(page).toHaveURL(/\/product\/ocean-tee$/);
   await expect.poll(() => list(page)).toContain("add_to_cart");
-  expect(await run(page, "add_to_cart", { variant: "M", qty: 2 })).toMatch(/^Added 2 × Ocean Tee \(M\)/);
+  expect(await run(page, "add_to_cart", { variant: "M", quantity: 2 })).toMatch(/^Added 2 × Ocean Tee \(M\)/);
 
   expect(await run(page, "go_to_page", { page: "checkout" })).toMatch(/^Opened checkout/);
   await expect.poll(() => list(page)).toEqual(expect.arrayContaining(["apply_promo", "checkout"]));
   expect(await run(page, "apply_promo", { code: "WELCOME10" })).toMatch(/^Applied WELCOME10/);
 
-  const pending = run(page, "checkout", { email: "a@b.co", name: "Ada", address: "1 Main St" });
-  const button = page.locator("[data-tool-submit-active]");
-  await expect(button).toBeVisible();
+  const pending = run(page, "checkout", {
+    email: "mustafa@mail.test",
+    name: "Mustafa Elsayed",
+    address: "King Fahd Road 2411, Al Olaya, Riyadh 12214",
+    country: "United Arab Emirates",
+  });
+  const button = page.getByRole("button", { name: /^Place order/ });
+  await parkedOn(page, button);
+  // typed into the inputs, and the shadcn Select set by the tool's `fill` (it is not a field the cursor can type into)
+  await expect(page.getByLabel("Email")).toHaveValue("mustafa@mail.test");
+  await expect(page.getByRole("combobox", { name: "Country" })).toHaveText(/United Arab Emirates/);
   await button.click();
   expect(await pending).toMatch(/^Order FS-\w+ placed/);
   await expect(page).toHaveURL(/\/cart\?placed=/);
+});
+
+test("add_to_cart writes the quantity and its fill picks the size in the shadcn Select", async ({ page }) => {
+  await open(page, "/product/ocean-tee");
+  await expect.poll(() => list(page)).toContain("add_to_cart");
+  expect(await run(page, "add_to_cart", { variant: "L", quantity: 3 })).toMatch(/^Added 3 × Ocean Tee \(L\)/);
+  await expect(page.getByLabel("Quantity")).toHaveValue("3");
+  await expect(page.getByRole("combobox", { name: "Size" })).toHaveText(/L/);
+  await expect(page.getByRole("link", { name: /^Cart \(3\)/ })).toBeVisible();
 });
 
 test("the API key never reaches the client", async ({ page }) => {

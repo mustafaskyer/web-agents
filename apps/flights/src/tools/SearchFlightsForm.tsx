@@ -1,26 +1,42 @@
 /**
- * Declarative WebMCP tool: search_flights (home page, and compact on results pages)
+ * search_flights, on the home page and (compact) on a results page: a form, so a tool with an input schema. One
+ * schema checks the agent's call and the person's submit (React Hook Form's zod resolver); `search` is what both run.
+ * When an agent calls it, the cursor types each value into the field named like its parameter (the trip and cabin
+ * selects, From, To, Depart, the traveler counters), presses "Search flights", and the results page opens.
  *
- * Searching is read-only, so `toolautosubmit`. Trip and cabin are <select>s so
- * the schema lists their values as enums. The return date is always in the
- * form (hidden for one-way trips): a field that comes and goes would change
- * the tool's schema mid-call, and Chrome cancels a call whose tool changes.
- *
- * The answer summarises the results and names the next tools; the page moves
- * to the results after the agent has it.
+ * Searching only reads, so there is nothing to confirm. The return date is always in the form (hidden for one-way
+ * trips). Airports may be codes or city names, and dates may come copied out of a sentence ("Fri 2026-11-13."):
+ * `checkQuery` normalises them, or says what is wrong, to the agent and on the page alike.
  */
+import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
-import { useToolAnswer } from "@webmcp-agents/react";
-import { type FormEvent, useId, useState } from "react";
-import { useNavigate } from "react-router";
+import { useWebTool, WebToolError } from "@webmcp-agents/react";
+import { useId, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { Counter } from "../components/Counter";
 import { SearchIcon, SwapIcon } from "../components/icons";
-import { AIRPORTS, CABIN_LABEL, CABINS, cheapest, describeFlight, type FlightQuery, generateFlights } from "../data/flights";
-import { afterAnswer } from "../lib/afterAnswer";
+import { AIRPORTS, CABIN_LABEL, CABINS, cheapest, describeFlight, type FlightQuery, generateFlights, TRIPS } from "../data/flights";
 import { addDays, formatDate, todayIso } from "../lib/dates";
 import { routeText } from "../lib/itinerary";
+import { navigate } from "../lib/navigate";
 import { checkQuery, toResultsPath } from "../lib/searchParams";
+import { booking } from "../store/booking";
 import styles from "./SearchFlightsForm.module.css";
+
+const schema = z.object({
+  trip: z.enum(TRIPS).optional().describe("oneway or roundtrip (default oneway)"),
+  cabin: z.enum(CABINS).optional().describe("Cabin class (default economy)"),
+  from: z.string().describe("Origin airport, 3-letter code, e.g. LHR. Not given by the user? Call get_location first"),
+  to: z.string().describe("Destination airport, 3-letter code, e.g. DXB"),
+  date: z.string().describe("Departure date, YYYY-MM-DD, today or later. A relative date (next Friday)? get_time gives it"),
+  returnDate: z.string().optional().describe("Return date, YYYY-MM-DD. Round trips only."),
+  adults: z.number().int().optional().describe("Adults, 1–9 (default 1)"),
+  children: z.number().int().optional().describe("Children aged 2–11, 0–8 (default 0)"),
+  infants: z.number().int().optional().describe("Infants under 2 on a lap, at most one per adult (default 0)"),
+});
+
+type SearchInput = z.infer<typeof schema>;
 
 function summary(q: FlightQuery): string {
   const flights = generateFlights(q);
@@ -36,76 +52,101 @@ function summary(q: FlightQuery): string {
 }
 
 export function SearchFlightsForm({ initial, compact = false }: { initial?: FlightQuery; compact?: boolean }) {
-  const navigate = useNavigate();
-  const { answer } = useToolAnswer();
   const today = todayIso();
   const listId = useId();
   const errorId = useId();
-  const [trip, setTrip] = useState(initial?.trip ?? "oneway");
-  const [from, setFrom] = useState(initial?.from ?? "");
-  const [to, setTo] = useState(initial?.to ?? "");
-  const [date, setDate] = useState(initial?.date ?? addDays(today, 7));
-  const [adults, setAdults] = useState(initial?.adults ?? 1);
-  const [children, setChildren] = useState(initial?.children ?? 0);
-  const [infants, setInfants] = useState(initial?.infants ?? 0);
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<SearchInput>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      trip: initial?.trip ?? "oneway",
+      cabin: initial?.cabin ?? "economy",
+      from: initial?.from ?? "",
+      to: initial?.to ?? "",
+      date: initial?.date ?? addDays(today, 7),
+      returnDate: initial?.returnDate ?? "",
+      adults: initial?.adults ?? 1,
+      children: initial?.children ?? 0,
+      infants: initial?.infants ?? 0,
+    },
+  });
+  const trip = form.watch("trip");
+  const date = form.watch("date");
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const event = e.nativeEvent as SubmitEvent;
+  const search = (input: SearchInput) => {
     let query: FlightQuery;
     try {
-      query = checkQuery(Object.fromEntries(new FormData(e.currentTarget)), today);
+      query = checkQuery(input, today);
     } catch (err) {
       setError(errorText(err));
-      answer(event, Promise.resolve(`Error: ${errorText(err)}`));
-      return;
+      throw new WebToolError("invalid_input", errorText(err));
     }
     setError(null);
-    const result = Promise.resolve(summary(query));
-    answer(event, result);
-    afterAnswer(event, result, () => void navigate(toResultsPath(query)));
-  }
+    // the store has the search before the results page renders: the results tools turn on with the URL, at once
+    booking.setQuery(query);
+    navigate(toResultsPath(query));
+    return summary(query);
+  };
 
-  const clear =
-    <T,>(set: (v: T) => void) =>
-    (v: T) => {
-      set(v);
-      setError(null);
-    };
+  // An agent calls this.
+  useWebTool({
+    id: "search_flights",
+    title: "Search flights",
+    description:
+      "Step 1 of booking: find flights between two airports on a date, from any page. Airports are 3-letter codes or city names; ask the user for a missing date or destination. Answers how many flights and the cheapest. Next: list_results for ids, or filter_results / sort_results.",
+    inputSchema: schema,
+    readOnly: true,
+    execute: search,
+  });
 
+  const clear = { onChange: () => setError(null) };
+  const counter = (name: "adults" | "children" | "infants", label: string, hint: string, min: number, max: number) => (
+    <Controller
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <Counter
+          name={field.name}
+          label={label}
+          hint={hint}
+          value={field.value ?? min}
+          min={min}
+          max={max}
+          onChange={(v) => {
+            field.onChange(v);
+            setError(null);
+          }}
+          onBlur={field.onBlur}
+        />
+      )}
+    />
+  );
+
+  // A person submits this.
   return (
     <form
       className={styles.form}
       data-compact={compact || undefined}
-      toolname="search_flights"
-      tooldescription="Step 1 of booking: find flights between two airports on a date, from any page. Airports are 3-letter codes or city names; ask the user for a missing date or destination. Answers how many flights and the cheapest. Next: list_results for ids, or filter_results / sort_results."
-      toolautosubmit=""
-      onSubmit={onSubmit}
+      onSubmit={form.handleSubmit((input) => {
+        try {
+          search(input);
+        } catch {
+          // shown under the form
+        }
+      })}
       noValidate
     >
       <div className={styles.top}>
         <label className={styles.inline}>
           <span className="visually-hidden">Trip</span>
-          <select
-            name="trip"
-            className="input"
-            value={trip}
-            onChange={(e) => clear(setTrip)(e.target.value as typeof trip)}
-            toolparamdescription="oneway or roundtrip (default oneway)"
-          >
+          <select className="input" {...form.register("trip", clear)}>
             <option value="oneway">One way</option>
             <option value="roundtrip">Round trip</option>
           </select>
         </label>
         <label className={styles.inline}>
           <span className="visually-hidden">Cabin</span>
-          <select
-            name="cabin"
-            className="input"
-            defaultValue={initial?.cabin ?? "economy"}
-            toolparamdescription="Cabin class (default economy)"
-          >
+          <select className="input" {...form.register("cabin")}>
             {CABINS.map((c) => (
               <option key={c} value={c}>
                 {CABIN_LABEL[c]}
@@ -119,17 +160,14 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
         <label className="field">
           <span className="label">From</span>
           <input
-            name="from"
             className="input"
             list={listId}
             required
             autoComplete="off"
             placeholder="City or airport"
-            value={from}
-            onChange={(e) => clear(setFrom)(e.target.value)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
-            toolparamdescription="Origin airport, 3-letter code, e.g. LHR. Not given by the user? Call get_location first"
+            {...form.register("from", clear)}
           />
         </label>
         <button
@@ -137,8 +175,9 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
           className={`icon-btn ${styles.swap}`}
           aria-label="Swap origin and destination"
           onClick={() => {
-            setFrom(to);
-            setTo(from);
+            const { from, to } = form.getValues();
+            form.setValue("from", to);
+            form.setValue("to", from);
           }}
         >
           <SwapIcon />
@@ -146,17 +185,14 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
         <label className="field">
           <span className="label">To</span>
           <input
-            name="to"
             className="input"
             list={listId}
             required
             autoComplete="off"
             placeholder="City or airport"
-            value={to}
-            onChange={(e) => clear(setTo)(e.target.value)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
-            toolparamdescription="Destination airport, 3-letter code, e.g. DXB"
+            {...form.register("to", clear)}
           />
         </label>
         <datalist id={listId}>
@@ -171,62 +207,19 @@ export function SearchFlightsForm({ initial, compact = false }: { initial?: Flig
       <div className={styles.dates}>
         <label className="field">
           <span className="label">Depart</span>
-          <input
-            name="date"
-            type="date"
-            className="input"
-            required
-            min={today}
-            value={date}
-            onChange={(e) => clear(setDate)(e.target.value)}
-            toolparamdescription={`Departure date, YYYY-MM-DD, today (${today}) or later. A relative date (next Friday)? get_time gives it`}
-          />
+          <input type="date" className="input" required min={today} {...form.register("date", clear)} />
         </label>
         <label className="field" hidden={trip !== "roundtrip"}>
           <span className="label">Return</span>
-          <input
-            name="returnDate"
-            type="date"
-            className="input"
-            min={date || today}
-            defaultValue={initial?.returnDate}
-            toolparamdescription="Return date, YYYY-MM-DD. Round trips only."
-          />
+          <input type="date" className="input" min={date || today} {...form.register("returnDate")} />
         </label>
       </div>
 
       <fieldset className={styles.travelers}>
         <legend className="label">Travelers</legend>
-        <Counter
-          name="adults"
-          label="Adults"
-          hint="12+"
-          value={adults}
-          min={1}
-          max={9}
-          onChange={clear(setAdults)}
-          paramDescription="Adults, 1–9 (default 1)"
-        />
-        <Counter
-          name="children"
-          label="Children"
-          hint="2–11"
-          value={children}
-          min={0}
-          max={8}
-          onChange={clear(setChildren)}
-          paramDescription="Children aged 2–11, 0–8 (default 0)"
-        />
-        <Counter
-          name="infants"
-          label="Infants"
-          hint="On a lap"
-          value={infants}
-          min={0}
-          max={9}
-          onChange={clear(setInfants)}
-          paramDescription="Infants under 2 on a lap, at most one per adult (default 0)"
-        />
+        {counter("adults", "Adults", "12+", 1, 9)}
+        {counter("children", "Children", "2–11", 0, 8)}
+        {counter("infants", "Infants", "On a lap", 0, 9)}
       </fieldset>
 
       {error && (

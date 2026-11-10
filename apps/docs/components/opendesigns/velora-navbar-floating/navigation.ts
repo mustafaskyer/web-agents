@@ -5,8 +5,6 @@ export interface FloatingNavLink {
   href: string;
   id: string;
   label: string;
-  /** The WebMCP tool that acts on this link: it renders as a plain anchor with `toolname`, so the agent cursor finds it. */
-  toolName?: string;
 }
 export interface FloatingNavDestinations {
   guide: string;

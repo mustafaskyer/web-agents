@@ -1,7 +1,7 @@
 # Roadmap: `@webmcp-agents` — WebMCP helpers, visuals, devtools and agents
 
 Source: `TODO.md` (8 items + 1 issue + 1 priority). This file is the **single source of truth for
-shared decisions and public contracts**. Every phase plan (`01-…` → `13-…`) builds against it.
+shared decisions and public contracts**. Every phase plan (`01-…` → `14-…`) builds against it.
 If a phase needs to change a contract here, update this file in the same commit.
 
 ---
@@ -23,6 +23,8 @@ If a phase needs to change a contract here, update this file in the same commit.
 | 11 | `11-agents-and-providers.md` | `defineWebAgent` (instructions, tool subsets, sub-agents) on the AI SDK `ToolLoopAgent`; any provider (`provider/model` ids, OpenRouter, AI Gateway) | 10 | High |
 | 12 | `12-ai-elements-and-nextjs.md` | `useAgentChat` (AI SDK `UIMessage`), the `@webmcp-agents` shadcn registry (AI Elements patterns), Next.js example | 10, 11 | High |
 | 13 | `13-docs-media.md` | screenshots + clips captured by Playwright into `docs/media/` | 12 | Medium |
+| 14 | `14-imperative-tools.md` | one way to write a tool: `useWebTool({…})` with `execute`, the cursor finds controls by role and name (`target` locators, `fields`, `fill`), plain flags, `match`, `tool.invoke`, `createWebAgents`; then `agent.invoke` / `useWebAgent`, `@webmcp-agents/tools`, apps and docs moved over. Done (2026-11-09): code, apps, e2e and docs | 13 | High |
+| 15 | `15-docs-framework-first.md` | docs that start with your framework and stay in it: Get started (Introduction, Installation per framework), a ten-page Build path, Concepts, More, Examples; framework views (`<View>`), compiled examples in `docs/_examples`, one reference template, a docs check. Four steps: A foundation and one slice (2026-11-09), B the Build path, C reference, D concepts, more, examples and links | 14 | Medium |
 
 Phases 3 and 5 are independent of each other and may run in parallel after Phase 2.
 Phase 7's static-deploy half can run any time after Phase 4; the `/api/chat` half needs Phase 5.
@@ -85,21 +87,22 @@ Always confirm versions with `npm view <pkg> version` before pinning; numbers ab
 │   ├── ecommerce/         ← YNS-style store (Phase 4)
 │   └── flights/           ← react-flights-style booking (Phase 4)
 ├── packages/
-│   ├── core/              @webmcp-agents/core      visuals (cursor, motion, spotlight), events, WebTool, registry
-│   ├── polyfill/          @webmcp-agents/polyfill  document.modelContext polyfill (dev / non-Chrome)
+│   ├── core/              @webmcp-agents/core      visuals (cursor, motion, spotlight), events, WebTool, registry, the polyfill (/polyfill)
+│   ├── polyfill/          @webmcp-agents/polyfill  deprecated (2026-11-10): re-exports @webmcp-agents/core/polyfill
 │   ├── react/             @webmcp-agents/react     <WebAgentsProvider>, useWebTool, useEnableTools, <EnableTools>, JSX attr types
 │   ├── devtools/          @webmcp-agents/devtools  panel + TanStack plugin + schema runner
 │   ├── chat/              @webmcp-agents/chat      <AgentChat>, AgentAdapter, cloud adapter, /server handler, /vite dev plugin
 │   ├── local-agent/       @webmcp-agents/local-agent  in-browser adapter (Worker + transformers.js / Prompt API)
+│   ├── tools/             @webmcp-agents/tools     common tools: get_time, get_location, get_page, go_to, go_back, scroll_to, set_theme
 │   └── vercel-api/        @webmcp-agents/vercel-api (private) shared /api/chat for the apps: guard, rate limit (Phase 7)
 ├── .agents/plans/
 ├── biome.json  turbo.json  pnpm-workspace.yaml  tsconfig.base.json  vitest.config.ts  package.json
 └── CLAUDE.md              ← generated with /create-rules at the end of Phase 1
 ```
 
-Dependency direction (no cycles, enforced by review): `polyfill` → none; `core` → none (types only from
-`@standard-schema/spec`); `react` → core; `devtools` → core (react entry → react); `chat` → core, react;
-`local-agent` → chat (types only). Apps → anything.
+Dependency direction (no cycles, enforced by review): `core` → none (types only from `@standard-schema/spec`; the
+polyfill is core's own `src/polyfill`, reached by dynamic import); `polyfill` (deprecated) → core; `react` → core; `devtools` → core (react entry → react); `chat` → core, react;
+`local-agent` → chat (types only); `tools` → core. Apps → anything.
 
 ---
 
@@ -162,18 +165,31 @@ export interface WebToolConfig<I = unknown, O = unknown> {
   inputSchema?: StandardSchemaV1<unknown, I> | JSONSchema;   // Standard Schema (zod/valibot/arktype) or plain JSON Schema
   outputSchema?: StandardSchemaV1<unknown, O>;
   annotations?: WebToolAnnotations;         // readOnlyHint, destructiveHint, idempotentHint, openWorldHint, untrustedContentHint, …
-  requireConfirmation?: boolean;            // park the cursor and wait for a trusted user click on `target`; validates first;
-                                            // fails closed (ConfirmationUnavailableError) when `target` is missing/disabled
-  target?: string | TargetFn<I>;            // CSS selector the cursor animates to; default `[toolname="<id>"]`. A function gets
-                                            // the call's arguments as sent and picks per call (a list row); invalid CSS or a
-                                            // throw falls back to the default (bivariant method type: WebTool<I> fits WebTool)
+  // Phase 14: flags in plain words, becoming the annotation at registration (a flag wins over the same hint in `annotations`)
+  readOnly?: boolean;                       // → readOnlyHint
+  destructive?: boolean;                    // → destructiveHint
+  repeatable?: boolean;                     // → idempotentHint
+  external?: boolean;                       // → openWorldHint
+  safeResponse?: boolean;                   // → untrustedContentHint, inverted (false: the answer holds text the site did not write)
+  requireConfirmation?: boolean;            // park the cursor and wait for a trusted user click on the tool's control; validates first;
+                                            // fails closed (ConfirmationUnavailableError) with no control, or several found by name
+  target?: ToolTarget | TargetFn<I>;        // where the cursor goes and whose click confirms. Default: the button, link, tab, menu item
+                                            // or switch named like `title` (or the id read as words). ToolTarget = a CSS selector or a
+                                            // ToolLocator; a function gets the call's input and returns either or an Element. Order:
+                                            // explicit `target` → a `[toolname="<id>"]` marker → the inferred name. A tool with no
+                                            // control runs unseen (bivariant method type: WebTool<I> fits WebTool)
+  fields?: { [param in keyof I]?: FieldTarget };  // where a parameter is typed: a ToolLocator, a label string, or false (never).
+                                            // Default: the control with that `name`, else labelled like the parameter, nearest the target
+  fill?(values: I): unknown;                // put the call's values on screen for what cannot be typed (a custom Select); runs after
+                                            // the typing, before the click/park; a returned promise is awaited
+  match?: string | readonly string[] | RegExp;  // where a catalog tool is on (path patterns as matchPath, or a RegExp); default everywhere
   execute(input: I, ctx: WebToolContext): O | Promise<O>;
 }
 export interface WebToolContext {
   signal: AbortSignal;
   source: "webmcp" | "chat" | "devtools" | "test";
   toolCallId?: string;
-  context?: RegisteredContext;              // app state from the provider's `context` prop / registry option
+  context?: RegisteredContext;              // legacy (Phase 14: tools close over their own state / read a module store): the provider's `context` prop / registry option
 }
 export interface Register {}                // augment: declare module "@webmcp-agents/core" { interface Register { context: CartApi } }
 type RegisteredContext = Register extends { context: infer C } ? C : unknown;
@@ -182,7 +198,9 @@ export interface WebTool<I = unknown, O = unknown> extends Readonly<Omit<WebTool
   readonly jsonSchema: JSONSchema;          // input schema as JSON Schema draft-07, `$schema` stripped; lazy, memoised
   execute(input: I, ctx: WebToolContext): Promise<O>;     // always async (Mastra's execute returns a Promise)
   parse(input: unknown): Promise<I>;                      // ~standard.validate (throws WebToolInputError); JSON Schema input passes through
-  run(input: unknown, ctx: WebToolContext): Promise<O>;   // parse, then execute
+  run(input: unknown, ctx: WebToolContext): Promise<O>;   // parse, then execute (no page, no cursor: for unit tests)
+  invoke(input?: I, options?: ExecuteToolOptions): Promise<O>;  // Phase 14: call it the way an agent would (cursor, typing, confirmation);
+                                                          // resolves to what execute returned; rejects with WebToolError / AbortError
 }
 // With a Standard Schema input the result also has `inputSchema: StandardSchemaV1<unknown, I>` (assignable to Mastra's config).
 export function defineWebTool<I, O>(config: WebToolConfig<I, O>): WebTool<I, O>;
@@ -194,7 +212,8 @@ export interface ToModelContextToolOptions {
   calls?: CallTracker;                      // counts calls (confirmation wait included) so release can wait
 }
 export function toModelContextTool(tool: WebTool, opts?: ToModelContextToolOptions): ModelContextTool;  // errors → isError results; AbortError rethrown
-export function registerWebTool(tool: WebTool, opts?: ToModelContextToolOptions & { signal?: AbortSignal }): () => void;
+export function registerWebTool(source: WebTool | (() => WebTool), opts?: ToModelContextToolOptions & { signal?: AbortSignal }): () => void;
+  // a function source: execute/target/fields/fill are read from it on every call (what useWebTool passes);
   // no document.modelContext → warns once, returns a no-op; re-registering an id replaces the old registration,
   // whose unregister then becomes a no-op (a stale deferred release can't remove the newer tool)
 
@@ -221,33 +240,83 @@ export interface ToolRegistry {
   subscribe(listener: () => void): () => void;
   destroy(): void;
 }
+
+// locator — Phase 14: a control the way a person finds it, by role and accessible name
+export interface ToolLocator { role?: string; name?: string | RegExp; within?: string | Element }  // exact name beats "starts with"; only visible, enabled controls
+export type FieldTarget = ToolLocator | string | false;   // string = the field's label
+export function locate(locator: ToolLocator): Element | null;
+
+// createWebAgents — Phase 14: the framework-free entry (<WebAgentsProvider> is a thin wrapper over it)
+export type WebToolCatalog = Readonly<Record<string, WebTool>> | readonly WebTool[];   // an object: a tool cannot be listed twice
+export type AvailableTools = readonly (WebTool | string)[];                             // by reference, by catalog key, or by id
+export interface WebAgentsOptions {
+  tools: WebToolCatalog;                    // two tools with one id throw, naming both keys
+  availableTools?: AvailableTools;          // what an agent may use right now; default all
+  visuals?: AgentVisualsOptions | false;    // default {}; false: tools register without animation
+  context?: () => unknown;                  // legacy: ctx.context
+  polyfill?: PolyfillOption;                // "auto" (default): no document.modelContext → load the polyfill (own chunk), cursor + tools wait; false: never
+  start?: boolean;                          // false: inert until start() (a framework binding creating it during a render)
+}
+export interface WebAgents {
+  setAvailableTools(tools: AvailableTools | undefined): void;
+  setTools(catalog: WebToolCatalog): void;  // only changed definitions re-register
+  destroy(): void;                          // graceful: tools released after their call in flight; start() revives it
+  start(): void;
+  setPathname(pathname: string | undefined): void;   // legacy: match against a router's path instead of the URL
+  readonly registry: ToolRegistry;
+  readonly visuals: Pick<AgentVisuals, "setSpotlight" | "setYieldToUser">;
+}
+export function createWebAgents(options: WebAgentsOptions): WebAgents;   // a tool is registered when available AND (no `match` OR it fits the path); no-op on the server
+
+// the polyfill, loaded by the provider (2026-11-10): no app imports it, no "ready" gate
+export type PolyfillOption = "auto" | false;
+export function loadWebMCPPolyfill(): Promise<ModelContext | undefined>;  // native → resolves at once; else import("./polyfill") once, install, flush the queue; rejects if the chunk fails (retry next call)
+export function whenModelContext(listener: (mc: ModelContext) => void): () => void;  // now if present, else once the polyfill installs; never starts a load (devtools, chat)
+// registerWebTool while the polyfill loads: queued, registered in order once it is there; its unregister cancels the queued one
+export function watchPathname(listener: () => void): () => void;        // URL changes without a page load: the Navigation API, else patched history.pushState/replaceState, plus popstate and hashchange
+                                                                         // (`#/orders` counts as `/orders`); notified just after the navigation call returns (a microtask)
+
+// inspection — Phase 14 (for the devtools; the cursor's own resolver, no second implementation)
+export function inspectTools(): ToolInspection[];  // registered WebTools + every started createWebAgents catalog (on or off here)
+export interface ToolInspection extends ToolControls { tool: WebTool; fits: boolean }  // fits: `match` fits the current path
+export interface ToolControls {
+  by: "target" | "marker" | "name" | "call";      // "call": a function target, resolved per call only
+  controls: Element[];                            // what a call with no particular input acts on
+  fields: { name: string; field: Element | null }[];  // each schema parameter and the field it would be typed into
+}
 ```
 
-### `@webmcp-agents/polyfill` (Phase 1)
+### `@webmcp-agents/core/polyfill` (Phase 1; moved into core 2026-11-10)
 
 ```ts
+// @webmcp-agents/core/polyfill (src/polyfill/index.ts; createWebAgents reaches it by dynamic import)
 export function installWebMCPPolyfill(): ModelContext | undefined;   // no-op returning the native one if present; undefined on the server
-// side-effect entry: import "@webmcp-agents/polyfill/auto";
+export class PolyfillModelContext extends EventTarget implements ModelContext { cancelTool(name: string): boolean; … }
+// side-effect entry: import "@webmcp-agents/core/polyfill/auto";
+// @webmcp-agents/polyfill (+ /auto): deprecated, re-exports the two entries above so published imports keep working
 ```
 
 ### `@webmcp-agents/react` (Phase 2)
 
 ```tsx
+// Phase 14: the same line in Vite, TanStack Start, Next.js and Astro; no router wiring (core follows the URL)
 <WebAgentsProvider
-  tools={catalog}                         // WebTool[] — every tool the app may expose; memoise or define at module level
-  context={cart}                          // reaches execute as ctx.context (typed via Register)
-  global={["search_products"]}            // always enabled
-  routes={{ "/product/:slug": ["add_to_cart"], "/checkout": ["place_order"] }}  // matchPath patterns: literal, :param, trailing *, "*"
-  pathname={location.pathname}            // optional; defaults to window.location + Navigation API/popstate
+  tools={tools}                           // WebToolCatalog: an object { getCart, listOrders } (all on, each where its `match` fits); define at module level
+  availableTools={[tools.getCart]}        // optional: what an agent may use right now (tools by reference or key); default all
   visuals={{ spotlight: true }}           // AgentVisualsOptions | false
+  polyfill={false}                        // optional: "auto" (default) loads the polyfill where WebMCP is missing; children render meanwhile
 >
+// Earlier form, still working: an ARRAY `tools` is opt-in (off until named), plus
+//   global={["search_products"]}  routes={{ "/checkout": ["place_order"] }}  (matchPath patterns)
+//   pathname={…}  (overrides the built-in tracking, for routes and `match`)  context={cart}  (reaches execute as ctx.context, typed via Register)
 useEnableTools(["apply_promo"]);           // enable while mounted (ref-counted)
 <EnableTools names={["apply_promo"]} />    // component form
-useWebTool(tool, { enabled?: boolean });   // inline tool, registered while mounted → { registered, supported }; works without a provider
+useWebTool(definition | tool, { enabled?: boolean });  // Phase 14: the definition itself (as defineWebTool), registered while mounted
+                                           //   → { invoke, registered, supported }; calls read the latest render's execute/target/fields/fill; works without a provider
 useEnabledTools();                         // catalog ids registered right now
 useWebAgents();                            // { registry, visuals: { setSpotlight, setYieldToUser } | null, pathname, getContext, ensureVisuals }
 useOptionalWebAgents();                    // same, or null outside a provider (Phase 3; for library UI that works without one)
-usePathname();                             // location.pathname via Navigation API / popstate
+usePathname();                             // location.pathname via core's watchPathname (Navigation API, else history, popstate, hash)
 useToolAnswer();                           // today's useAnswerGrace, for declarative forms
 useAgentEvents(listener);                  // subscribe to core events
 // + JSX attribute augmentation (toolname, tooldescription, toolautosubmit, toolparamdescription)
@@ -265,12 +334,16 @@ export interface DevtoolsOptions {
   eventClient?: boolean;                    // TanStack event bus bridge (pluginId "web-agents"), default true
 }
 export function createDevtoolsStore(options?: DevtoolsStoreOptions): DevtoolsStore;  // useSyncExternalStore store, serialisable snapshots
-export { SchemaForm, defaultValueFor, parseSchema, toAgentRunCode, toExecuteToolCode };  // reusable (Phase 5 tool cards)
+export { SchemaForm, defaultValueFor, parseSchema, toAgentInvokeCode, toExecuteToolCode };  // reusable (Phase 5 tool cards); toAgentRunCode = deprecated alias
+// ToolView (Phase 14) adds: registered, control?: { by, count, label: "button · Add to cart" | "none: runs unseen" | "3 matches"
+//   | "depends on the call", warn }, fields?: { name, field: "spinbutton · Quantity" | null }[], match?: string, fits, flags: FlagView[]
+//   (read-only, destructive, repeatable, external, untrusted answer). Off-here catalog tools are listed with registered: false.
+//   Locate goes to what core's resolver finds, else the `toolname` element.
 export function installAgentConsole(o?): () => void;   // deprecated alias
 // "@webmcp-agents/devtools/react":   <WebAgentsDevtools {...DevtoolsOptions} />, useDevtoolsStore(options),
 //                                 webAgentsDevtoolsPlugin(options) → { id: "web-agents", name: "Web Agents", render }
 // peers: react, react-dom (required); @webmcp-agents/react, @tanstack/react-devtools (optional; /react entry)
-// window.agent = { run(name, args), list() } is kept for back-compat (set by the store, restored on destroy).
+// window.agent = { invoke(name, args), run (= invoke, back-compat), list() } (set by the store, restored on destroy).
 ```
 
 ### `@webmcp-agents/chat` (Phase 5) / `@webmcp-agents/local-agent` (Phase 6)
@@ -299,6 +372,12 @@ export interface AgentRunRequest {
 //    → WebAgent (frozen data, shared by browser and server); selectTools(agent, tools) adds one `delegate_to_<id>` tool per sub-agent;
 //    <AgentChat agent>, useAgentSession(adapter, { agent }); AgentRunRequest.agent; a delegate call runs the sub-agent's loop on the
 //    same adapter, nested under the call (AgentPart.tool.agent, SessionAction part.within). The cloud adapter sends only `agent: id`.
+//    Phase 14: `tools` also takes tool objects (`[tools.getCart, "list_orders"]`, stored as ids); every agent has
+//    `agent.invoke(text, { adapter?, signal?, onStep? }) → Promise<{ text, steps: WebAgentStep[], messages }>` (browser only: loads
+//    session/run-agent with a dynamic import(); rejects on the server, on failure (message + code) and with an AbortError).
+//    useWebAgent(agent, { adapter? }) → { invoke(text) → Promise<WebAgentResult | undefined> (never rejects), stop(), status:
+//    "idle" | "running" | "waiting" | "error", steps, text, error? }. One loop for all: session/run-agent.ts (runAgent, not exported).
+//    The adapter defaults to one shared createCloudAdapter() for agent.invoke, useWebAgent, useAgentChat and <AgentChat>.
 // useAgentChat({ adapter | adapters, agent?, storageKey? }) (Phase 12): useChat-shaped { messages: UIMessage[], status: ChatStatus, sendMessage, stop,
 //    regenerate, clear, tools, suggestions, adapters/adapter/selectAdapter/adapterStatus, models/selectModel/prepare, toolPhase(part) → { phase:
 //    running|parked|done|error|cancelled, prompt?, agent?: { id, messages: UIMessage[] } }, session }. <AgentChat> is built on it. The
@@ -326,6 +405,21 @@ export interface AgentRunRequest {
 // radio-group switcher (choice in localStorage "web-agents:chat:adapter") and a consent-first download card.
 ```
 
+### `@webmcp-agents/tools` (Phase 14)
+
+```ts
+// One factory per tool, each returning a defineWebTool tool; every factory takes { id?, description? }.
+export function getTime(o?: { locale? }): WebTool;                       // get_time, readOnly: date, time, time zone, locale, relative dates
+export function getLocation(o?: { lookup?(pos, signal), prompt?, timeoutMs? }): WebTool;  // get_location, readOnly (+ external with lookup)
+export function getPage(o?: { maxHeadings? }): WebTool;                  // get_page, readOnly: title, path, query, hash, language, selection, headings
+export function goTo(o: { pages: Record<string, string> }): WebTool<{ page }>;  // go_to: clicks the page's own link, else location.assign
+export function goBack(o?): WebTool;                                     // go_back: history.back()
+export function scrollTo(o?: { highlightMs? }): WebTool<{ text }>;       // scroll_to: heading or text, highlighted, section quoted
+export function setTheme(o?: { get?, set?, control?: ToolLocator | false }): WebTool<{ theme? }>;  // set_theme: the site's switch, else `set`
+export { calendarAt, weekOf, DEFAULT_WEEK };                              // the pure calendar get_time uses
+// No router, no ctx.context, no DOM at import (SSR-safe); sideEffects: false.
+```
+
 ---
 
 ### Shared UI convention (Phases 1, 3, 5)
@@ -341,7 +435,15 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 
 - **Performance budgets** (`pnpm --filter @webmcp-agents/core size`, part of `pnpm check`; Vite/Rolldown minify + gzip -9,
   measured through a re-export so tree-shaking applies): **visuals-only import (`installAgentVisuals`, `onAgentEvent`)
-  ≤ 9.25 KB min+gz** (8.96 KB after Phase 3; raised from 9 KB in Phase 10 for the `target` fallback, 9.01 KB) and **whole package ≤ 13 KB** (12.93 KB after Phase 10).
+  ≤ 9.25 KB min+gz** (8.96 KB after Phase 3; raised from 9 KB in Phase 10 for the `target` fallback, 9.01 KB; 9.21 KB after
+  Phase 14's field step for tools, no raise needed) and **whole package ≤ 16.5 KB** (16.29 KB measured). History of the whole
+  package: 12.93 KB after Phase 10, 13.01 KB before Phase 14, 15.76 KB after Phase 14's locator (`locate.ts`), `createWebAgents` and
+  URL tracking (`web-agents.ts`), flags, `fields` / `fill` and `invoke`, then 15.99 KB with `inspectTools` for the devtools and 16.02 KB
+  with URL notices deferred out of React insertion effects (a Next.js fix). Raised from 13 KB on 2026-11-09 (16 KB, then 16.25 KB): the
+  plan estimated +1 KB and a 14.25 KB ceiling, the measured cost was about +3 KB, and the user accepted a raise rather than cut
+  `createWebAgents` or split the package. Raised to 16.5 KB on 2026-11-10 for the provider loading the polyfill itself
+  (`loadWebMCPPolyfill`, `whenModelContext`, the registration queue, the `polyfill` option: +279 B, 16.29 KB). The polyfill
+  is a chunk reached only by dynamic import (2.45 KB): the size script reports it apart and does not count it.
   Decision (Phase 3): no `@webmcp-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
   shrink what a visuals-only page pays, and it would churn every import for no gain. The per-import budget keeps the
   cursor lean; the whole-package budget caps WebTool/registry/executeTool growth. Revisit if a non-bundled (CDN) build ships;
@@ -370,7 +472,8 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
 ## Risks
 
 - WebMCP is an origin-trial API: event targets, `executeTool` arg shapes and `getTools()` fields keep moving. The
-  polyfill and the feature detection in `core` absorb it; never call `document.modelContext` outside core/polyfill/devtools/chat.
+  polyfill and the feature detection in `core` absorb it; never call `document.modelContext` outside core (which holds the
+  polyfill), devtools and chat.
 - tsdown CSS handling is experimental → core ships `cursor.css` as a copied asset, not a bundled import.
 - TanStack Devtools is 0.x → plugin lives in a separate entry; the standalone panel is the primary surface.
 - A public demo with an Anthropic key needs rate limiting, token caps and an origin check. Done in Phase 7:
@@ -381,7 +484,7 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   timeouts: per-IP fails open, budget fails closed), else in-memory. Public demos: claude-sonnet-5-5, 4096 output tokens,
   6 steps. Chat contract additions: `ChatHandlerOptions.beforeModel` (after validation, before the model); the cloud
   adapter only disables itself on `chat_disabled`, other 503s/429s are passing errors. Deploy steps and env table: docs/deploy.md. CI: .github/workflows/ci.yml; releases:
-  Changesets (six public packages `fixed`) + release.yml (npm provenance). Not done without the maintainer: Vercel
+  Changesets (seven public packages `fixed`, `@webmcp-agents/tools` included) + release.yml (npm provenance). Not done without the maintainer: Vercel
   link/deploy/env, Upstash, NPM_TOKEN / npm scope, pushing.
 - Top layer: elements opened with `showModal()` / popover render above any z-index, so the cursor overlay
   (`--agent-z` on `body`) would disappear under a modal drawer, and the devtools panel would be inert behind it.
@@ -398,8 +501,8 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   submit and answer `Error: …`, after checking what native Chrome does.
 - "Answer, then navigate / close after the grace" is duplicated in both examples (`apps/*/src/lib/afterAnswer.ts`).
   Follow-up (react, additive): `useToolAnswer().answer(event, result, { then })` or an exported `afterAnswer`.
-- The examples load the polyfill in dev only; deployed demos show no tools without native WebMCP. Phase 7 decides
-  whether to ship it (`VITE_WEBMCP_POLYFILL`). Phase 5 mounted `<AgentChat />` in all three apps (bottom-left in dev, opposite the devtools; bottom-right in prod).
+- Decided 2026-11-10: the provider loads the polyfill itself where WebMCP is missing, in production too (`polyfill={false}`
+  for native only), so deployed demos have their tools in every browser; no app imports it or gates rendering on it. Phase 5 mounted `<AgentChat />` in all three apps (bottom-left in dev, opposite the devtools; bottom-right in prod).
 - The open chat panel sits in a corner and can cover the control a confirm-gated tool waits on ("Show me" scrolls it
   into view but doesn't move the panel). Follow-up: collapse or shift the panel while a card is awaiting confirmation.
 - In-browser models: 0.6–0.9 GB downloads by default (done in Phase 6: opt-in card, determinate progress, Cancel, Cache API +

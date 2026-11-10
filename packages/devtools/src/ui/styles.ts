@@ -158,6 +158,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .disclosure code { font-weight: 600; flex: none; }
 .desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wa-muted); }
 .badges { display: flex; gap: 4px; }
+.resolved { display: flex; flex-wrap: wrap; gap: 2px 16px; margin: -2px 0 0; padding: 0 12px 6px 30px; color: var(--wa-muted); font-size: 11px; }
+.resolved div { display: flex; gap: 6px; min-width: 0; }
+.resolved dt { font-weight: 600; }
+.resolved dd { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--wa-fg); }
+.resolved dd.warn { color: var(--wa-error); }
 
 /* ---------- runner ---------- */
 .runner { padding: 4px 16px 14px 30px; display: grid; gap: 10px; }

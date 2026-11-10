@@ -2,7 +2,7 @@
   "name": "@webmcp-agents/polyfill",
   "version": "0.1.0",
   "type": "module",
-  "description": "A document.modelContext (WebMCP) polyfill with declarative form tools, for development and browsers without native support.",
+  "description": "Deprecated: the document.modelContext (WebMCP) polyfill now ships in @webmcp-agents/core (@webmcp-agents/core/polyfill), and the provider loads it itself. This package re-exports it.",
   "license": "MIT",
   "sideEffects": [
     "./src/auto.ts",
@@ -25,13 +25,8 @@
     },
     "./package.json": "./package.json"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@webmcp-agents/core": "workspace:^"
-  },
-  "peerDependenciesMeta": {
-    "@webmcp-agents/core": {
-      "optional": true
-    }
   },
   "scripts": {
     "build": "tsdown",
@@ -41,8 +36,8 @@
     "check-exports": "publint && attw --pack . --profile esm-only"
   },
   "devDependencies": {
-    "@webmcp-agents/core": "workspace:*",
-    "tsdown": "^0.23.7"
+    "tsdown": "^0.23.7",
+    "vite": "^8.3.6"
   },
   "repository": {
     "type": "git",

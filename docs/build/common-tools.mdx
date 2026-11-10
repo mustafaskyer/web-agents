@@ -1,0 +1,139 @@
+---
+title: Common tools
+description: "Seven ready-made tools from @webmcp-agents/tools: the time, the user's location, the current page, go to, go back, scroll to and set the theme. They go in your catalog beside your own."
+sidebar:
+  label: 5. Common tools
+---
+
+Every site wants the same few tools: what day it is for this person, where they are, what page they are on, take them
+somewhere, switch the theme. **`@webmcp-agents/tools`** ships them ready-made. Each one is a factory that returns a
+catalog tool, so it sits in your catalog beside your own and is on everywhere.
+
+## A complete example
+
+Install the package:
+
+```package-install
+npm install @webmcp-agents/tools
+```
+
+Then call the factories in your catalog. The highlighted lines are the common tools.
+
+<View title="Vite">
+
+<include meta='title="src/tools/index.ts" {1-7,16-23}'>/_examples/shared/tools/index.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/index.ts" {1-7,16-23}'>/_examples/shared/tools/index.ts</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/index.ts" {1-7,16-23}'>/_examples/shared/tools/index.ts</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/index.ts" {1-7,16-23}'>/_examples/shared/tools/index.ts</include>
+
+</View>
+
+They need no framework, no router and no app state, and nothing touches the DOM until one runs, so a file your server
+imports can list them.
+
+| Tool | Factory | Answers or does |
+|---|---|---|
+| `get_time` | [`getTime`](/reference/tools/get-time) | The user's date, time, time zone and locale, and what "tomorrow", "this weekend", "next Friday" mean for them. |
+| `get_location` | [`getLocation`](/reference/tools/get-location) | Coordinates and time zone after the browser's permission prompt; city, region and country with a `lookup`. |
+| `get_page` | [`getPage`](/reference/tools/get-page) | Where the user is: title, path, query parameters, hash, language, selected text, headings. |
+| `go_to` | [`goTo`](/reference/tools/go-to) | Open one of the pages you list, by name. |
+| `go_back` | [`goBack`](/reference/tools/go-back) | Back one step in history. |
+| `scroll_to` | [`scrollTo`](/reference/tools/scroll-to) | Scroll to a heading or a piece of text and highlight it. |
+| `set_theme` | [`setTheme`](/reference/tools/set-theme) | Light, dark or system. |
+
+## Make them yours
+
+Every factory takes `{ id?, description? }`, so a tool says what your site means by it. Name your own tools in the
+"next" part, the way [Writing tool descriptions](/concepts/tool-descriptions) says. Skyline words `get_time` for its
+flight search:
+
+```ts
+getTime({
+  description:
+    "Today's date and what 'tomorrow' or 'this weekend' mean for " +
+    "the user. Use before search_flights, which takes YYYY-MM-DD.",
+});
+```
+
+`goTo` takes the pages it may open, by name, and only opens those. The others need nothing, and each has a few options
+of its own:
+
+```ts
+getLocation({
+  // Name the place. The tool is then marked external.
+  lookup: async ({ lat, lon }, signal) => {
+    const res = await fetch(`/api/place?lat=${lat}&lon=${lon}`, { signal });
+    return res.ok ? res.json() : undefined; // { city, region, country }
+  },
+});
+
+setTheme({ control: { role: "button", name: "Appearance" } });
+setTheme({ get: () => theme.current, set: (next) => theme.set(next) });
+```
+
+## What each one does when it runs
+
+- **`get_time`** reads the user's clock, time zone and locale, and works out the week by that locale (a Friday-to-Saturday
+  weekend in some, Monday-first weeks in others), so the agent does not guess what "next Friday" is.
+- **`get_location`** asks the browser for the position and says it is waiting for the person while the prompt is up.
+  It sends nothing anywhere unless you pass `lookup`. Not shared, or unsupported: it answers with a guess from the time
+  zone and tells the agent to ask the user.
+- **`get_page`** answers from the URL and the document. Text selected inside library UI (the chat, the devtools) is
+  ignored.
+- **`go_to`** clicks the page's own link to that path (found by its `href`, so your router handles it and the cursor
+  shows where it went). With no such link on screen, it loads the URL. An unknown name is `invalid_input`, with the
+  list.
+- **`go_back`** goes back one step and names where it went; with no history, it says so.
+- **`scroll_to`** scrolls to a heading or a piece of text, highlights it and quotes the start of that section.
+- **`set_theme`** presses the site's theme switch when it finds one (a switch or button named "Theme", "Dark mode",
+  "Toggle theme"…). Point it at yours with `control`, or pass `get` and `set` when the theme lives in state.
+
+When one is not enough, build on it rather than copy it: Skyline's `get_location` is the common one with a
+reverse-geocoding `lookup`, plus Skyline's nearest airports. Field Store keeps its own `go_to_page`, because its
+checkout has no link to click.
+
+## Try it
+
+In the browser console:
+
+```js
+await agent.invoke("get_time");
+```
+
+It resolves to the MCP result, `{ content, structuredContent }`: the text the agent reads, and the same facts as data.
+Then `await agent.invoke("go_to", { page: "orders" })`: the cursor clicks your link to `/orders`.
+
+## Options you'll use most
+
+| Factory | Options |
+|---|---|
+| Every one | `id`, `description` |
+| `goTo` | `pages`, required: the pages it may open, by name |
+| `getLocation` | `lookup`, `prompt`, `timeoutMs` |
+| `setTheme` | `control`, `get`, `set` |
+| `getTime` | `locale` |
+| `getPage` | `maxHeadings` |
+| `scrollTo` | `highlightMs` |
+
+Each factory's page lists its options and its answer: [`@webmcp-agents/tools`](/reference/tools).
+
+## Next
+
+<Card title="Call a tool" href="/build/call-a-tool" icon="arrow-right">
+  Run any tool from your own code, the way an agent would: `tool.invoke()`.
+</Card>

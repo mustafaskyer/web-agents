@@ -4,9 +4,12 @@
  * imported server-side too.
  *
  * `shopper` finds products and fills the cart; it hands the purchase itself to `checkout`, a sub-agent that only sees
- * the cart and checkout tools (the order is still confirmed by the person's click on the page).
+ * the cart and checkout tools (the order is still confirmed by the person's click on the page). The app-wide tools are
+ * listed by reference; the ones a component owns (`useWebTool`: the drawer's close_cart, checkout's apply_promo and
+ * checkout) by their ids.
  */
 import { defineWebAgent } from "@webmcp-agents/chat/agent";
+import { tools } from "./tools/index.ts";
 
 export const checkout = defineWebAgent({
   id: "checkout",
@@ -18,7 +21,7 @@ export const checkout = defineWebAgent({
     "Apply a promo code only when the user gave one; never invent a code. Then call checkout with the details you were given; the user confirms the order on the page.",
     "Answer with what was ordered, the total, and the order reference if there is one.",
   ],
-  tools: ["get_cart", "open_cart", "close_cart", "go_to_page", "apply_promo", "checkout"],
+  tools: [tools.getCart, tools.openCart, "close_cart", tools.goToPage, "apply_promo", "checkout"],
   maxSteps: 5,
 });
 

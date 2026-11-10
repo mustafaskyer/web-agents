@@ -1,0 +1,97 @@
+---
+title: Install without a framework
+description: Six steps, from an empty folder to a tool the agent cursor runs, with plain HTML and TypeScript and createWebAgents.
+# The page ends with its own "Next" card; the sidebar neighbours would say something else.
+pagination: false
+sidebar:
+  label: No framework
+---
+
+Six steps, from an empty folder to a tool the agent cursor runs, with no framework: plain HTML, TypeScript and
+`createWebAgents` from `@webmcp-agents/core`. Use this for a classic site, or with Vue or Svelte.
+
+<include>/_partials/not-on-npm.mdx</include>
+
+<div class="install-steps">
+
+## Create a project
+
+Skip this if you already have a page with a bundler. In the prompts, choose **Vanilla** and **TypeScript**.
+
+```package-install
+npm create vite@latest
+```
+
+## Install the packages
+
+The agent cursor, then the devtools panel for development. The panel draws itself with React, so React comes along
+as a development dependency. Browsers without WebMCP need nothing more: `createWebAgents` loads a polyfill for them.
+
+```package-install
+npm install @webmcp-agents/core
+```
+
+```package-install
+npm install -D @webmcp-agents/devtools react react-dom
+```
+
+## Add the styles
+
+Import the cursor's stylesheet in your entry file.
+
+```ts src/main.ts
+import "@webmcp-agents/core/cursor.css";
+```
+
+## Add the provider
+
+Without a framework there is no provider component: `createWebAgents` is the function `<WebAgentsProvider>` wraps. It
+installs the cursor and registers your tools, which you write in the next step; in a browser without WebMCP it loads a
+polyfill first, by itself. In development the same file loads the devtools.
+
+<include meta='title="src/main.ts"'>/_examples/no-framework/src/main.ts</include>
+
+## Add your first tool
+
+The action is one function with two callers: a person submits the form, an agent calls the tool. The page needs
+nothing for the cursor: it finds the button by its name and the field by its `name`.
+
+<include meta='title="src/tools.ts"'>/_examples/no-framework/src/tools.ts</include>
+
+```html index.html
+<form>
+  <label>Note <input name="text" required /></label>
+  <button type="submit">Save note</button>
+</form>
+
+<p id="notes"></p>
+
+<script type="module" src="/src/main.ts"></script>
+```
+
+## Run it
+
+Start the page and open it.
+
+```package-install
+npm run dev
+```
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `save_note`, type a note and press **Run**. The
+cursor types it into **Note**, presses **Save note**, and the tool answers "Saved: …".
+
+</div>
+
+## Next
+
+The pages under Build show React code. Everything they teach about a tool applies here unchanged, because
+`useWebTool` takes the same definition as `defineWebTool`.
+
+<CardGroup cols={2}>
+  <Card title="How it works" href="/concepts/how-it-works" icon="workflow">
+    What happens between an agent's call and your function running.
+  </Card>
+  <Card title="createWebAgents" href="/reference/core/create-web-agents" icon="book-open">
+    Every option, and how to change which tools are on.
+  </Card>
+</CardGroup>

@@ -1,0 +1,161 @@
+---
+title: Where a tool is on
+description: "The catalog, match and availableTools: which tools an agent sees on which page. One object for the app's tools, one provider prop, no router wiring."
+sidebar:
+  label: 4. Where a tool is on
+---
+
+A tool that belongs to one component is on while the component is on the page. A tool that belongs to the **whole
+app** (read the cart, list orders, go to a page) goes in one object, the **catalog**, written with `defineWebTool`.
+The provider registers it, and its **`match`** says on which pages it is on.
+
+## A complete example
+
+The catalog, then one prop on the provider you added at installation. The highlighted lines are the ones you add.
+
+<View title="Vite">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/main.tsx" {7,20}'>/_examples/vite/src/main.catalog.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="app/providers.tsx" {6,21}'>/_examples/nextjs/app/providers.catalog.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/components/providers.tsx" {4,19}'>/_examples/tanstack-start/src/components/providers.catalog.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/components/providers.tsx" {4,19}'>/_examples/astro/src/components/providers.catalog.tsx</include>
+
+</View>
+
+The common tools at the top come ready-made ([Common tools](/build/common-tools), next). `getCart`, `listOrders` and
+`trackOrder` are yours, one file each. An object means a tool cannot be listed twice, two tools with one id fail at
+startup naming both keys, and everything else refers to a tool by reference: `tools.getCart.invoke()`,
+`availableTools={[tools.getCart]}`, `defineWebAgent({ tools: [tools.getCart] })`.
+
+## `match`: on while the path fits
+
+A catalog tool with no `match` is on everywhere. With `match`, it is on while the URL's path fits: one pattern, several,
+or a regular expression.
+
+<View title="Vite">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+```ts
+match: "/orders" // one path
+match: ["/orders", "/orders/:id"] // any of these
+match: /^\/orders\/\d+(\/tracking)?$/ // a RegExp, tested against the path
+```
+
+A pattern is literal segments, `:param` for exactly one segment, and a trailing `*` for the rest: `/orders`,
+`/product/:slug`, `/flights/*`. It is the URL the visitor sees, in every framework: Next.js's
+`app/product/[slug]/page.tsx` is `"/product/:slug"`. With a hash router, `#/orders` counts as the path `/orders`.
+
+**No router wiring.** The library follows the browser's URL itself, so the provider needs nothing from React Router,
+TanStack Router, Next.js or Astro. A tool turns on and off as the visitor navigates, client-side or by a full page
+load. A tool that turns off in the middle of a call finishes that call first.
+
+:::warning[A `match` tool turns on as soon as the URL changes]
+That is before the new page has rendered. Do not write a `match` tool that reads state the page sets when it mounts:
+read the URL, or a store that is set before the navigation. Skyline's results tools read the search, so its
+`search_flights` stores the search first and navigates second. URL changes are also seen just after the navigation
+call returns (Next.js changes the URL inside a React effect), so a tool turns on a moment after `router.push`, not
+during it.
+:::
+
+## The three scopes
+
+| Scope | How | Example |
+|---|---|---|
+| **Everywhere** | A catalog tool with no `match` | `get_cart`, `get_time` |
+| **Per path** | A catalog tool with `match` | `list_orders` on `/orders` |
+| **Per component** | `useWebTool`, on while the component is mounted (`{ enabled }` to switch it by state) | `add_to_cart` on a product's page |
+
+A tool in a component rarely needs `match`: it is on while the component is. `useWebTool` ignores `match`.
+
+## Only some of them: `availableTools`
+
+`tools` is everything the app has. `availableTools` is what an agent may use right now, decided by your own state;
+left out, it is all of them. It filters the catalog, not the tools components own.
+
+```tsx
+<WebAgentsProvider
+  tools={tools}
+  availableTools={
+    user
+      ? [tools.getCart, tools.listOrders, tools.trackOrder]
+      : [tools.getCart]
+  }
+>
+```
+
+Catalog files use `defineWebTool` from `@webmcp-agents/core`, the same function `@webmcp-agents/react` re-exports: an
+agent lists catalog tools by reference, and your `/api/chat` route imports the agent on the server
+([Add the chat](/build/add-the-chat)), so a file it reaches imports no React.
+
+## Try it
+
+Open `/orders` and, in the browser console:
+
+```js
+await agent.invoke("list_orders", { limit: 1 });
+```
+
+It answers with the newest order. Go back to `/`: in the devtools panel, `list_orders` and `track_order` are listed
+**off here**, and the same call rejects because the tool is not on.
+
+## Options you'll use most
+
+| Where | Option | What it is for |
+|---|---|---|
+| `defineWebTool` | `match` | The paths a catalog tool is on: a pattern, several, or a RegExp. Default: everywhere. |
+| `<WebAgentsProvider>` | `tools` | The catalog: every app-wide tool, by name. |
+| `<WebAgentsProvider>` | `availableTools` | The tools an agent may use now, by reference. Default: all of them. |
+| `useWebTool` | `enabled` (second argument) | Switch a component's tool by state. |
+
+Every option: [`defineWebTool`](/reference/core/define-web-tool), [`<WebAgentsProvider>`](/reference/react/web-agents-provider)
+and [`matchPath`](/reference/core/match-path) for the pattern syntax.
+
+## Next
+
+<Card title="Common tools" href="/build/common-tools" icon="arrow-right">
+  The time, the user's location, the current page, go to, go back, scroll to and the theme: seven tools, ready-made.
+</Card>

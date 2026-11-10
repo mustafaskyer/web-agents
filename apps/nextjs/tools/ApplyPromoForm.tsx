@@ -1,50 +1,81 @@
 "use client";
-/** Declarative tool: apply_promo (checkout page). Cheap and reversible, so `toolautosubmit`. */
+/**
+ * apply_promo, on the checkout page: the cursor types the code into Promo code and presses Apply (named "Apply promo
+ * code", the tool's title). A bad code is an error for the agent and the same text under the field.
+ */
+import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
-import { useToolAnswer } from "@webmcp-agents/react";
-import { type FormEvent, useState } from "react";
-import { useCart } from "@/lib/cart";
+import { useWebTool, WebToolError } from "@webmcp-agents/react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { cart, useCart } from "@/lib/cart";
+
+const schema = z.object({
+  code: z.string().describe("The promo code, e.g. WELCOME10"),
+});
+
+type PromoInput = z.infer<typeof schema>;
 
 export function ApplyPromoForm() {
-  const cart = useCart();
-  const { answer, answering } = useToolAnswer();
-  const [error, setError] = useState<string | null>(null);
-  if (cart.promo && !answering) return <p className="text-sm">Promo {cart.promo} applied.</p>;
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    let text: string;
+  const { promo } = useCart();
+  const form = useForm<PromoInput>({ resolver: zodResolver(schema), defaultValues: { code: "" } });
+
+  const apply = ({ code }: PromoInput) => {
     try {
-      text = cart.applyPromo(String(new FormData(e.currentTarget).get("code") ?? ""));
-      setError(null);
+      return cart.applyPromo(code);
     } catch (err) {
-      setError(errorText(err));
-      text = `Error: ${errorText(err)}`;
+      form.setError("code", { message: errorText(err) });
+      throw new WebToolError("invalid_input", errorText(err));
     }
-    answer(e.nativeEvent as SubmitEvent, Promise.resolve(text));
-  }
+  };
+
+  // An agent calls this, while no code is applied.
+  useWebTool(
+    {
+      id: "apply_promo",
+      title: "Apply promo code",
+      description: "Apply a promo code the user gave you to the cart. Only on the checkout page (go_to_page checkout first).",
+      inputSchema: schema,
+      execute: apply,
+    },
+    { enabled: !promo },
+  );
+
+  if (promo) return <p className="text-sm">Promo {promo} applied.</p>;
+  // A person submits this.
   return (
-    <form
-      toolname="apply_promo"
-      tooldescription="Apply a promo code the user gave you to the cart. Only on the checkout page (go_to_page checkout first)."
-      toolautosubmit=""
-      onSubmit={onSubmit}
-      className="flex gap-2"
-    >
-      <input
-        name="code"
-        placeholder="Promo code"
-        aria-label="Promo code"
-        toolparamdescription="The code, e.g. WELCOME10"
-        className="h-9 rounded-md border bg-background px-2 text-sm"
-      />
-      <button type="submit" className="h-9 rounded-md border px-3 text-sm">
-        Apply
-      </button>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </form>
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit((input) => {
+          try {
+            apply(input);
+          } catch {
+            // shown under the field
+          }
+        })}
+        className="flex items-end gap-2"
+      >
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem className="flex-1">
+              <FormLabel className="sr-only">Promo code</FormLabel>
+              <FormControl>
+                <Input placeholder="Promo code" autoComplete="off" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" variant="outline" aria-label="Apply promo code">
+          Apply
+        </Button>
+      </form>
+    </Form>
   );
 }

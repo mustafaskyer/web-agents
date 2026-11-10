@@ -1,3 +1,7 @@
 import { defineMeta } from "blume";
 
-export default defineMeta({ title: "Concepts", order: 2, pages: ["how-it-works", "agent-cursor", "tools", "tool-lifecycle", "errors"] });
+export default defineMeta({
+  title: "Concepts",
+  order: 3,
+  pages: ["how-it-works", "agent-cursor", "tool-lifecycle", "errors", "tool-descriptions"],
+});

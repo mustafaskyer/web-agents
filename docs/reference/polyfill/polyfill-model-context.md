@@ -1,43 +1,37 @@
+---
+description: "The document.modelContext the polyfill installs: enough of the WebMCP surface to register, list, run and cancel tools, plus declarative <form toolname> tools, in a browser without native support."
+---
+
 # `PolyfillModelContext`
 
-The `document.modelContext` the polyfill installs: enough of the WebMCP surface to register, list, run and cancel tools, plus declarative `<form toolname>` tools, in a browser without native support. You normally get it from [`installWebMCPPolyfill`](./install-webmcp-polyfill.md), not by constructing it.
+The `document.modelContext` the polyfill installs: enough of the WebMCP surface to register, list, run and cancel tools, plus declarative `<form toolname>` tools, in a browser without native support. Read this to know what the polyfill does and where it differs from Chrome. You normally get it from [`<WebAgentsProvider>`](../react/web-agents-provider.md) or [`createWebAgents`](../core/create-web-agents.md), which load and install it where the browser has no WebMCP, or from [`installWebMCPPolyfill`](./install-webmcp-polyfill.md); not by constructing it.
+
+## Import
 
 ```ts
-import { PolyfillModelContext } from "@webmcp-agents/polyfill";
+import { PolyfillModelContext } from "@webmcp-agents/core/polyfill";
 ```
 
-## Signature
+## Example
 
-```ts
-class PolyfillModelContext extends EventTarget implements ModelContext {
-  ontoolchange: ((ev: Event) => void) | null;
-  ontoolactivated: ((ev: ToolEvent) => void) | null;
-  ontoolcancel: ((ev: ToolEvent) => void) | null;
+Register a tool, run it the way an agent would, and cancel it if it takes too long. The types are core's [WebMCP types](../core/webmcp-types.md).
 
-  registerTool(tool: ModelContextTool<any>, options?: { signal?: AbortSignal }): void;
-  unregisterTool(name: string): void;
-  getTools(): Promise<ModelContextToolInfo[]>;
-  executeTool(
-    toolOrName: ModelContextToolInfo | string,
-    rawArgs?: Record<string, unknown> | string,
-    options?: { signal?: AbortSignal },
-  ): Promise<ModelContextToolResult>;
-  /** Non-standard. */
-  cancelTool(name: string): boolean;
-}
-```
+<include meta='title="src/model-context.ts"'>/_examples/shared/reference/polyfill/polyfill-model-context.ts</include>
 
-The types are core's [WebMCP types](../core/webmcp-types.md).
+## Options
 
-## Methods
+The constructor takes no arguments. The members:
 
-| Name | Parameters | Returns | Description |
+| Name | Type | Default | Description |
 |---|---|---|---|
-| `registerTool` | `tool`, `{ signal }` | `void` | Adds the tool under `tool.name` (throws `TypeError("tool.name is required")` without one) and fires `toolchange`. Aborting `signal` unregisters this registration only: if the name belongs to a newer registration by then, it stays. |
-| `unregisterTool` | `name` | `void` | Removes the tool and fires `toolchange`. Does nothing for an unknown name. |
-| `getTools` | — | `Promise<ModelContextToolInfo[]>` | Every registered tool without its `execute`, in registration order. |
-| `executeTool` | `toolOrName`, `rawArgs = {}`, `{ signal }` | `Promise<ModelContextToolResult>` | Runs a tool. Accepts both the polyfill's `(name, object)` and Chrome's `(tool, JSON string)` shapes. |
-| `cancelTool` | `name` | `boolean` | Non-standard. Cancels the running call of `name`, so dev tooling can cancel a call it didn't start. `false` when nothing runs. |
+| `registerTool(tool, options?)` | `(tool: ModelContextTool, options?: { signal?: AbortSignal }) => void` | none | Adds the tool under `tool.name` (throws `TypeError("tool.name is required")` without one) and fires `toolchange`. Aborting `signal` unregisters this registration only: if the name belongs to a newer registration by then, it stays. |
+| `unregisterTool(name)` | `(name: string) => void` | none | Removes the tool and fires `toolchange`. Does nothing for an unknown name. |
+| `getTools()` | `() => Promise<ModelContextToolInfo[]>` | none | Every registered tool without its `execute`, in registration order. |
+| `executeTool(toolOrName, rawArgs?, options?)` | `(toolOrName: ModelContextToolInfo \| string, rawArgs?: Record<string, unknown> \| string, options?: { signal?: AbortSignal }) => Promise<ModelContextToolResult>` | none | Runs a tool. `rawArgs` defaults to `{}`. Accepts both the polyfill's `(name, object)` and Chrome's `(tool, JSON string)` shapes. |
+| `cancelTool(name)` | `(name: string) => boolean` | none | Non-standard. Cancels the running call of `name`, so dev tooling can cancel a call it did not start. `false` when nothing runs. |
+| `ontoolchange` | `((ev: Event) => void) \| null` | `null` | Handler for the `toolchange` event. |
+| `ontoolactivated` | `((ev: ToolEvent) => void) \| null` | `null` | Handler for the `toolactivated` event. |
+| `ontoolcancel` | `((ev: ToolEvent) => void) \| null` | `null` | Handler for the `toolcancel` event. |
 
 ### `executeTool` in detail
 
@@ -48,7 +42,7 @@ The types are core's [WebMCP types](../core/webmcp-types.md).
 - A throwing `execute` resolves to `{ content: [{ type: "text", text: message }], isError: true }`. It does not reject.
 - Cancelling (aborting the caller's `signal`, or `cancelTool`) aborts the tool's own signal, fires `toolcancel`, and rejects with an `AbortError` `DOMException`. The call settles even when the tool ignores its signal, as in Chrome.
 
-## Events
+### Events
 
 Dispatched on the instance, and also delivered to the matching `on…` property.
 
@@ -58,7 +52,7 @@ Dispatched on the instance, and also delivered to the matching `on…` property.
 | `toolactivated` | yes | `executeTool` started a call. |
 | `toolcancel` | yes | A call was cancelled, or a paused form left the page. |
 
-## Declarative forms
+### Declarative forms
 
 `installWebMCPPolyfill` scans for `form[toolname]` on install and with a MutationObserver, and registers each as a tool:
 
@@ -71,7 +65,7 @@ A call sets `data-tool-form-active` on the form, writes each argument like a use
 
 The submit is a `SubmitEvent` with `agentInvoked: true` and `respondWith(promise)`. The call answers with that promise's value, or `"Form submitted."` if the page didn't call `respondWith` during dispatch.
 
-## Confirmation pause
+### Confirmation pause
 
 Without `toolautosubmit`, and when the form has a submitter, the call pauses before submitting:
 
@@ -88,17 +82,9 @@ Without `toolautosubmit`, and when the form has a submitter, the call pauses bef
 }
 ```
 
-## Example
+## Returns
 
-```ts
-import { installWebMCPPolyfill } from "@webmcp-agents/polyfill";
-
-const mc = installWebMCPPolyfill();
-mc?.addEventListener("toolactivated", (e) => console.log("running", e.toolName));
-
-const ac = new AbortController();
-const result = await mc?.executeTool("apply_promo", { code: "WELCOME10" }, { signal: ac.signal });
-```
+`new PolyfillModelContext()` is an `EventTarget` implementing core's `ModelContext`. `installWebMCPPolyfill()` defines the instance on `document` as `modelContext`.
 
 ## Notes
 
@@ -113,8 +99,10 @@ const result = await mc?.executeTool("apply_promo", { code: "WELCOME10" }, { sig
 
 ## See also
 
+- [Polyfill](../../more/polyfill.mdx), the page that teaches it
 - [`installWebMCPPolyfill`](./install-webmcp-polyfill.md)
-- [`@webmcp-agents/polyfill/auto`](./auto.md)
+- [`@webmcp-agents/core/polyfill/auto`](./auto.md)
+- [`loadWebMCPPolyfill`](../core/load-webmcp-polyfill.md)
 - [WebMCP types](../core/webmcp-types.md)
 - [JSX attributes](../react/jsx-attributes.md)
 - [`useToolAnswer`](../react/use-tool-answer.md)

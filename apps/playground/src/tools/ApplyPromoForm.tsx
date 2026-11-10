@@ -1,28 +1,24 @@
 /**
- * Declarative WebMCP tool: apply_promo
+ * apply_promo: the playground's one declarative form, kept to show the alternative to `useWebTool`. The browser
+ * registers a `<form toolname>` by itself: `tooldescription` and `toolparamdescription` describe it, `toolautosubmit`
+ * lets the agent submit without a pause, and the submit handler answers through `respondWith`.
  *
- * Applying a code is cheap and reversible, so the form has `toolautosubmit`:
- * the agent fills the code and the browser submits without a pause. A bad
- * code answers the agent with an error and shows the same message under the
- * field, so the person watching sees exactly what the agent was told.
- *
- * Shown (and registered) only while no code is applied; the totals show the
- * applied code with a Remove link that brings this form back. Applying a code
- * hides the form, so it stays for a moment after answering (see useToolAnswer)
- * instead of vanishing under the agent's pending call.
+ * A bad code answers the agent with an error and shows the same message under the field. Applying a code hides the
+ * form (the totals show the code with a Remove button), so it stays for a moment after answering (`useToolAnswer`)
+ * instead of vanishing under the agent's pending call: what a tool's `execute` gets for free.
  */
-import { useId, useState, type FormEvent } from "react";
-import { errorMessage, useCart } from "../store";
 import { useToolAnswer } from "@webmcp-agents/react";
+import { type FormEvent, useId, useState } from "react";
+import { cart, errorMessage, useCart } from "../store";
 
 export function ApplyPromoForm() {
-  const cart = useCart();
+  const { promo } = useCart();
   const { answering, answer } = useToolAnswer();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const errorId = useId();
 
-  if (cart.promo && !answering) return null;
+  if (promo && !answering) return null;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,7 +39,7 @@ export function ApplyPromoForm() {
   return (
     <form
       toolname="apply_promo"
-      tooldescription="Apply a promo code the user gave you to the cart, before checkout. The discount shows in the cart total and is used when the order is placed. remove_promo takes it off."
+      tooldescription="Apply a promo code the user gave you to the cart, before place_order. The discount shows in the cart total and is used when the order is placed. remove_promo takes it off."
       toolautosubmit=""
       onSubmit={onSubmit}
       className="tool-form promo-form"
@@ -66,14 +62,17 @@ export function ApplyPromoForm() {
           toolparamdescription="The code exactly as the user gave it, e.g. 123"
         />
       </label>
-      <button type="submit" disabled={!!cart.promo}>
-        {cart.promo ? "Applied" : "Apply"}
+      <button type="submit" disabled={!!promo}>
+        {promo ? "Applied" : "Apply"}
       </button>
       {error && (
         <p id={errorId} className="field-error" role="alert">
           {error}
         </p>
       )}
+      <p className="muted declarative-note">
+        A declarative form (<code>&lt;form toolname&gt;</code>), the alternative to <code>useWebTool</code>.
+      </p>
     </form>
   );
 }

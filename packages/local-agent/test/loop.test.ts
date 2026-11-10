@@ -380,12 +380,13 @@ describe("runLocalAgent", () => {
 });
 
 describe("runLocalAgent with the page's WebAgent", () => {
-  const agent: WebAgent = {
+  // the data the loop reads (a defined agent also has `invoke`, which the loop never calls)
+  const agent = {
     id: "shopper",
     instructions: ["Sells mugs.", "Open a product first."],
     agents: [{ id: "checkout", instructions: ["c"], agents: [] }],
     maxSteps: 1,
-  };
+  } as unknown as WebAgent;
   const req = (over: Partial<AgentRunRequest> = {}): AgentRunRequest => ({
     messages: [user],
     tools,

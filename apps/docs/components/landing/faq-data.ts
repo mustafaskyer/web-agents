@@ -8,22 +8,22 @@ export const FAQ = [
     id: "webmcp",
     question: "Do I need Chrome's WebMCP to try it?",
     answer:
-      "No. In Chrome's origin trial the browser provides document.modelContext; everywhere else @webmcp-agents/polyfill provides the same API. The examples run in any browser today, and so do the tools on this page.",
-    action: { href: `${DOCS}/guides/polyfill`, label: "The polyfill" },
+      "No. In Chrome's origin trial the browser provides document.modelContext; everywhere else the provider loads a polyfill of the same API by itself. The examples run in any browser today, and so do the tools on this page.",
+    action: { href: `${DOCS}/more/polyfill`, label: "The polyfill" },
   },
   {
     id: "tools",
     question: "Do my tools have to know about the cursor?",
     answer:
-      "No. A tool is a defineWebTool definition: an id, a description, an input schema and an execute function. The only link to the visual layer is a toolname attribute on the element the tool acts on; a tool with no element just runs unseen. Plain HTML forms work too, as declarative tools.",
-    action: { href: `${DOCS}/concepts/tools`, label: "Tools" },
+      "No. A tool is an id, a description, an input schema and an execute function. The cursor finds the control it acts on by its name, as a person would: name the tool like its button (its title) and nothing is added to the markup. A target says which control when the name differs; a tool with no control just runs unseen.",
+    action: { href: `${DOCS}/build/define-a-tool`, label: "Define a tool" },
   },
   {
     id: "models",
     question: "Which models can the chat use?",
     answer:
       "Any frontier model through the Vercel AI SDK: set WEB_AGENTS_MODEL to provider/model (anthropic, openai, google, deepseek, xai, mistral, openrouter) with that provider's key, or route any id through the AI Gateway. Or run a small model in the visitor's browser with no server at all.",
-    action: { href: `${DOCS}/guides/chat`, label: "Pick a model" },
+    action: { href: `${DOCS}/build/add-the-chat`, label: "Pick a model" },
   },
   {
     id: "safety",
@@ -37,7 +37,7 @@ export const FAQ = [
     question: "Where does my API key live?",
     answer:
       "On the server, read by createChatHandler. The browser gets the widget, the page's tool descriptors and the conversation: no SDK, no key. The Vite plugin refuses to start if a VITE_ variable looks like a secret, and the Next.js example taints the key.",
-    action: { href: `${DOCS}/frameworks/nextjs`, label: "Framework guides" },
+    action: { href: `${DOCS}/installation/nextjs`, label: "Install in Next.js" },
   },
 ] as const;
 

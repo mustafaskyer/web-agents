@@ -1,71 +1,90 @@
 /**
- * Declarative WebMCP tool: book_flight (booking page)
- *
- * Booking spends money, so there's no `toolautosubmit`: the agent ticks the
- * fare rules, and the browser waits on "Book flight · USD …" until the person
- * clicks it. Missing traveler details are an error for the agent (naming the
- * fields) and focus the first missing field for the person.
+ * book_flight, on the booking page. Booking spends money, so `requireConfirmation`: the cursor ticks the fare rules
+ * (the checkbox named `acceptTerms`), parks on "Book flight · USD …" (found by the tool's title, which the button's text
+ * starts with), and the flight is booked only by the person's own click. Missing traveler details are an error for the
+ * agent (naming the fields) and focus the first missing field for the person.
  */
+import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
-import { useToolAnswer } from "@webmcp-agents/react";
-import { type FormEvent, useId, useState } from "react";
-import { useNavigate } from "react-router";
+import { useWebTool, WebToolError } from "@webmcp-agents/react";
+import { useId, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { money } from "../data/flights";
-import { afterAnswer } from "../lib/afterAnswer";
-import { useBooking } from "../store/booking";
+import { navigate } from "../lib/navigate";
+import { booking } from "../store/booking";
 import styles from "./bookingForms.module.css";
+import { detailsFrom } from "./TravelerDetailsForm";
 
-export function BookFlightForm({ total, onBooked }: { total: number; onBooked(): void }) {
-  const booking = useBooking();
-  const navigate = useNavigate();
-  const { answer } = useToolAnswer();
+const schema = z.object({
+  acceptTerms: z.boolean().describe("The traveler accepts the fare rules. Must be true to book."),
+});
+
+type BookInput = z.infer<typeof schema>;
+
+export function BookFlightForm({ total, travelers, onBooked }: { total: number; travelers: number; onBooked(): void }) {
+  const form = useForm<BookInput>({ resolver: zodResolver(schema), defaultValues: { acceptTerms: false } });
   const [error, setError] = useState<string | null>(null);
   const errorId = useId();
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const event = e.nativeEvent as SubmitEvent;
-    const fail = (message: string) => {
+  const book = ({ acceptTerms }: BookInput) => {
+    const fail = (message: string): never => {
       setError(message);
-      answer(event, Promise.resolve(`Error: ${message}`));
+      throw new WebToolError("failed", message);
     };
-    if (!new FormData(e.currentTarget).get("acceptTerms")) return fail("Accept the fare rules to book (acceptTerms: true).");
-
-    // A person may type their details and go straight to Book: save them first (an agent saves explicitly).
-    if (!event.agentInvoked) document.querySelector<HTMLFormElement>("#traveler-details")?.requestSubmit();
+    if (!acceptTerms) return fail("Accept the fare rules to book (acceptTerms: true).");
     const missing = booking.missingDetails();
     if (missing.length) {
       document.querySelector<HTMLInputElement>(`#traveler-details [name="${missing[0]}"]`)?.focus();
       return fail(`Missing traveler details: ${missing.join(", ")}. Call fill_traveler_details first, or fill them in and save.`);
     }
-
-    let ref: string;
+    let ref = "";
     try {
       ref = booking.confirm().ref;
     } catch (err) {
-      return fail(errorText(err));
+      fail(errorText(err));
     }
-    onBooked();
+    onBooked(); // the page keeps showing this flight until it moves on
     setError(null);
-    const result = Promise.resolve(`Booked ${ref}: ${money(total)} paid. Use get_booking with ${ref} for the itinerary.`);
-    answer(event, result);
-    afterAnswer(event, result, () => void navigate(`/bookings/${ref}`));
-  }
+    navigate(`/bookings/${ref}`);
+    return `Booked ${ref}: ${money(total)} paid. Use get_booking with ${ref} for the itinerary.`;
+  };
+
+  // An agent calls this.
+  useWebTool({
+    id: "book_flight",
+    title: "Book flight",
+    description:
+      "Book and pay for the selected flight. Needs: select_flight, then fill_traveler_details. The user confirms on the page (Book flight).",
+    inputSchema: schema,
+    requireConfirmation: true,
+    // the ticked box in the form's state too, before the person confirms
+    fill: (values) => form.reset(values),
+    execute: book,
+  });
+
+  // A person submits this. Details typed but not saved are saved first (an agent saves them explicitly).
+  const submit = form.handleSubmit((input) => {
+    const details = document.querySelector<HTMLFormElement>("#traveler-details");
+    if (details) {
+      const saved = detailsFrom(Object.fromEntries(new FormData(details)) as Record<string, string>, travelers);
+      booking.saveDetails(saved.contact, saved.travelers);
+    }
+    try {
+      book(input);
+    } catch {
+      // shown under the button
+    }
+  });
 
   return (
-    <form
-      className={styles.stack}
-      toolname="book_flight"
-      tooldescription="Book and pay for the selected flight. Needs: select_flight, then fill_traveler_details. The user confirms on the page (Book flight)."
-      onSubmit={onSubmit}
-    >
+    <form className={styles.stack} onSubmit={submit}>
       <label className="check">
         <input
-          name="acceptTerms"
           type="checkbox"
           required
           aria-invalid={error?.startsWith("Accept") ? true : undefined}
-          toolparamdescription="The traveler accepts the fare rules. Must be true to book."
+          {...form.register("acceptTerms", { onChange: () => setError(null) })}
         />
         <span>I accept the fare rules: changes cost USD 75, the fare is non-refundable after 24 hours.</span>
       </label>

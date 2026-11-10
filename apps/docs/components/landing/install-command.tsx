@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * The install command with a copy button. The button is what the `copy_install_command` tool acts on (`toolname`);
- * the tool and the button share `copyInstallCommand()`, so an agent's copy and a person's look the same.
+ * The install command with a copy button. The button is what the `copy_install_command` tool acts on: its name, "Copy
+ * the install command", is the tool's title. The tool and the button share `copyInstallCommand()`, so an agent's copy
+ * and a person's look the same.
  */
 import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -41,7 +42,12 @@ export const InstallCommand = () => {
   return (
     <p className="install-command">
       <code>{INSTALL_COMMAND}</code>
-      <button type="button" toolname="copy_install_command" onClick={() => void copyInstallCommand()} className="install-command__copy">
+      <button
+        type="button"
+        aria-label="Copy the install command"
+        onClick={() => void copyInstallCommand()}
+        className="install-command__copy"
+      >
         <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} aria-hidden="true" size={14} />
         <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
       </button>

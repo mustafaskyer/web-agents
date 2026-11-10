@@ -2,6 +2,12 @@
 // Blume generates for the site (an alias in the generated Astro config).
 declare module "*.css";
 
+// An Astro component registered in components.ts: Blume renders it, this app only names it.
+declare module "*.astro" {
+  const component: (props: Record<string, unknown>) => unknown;
+  export default component;
+}
+
 declare module "blume:search-client" {
   /** One result of the docs search. `title` and `excerpt` carry `<mark>` around the matched words, nothing else. */
   export interface SearchHit {

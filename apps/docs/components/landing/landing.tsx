@@ -69,8 +69,8 @@ export default function Landing({ year, steps }: LandingProps) {
             Three steps from tool to agent
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground leading-relaxed">
-            A tool is one defineWebTool definition. The cursor finds the element it acts on through the toolname attribute; the chat and the
-            agent come from the same packages.
+            A tool is one useWebTool call beside the button it belongs to. The cursor finds that button by its name; the chat and the agent
+            come from the same packages.
           </p>
         </div>
         <Steps highlighted={steps} />
@@ -92,7 +92,7 @@ export default function Landing({ year, steps }: LandingProps) {
         />
       </div>
 
-      <SiteFooter page="home" year={year} />
+      <SiteFooter year={year} />
 
       <AgentLayer tools={homeTools} intro />
     </MotionBoundary>

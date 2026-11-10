@@ -1,21 +1,21 @@
 /**
- * The cart drawer. While it's open the agent also gets update_cart_item and
- * remove_from_cart (<EnableTools> below): the tools exist exactly when their
- * controls are on screen.
+ * The cart drawer, and the tools that work on it: update_cart_item, remove_from_cart and close_cart are on while it
+ * is open (`useWebTool` with `enabled`), so they exist exactly when their controls are on screen. Each line's
+ * controls are named after it ("Quantity of Ocean Tee (M)", "Remove Ocean Tee (M)"): a tool's `target` builds that
+ * name from the call, and the cursor goes to that line's control. Nothing is added to the markup for the cursor.
  *
- * Not a modal <dialog>: showModal() puts it in the top layer, above any
- * z-index, so the agent cursor (and the devtools) would vanish under it. It's a
- * dialog-role panel instead; Root makes the page behind it `inert`, which gives
- * the same focus containment.
+ * Not a modal <dialog>: showModal() puts it in the top layer, above any z-index, so the agent cursor (and the
+ * devtools) would vanish under it. It's a dialog-role panel instead; Root makes the page behind it `inert`, which
+ * gives the same focus containment.
  */
-import { EnableTools } from "@webmcp-agents/react";
+import { useWebTool } from "@webmcp-agents/react";
 import { useEffect, useId, useRef } from "react";
 import { Link } from "react-router";
+import { z } from "zod";
 import { findProduct, money } from "../data/catalog";
-import { useCart } from "../store/cart";
-import { type CartLine, FREE_SHIPPING_FROM, lineLabel, MAX_QTY } from "../store/cartRules";
+import { cart as store, useCart } from "../store/cart";
+import { type CartLine, FREE_SHIPPING_FROM, findLine, lineLabel, MAX_QTY } from "../store/cartRules";
 import { useUi } from "../store/ui";
-import { drawerTools } from "../tools/catalog";
 import styles from "./CartDrawer.module.css";
 import { EmptyState } from "./EmptyState";
 import { CloseIcon, TrashIcon } from "./icons";
@@ -23,13 +23,18 @@ import { ProductArt } from "./ProductArt";
 import { QtyStepper } from "./QtyStepper";
 import { Totals } from "./Totals";
 
+const lineInput = z.object({
+  slug: z.string().describe("The line's product slug, as get_cart lists it, e.g. ocean-tee"),
+  variant: z.string().optional().describe("The line's size (S, M, L…), as listed; needed when the cart has the product in several"),
+});
+
 function Line({ line }: { line: CartLine }) {
   const cart = useCart();
   const product = findProduct(line.slug);
   const label = lineLabel(line);
   const max = Math.min(product?.stock ?? MAX_QTY, MAX_QTY);
   return (
-    <li className={styles.line} data-line={`${line.slug}:${line.variant ?? ""}`}>
+    <li className={styles.line}>
       <div className={styles.thumb}>{product?.images[0] && <ProductArt art={product.images[0]} name={line.name} size="sm" />}</div>
       <div className={styles.info}>
         <p className={styles.name}>{line.name}</p>
@@ -57,6 +62,53 @@ export function CartDrawer() {
   const { cartOpen, closeCart } = useUi();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  /** The name a call's line has on screen, as in "Remove Ocean Tee (M)"; a line that isn't in the cart has no control. */
+  const labelFor = ({ slug, variant }: { slug: string; variant?: string }) => lineLabel(findLine(cart.lines, slug, variant));
+
+  // ---------- the drawer's tools: on while it is open ----------
+  useWebTool(
+    {
+      id: "update_cart_item",
+      title: "Change a cart line's quantity",
+      description:
+        "Set the quantity of one cart line (0 removes it). Needs: the cart open (open_cart), and the line's slug and size as get_cart or open_cart list them.",
+      inputSchema: lineInput.extend({ qty: z.number().int().min(0).max(MAX_QTY).describe("The new quantity, e.g. 2") }),
+      repeatable: true,
+      // the line's quantity field; the new quantity shows there when the cart re-renders
+      target: (input) => ({ role: "spinbutton", name: `Quantity of ${labelFor(input)}` }),
+      fields: { qty: false },
+      execute: ({ slug, variant, qty }) => store.setQty(slug, variant, qty),
+    },
+    { enabled: cartOpen },
+  );
+  useWebTool(
+    {
+      id: "remove_from_cart",
+      title: "Remove a cart line",
+      description:
+        "Remove one line from the cart. Needs: the cart open (open_cart), and the line's slug and size as get_cart or open_cart list them.",
+      inputSchema: lineInput,
+      destructive: true,
+      // which button? the one a screen reader calls "Remove Ocean Tee (M)"
+      target: (input) => ({ role: "button", name: `Remove ${labelFor(input)}` }),
+      execute: ({ slug, variant }) => store.remove(slug, variant),
+    },
+    { enabled: cartOpen },
+  );
+  useWebTool(
+    {
+      id: "close_cart",
+      title: "Close cart",
+      description:
+        "Close the cart drawer, back to the page behind it. Use when the user is done with the cart. Only while the cart is open.",
+      repeatable: true,
+      execute: () => {
+        closeCart();
+        return "Closed the cart.";
+      },
+    },
+    { enabled: cartOpen },
+  );
 
   // Focus in on open, back to where it was on close; Escape closes.
   useEffect(() => {
@@ -79,7 +131,6 @@ export function CartDrawer() {
     <div className={styles.root} data-open={cartOpen || undefined}>
       <div className={styles.backdrop} onClick={closeCart} aria-hidden="true" />
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className={styles.panel} inert={!cartOpen}>
-        {cartOpen && <EnableTools names={drawerTools} />}
         <header className={styles.head}>
           <h2 id={titleId}>
             Your cart{" "}
@@ -87,7 +138,7 @@ export function CartDrawer() {
               ({cart.count} item{cart.count === 1 ? "" : "s"})
             </span>
           </h2>
-          <button ref={closeRef} type="button" className="icon-btn" aria-label="Close cart" toolname="close_cart" onClick={closeCart}>
+          <button ref={closeRef} type="button" className="icon-btn" aria-label="Close cart" onClick={closeCart}>
             <CloseIcon />
           </button>
         </header>

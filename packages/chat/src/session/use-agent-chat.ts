@@ -8,6 +8,7 @@
  * component expects.
  */
 import { useCallback, useMemo, useState } from "react";
+import { getDefaultAdapter } from "../adapter/cloud";
 import { toUIMessages } from "../adapter/wire";
 import type { WebAgent } from "../agent";
 import { suggestionsFor } from "../components/Suggestions";
@@ -20,7 +21,7 @@ const ADAPTER_KEY = "web-agents:chat:adapter";
 
 /** Options for `useAgentChat`. */
 export interface UseAgentChatOptions {
-  /** One agent adapter. Pass this or `adapters`. */
+  /** One agent adapter. Default: one shared `createCloudAdapter()` (your `/api/chat`), when `adapters` is not given either. */
   adapter?: AgentAdapter;
   /** Several adapters (cloud, on-device…); the person's choice is remembered in localStorage. The first is the default. */
   adapters?: readonly AgentAdapter[];
@@ -95,9 +96,8 @@ function indexToolParts(messages: readonly AgentMessage[], into = new Map<string
 }
 
 /** A conversation with one of `adapters` about this page, as AI SDK UI messages (what `<AgentChat>` renders; use it for your own UI). */
-export function useAgentChat({ adapter, adapters, agent, storageKey }: UseAgentChatOptions): AgentChat {
-  const all = useMemo(() => adapters ?? (adapter ? [adapter] : []), [adapter, adapters]);
-  if (all.length === 0) throw new Error("useAgentChat needs an `adapter` (or `adapters`), e.g. createCloudAdapter().");
+export function useAgentChat({ adapter, adapters, agent, storageKey }: UseAgentChatOptions = {}): AgentChat {
+  const all = useMemo(() => (adapters?.length ? adapters : [adapter ?? getDefaultAdapter()]), [adapter, adapters]);
   // the person's last choice, when that adapter is still offered
   const [adapterId, setAdapterId] = useState(() => {
     const saved = readChoice(ADAPTER_KEY);

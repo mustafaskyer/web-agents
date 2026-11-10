@@ -1,41 +1,32 @@
 /**
- * Imperative WebTool: clear_cart
- *
- * Destructive, so `requireConfirmation`: the agent's call waits until the
- * person clicks this button (the cursor parks on it meanwhile), and that
- * click runs the tool instead of the button's own handler. `useWebTool`
- * keeps calls on the latest `cart`, and only shows the tool to the agent
- * while there is something to clear. The `toolname` attribute is what the
- * cursor and the confirmation look for.
+ * clear_cart: one action, two callers. The person clicks the button; an agent calls the tool. The cursor finds the
+ * button by the tool's title ("Clear cart"), parks on it, and `clear` runs only after the person's own click
+ * (`requireConfirmation`). On only while there is something to clear.
  */
-import { defineWebTool, useWebTool } from "@webmcp-agents/react";
-import { useMemo } from "react";
-import { useCart } from "../store";
+import { useWebTool } from "@webmcp-agents/react";
+import { cart, useCart } from "../store";
 
 export function ClearCartButton() {
-  const cart = useCart();
+  const { items } = useCart();
 
-  const tool = useMemo(
-    () =>
-      defineWebTool({
-        id: "clear_cart",
-        description: "Remove every item from the cart. Use only when the user asks to empty it. The user confirms on the page.",
-        annotations: { destructiveHint: true },
-        requireConfirmation: true,
-        execute: () => cart.clear(),
-      }),
-    [cart],
+  const clear = () => cart.clear();
+
+  // An agent calls this.
+  useWebTool(
+    {
+      id: "clear_cart",
+      title: "Clear cart",
+      description: "Remove every item from the cart. Use only when the user asks to empty it. The user confirms on the page.",
+      destructive: true,
+      requireConfirmation: true,
+      execute: clear,
+    },
+    { enabled: items.length > 0 },
   );
-  const { registered } = useWebTool(tool, { enabled: cart.items.length > 0 });
 
+  // A person clicks this.
   return (
-    <button
-      type="button"
-      toolname="clear_cart"
-      onClick={() => cart.clear()}
-      disabled={cart.items.length === 0}
-      title={registered ? "Agent-callable" : undefined}
-    >
+    <button type="button" onClick={clear} disabled={items.length === 0}>
       Clear cart
     </button>
   );

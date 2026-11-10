@@ -1,29 +1,35 @@
 "use client";
 /**
- * The client shell: the cart store, the WebMCP provider (agent cursor + global tools), the header and the chat. A
- * client component because tools need the DOM; the pages themselves stay Server Components.
+ * The client shell: the WebMCP provider (agent cursor + the app-wide tools), the header and the chat. A client
+ * component because tools need the DOM; it is server-rendered with the page all the same, and the pages themselves
+ * stay Server Components. The provider follows the URL itself (no pathname, no router hook) and loads the polyfill
+ * itself where the browser has no WebMCP: there is no "ready" gate.
  */
-import { WebAgentsProvider } from "@webmcp-agents/react";
-import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { shopper } from "@/agents";
 import { createCloudAdapter } from "@webmcp-agents/chat";
+import { WebAgentsProvider } from "@webmcp-agents/react";
+import { useRouter } from "next/navigation";
+import { type ReactNode, useEffect } from "react";
+import { shopper } from "@/agents";
 import { Header } from "@/components/header";
 import { AgentChatBlock } from "@/components/web-agents/agent-chat";
-import { CartProvider, useCart } from "@/lib/cart";
-import { catalog, globalTools } from "@/tools/catalog";
-import type { StoreContext } from "@/tools/context";
+import { setNavigate } from "@/lib/navigate";
+import { tools } from "@/tools";
 
 // once per page: the cloud adapter checks /api/chat on first use
 const ADAPTERS = [createCloudAdapter()];
 
-function Shell({ children }: { children: ReactNode }) {
-  const cart = useCart();
+export function Providers({ children }: { children: ReactNode }) {
+  // the app-wide tools navigate with the App Router: no page load, so no call is lost
   const router = useRouter();
-  const pathname = usePathname();
-  const context = useMemo<StoreContext>(() => ({ cart, navigate: (to) => router.push(to) }), [cart, router]);
+  useEffect(() => setNavigate((to) => router.push(to)), [router]);
+  // dev only: the devtools panel (Alt+Shift+A) and window.agent for the e2e tests
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") void import("@webmcp-agents/devtools").then((m) => m.installWebAgentsDevtools());
+  }, []);
+  // Server-rendered with the page: the provider loads the WebMCP polyfill in a browser without WebMCP, and the
+  // tools register once it is there.
   return (
-    <WebAgentsProvider tools={catalog} global={globalTools} pathname={pathname} context={context}>
+    <WebAgentsProvider tools={tools}>
       <Header />
       <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         {children}
@@ -35,32 +41,5 @@ function Shell({ children }: { children: ReactNode }) {
         position={process.env.NODE_ENV === "production" ? "bottom-right" : "bottom-left"}
       />
     </WebAgentsProvider>
-  );
-}
-
-export function Providers({ children }: { children: ReactNode }) {
-  // Browsers without native WebMCP get the polyfill (dev and this demo); it must exist before the first tool registers.
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    const boot = async () => {
-      if (!document.modelContext) await import("@webmcp-agents/polyfill/auto");
-      if (process.env.NODE_ENV !== "production") {
-        // dev only: the devtools panel (Alt+Shift+A) and window.agent for the e2e tests
-        const { installWebAgentsDevtools } = await import("@webmcp-agents/devtools");
-        installWebAgentsDevtools();
-      }
-      if (alive) setReady(true);
-    };
-    void boot();
-    return () => {
-      alive = false;
-    };
-  }, []);
-  if (!ready) return null;
-  return (
-    <CartProvider>
-      <Shell>{children}</Shell>
-    </CartProvider>
   );
 }

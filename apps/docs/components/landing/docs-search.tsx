@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Declarative WebMCP tool: search_docs, the site's one form tool (every other tool is a defineWebTool definition,
- * site-tools.ts). A form fits here: the cursor types the query into the field a person would use. A real search of the docs from the landing page, over the same static index
- * the docs' own search dialog reads. Reading is harmless, so `toolautosubmit`: the cursor types the query, presses
- * Search, and the results list under the field. The answer lists the same pages with their paths.
+ * search_docs: a real search of the docs from the landing page, over the same static index the docs' own search
+ * dialog reads. A tool with an input like the site's others (site-tools.ts): when an agent calls it, the cursor types
+ * the query into the search field (named `query`), presses Search, and the results list under the field. A person's
+ * search runs the same function. The answer lists the same pages with their paths. Reading is harmless: nothing to
+ * confirm.
  */
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { type FormEvent, useRef, useState } from "react";
+import { defineWebTool, WebToolError } from "@webmcp-agents/react";
+import { type FormEvent, useState, useSyncExternalStore } from "react";
 import type { SearchFn, SearchHit } from "blume:search-client";
 import { DOCS } from "@/lib/site";
 
@@ -42,56 +44,82 @@ const answerFor = ({ query, hits }: Found): string =>
         )}\nThe results are listed under the search field. Next: open_docs with a page name, or tell the user which page answers them.`
     : `No doc page matches "${query}". Try one other word (cursor, confirm, polyfill, chat, devtools).`;
 
+// ---------- the results, shared by the tool and the component ----------
+
+interface Results {
+  found: Found | null;
+  busy: boolean;
+}
+let results: Results = { found: null, busy: false };
+const listeners = new Set<() => void>();
+const show = (next: Results): void => {
+  results = next;
+  for (const listener of listeners) listener();
+};
+const subscribe = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+const snapshot = (): Results => results;
+
+let client: Promise<SearchFn> | undefined;
+let latest = 0;
+
+/** Search the docs and list the results under the field. The index (a few hundred KB) loads on the first search. */
+async function search(query: string): Promise<Found> {
+  const mine = ++latest;
+  show({ ...results, busy: true });
+  try {
+    client ??= import("blume:search-client").then((m) => m.createSearch());
+    const run = await client;
+    const found = { query, hits: (await run(query)).hits.slice(0, LIMIT) };
+    if (mine === latest) show({ found, busy: false });
+    return found;
+  } catch (err) {
+    if (mine === latest) show({ found: { query, hits: [] }, busy: false });
+    throw err;
+  }
+}
+
+export const searchDocs = defineWebTool<{ query: string }, string>({
+  id: "search_docs",
+  title: "Search the docs",
+  description:
+    "Search the WebMCP Agents docs from the landing page by typing key words into the search field in the FAQ section. Answers up to five matching pages with their paths and a line from each, and lists them on the page. Use when the user asks how something works or where it is documented. Needs nothing first. Next: open_docs, or tell the user which page to read.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "One or two key words, e.g. confirm or polyfill (not a whole sentence)" },
+    },
+    required: ["query"],
+  },
+  readOnly: true,
+  execute: async ({ query }) => {
+    const words = String(query ?? "").trim();
+    if (!words) throw new WebToolError("invalid_input", '"query" is empty. Pass one or two key words.');
+    try {
+      return answerFor(await search(words));
+    } catch {
+      throw new WebToolError("failed", "The docs search index did not load. Try again.");
+    }
+  },
+});
+
 export const DocsSearch = () => {
-  const [found, setFound] = useState<Found | null>(null);
-  const [busy, setBusy] = useState(false);
-  const client = useRef<Promise<SearchFn> | null>(null);
-  const latest = useRef(0);
+  const { found, busy } = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const [query, setQuery] = useState("");
 
-  const search = async (query: string): Promise<Found> => {
-    // The index (a few hundred KB) loads on the first search, not with the page.
-    client.current ??= import("blume:search-client").then((m) => m.createSearch());
-    const run = await client.current;
-    return { query, hits: (await run(query)).hits.slice(0, LIMIT) };
-  };
-
+  // A person searches here; the tool (in the page's catalog) runs the same search.
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const query = String(new FormData(e.currentTarget).get("query") ?? "").trim();
-    const submit = e.nativeEvent as SubmitEvent;
-    if (!query) {
-      setFound(null);
-      if (submit.agentInvoked) submit.respondWith?.(Promise.resolve('Error [invalid_input]: "query" is empty. Pass one or two key words.'));
-      return;
-    }
-    const mine = ++latest.current;
-    setBusy(true);
-    const result = search(query);
-    result
-      .then(
-        (value) => {
-          if (mine === latest.current) setFound(value);
-        },
-        () => {
-          if (mine === latest.current) setFound({ query, hits: [] });
-        },
-      )
-      .finally(() => {
-        if (mine === latest.current) setBusy(false);
-      });
-    if (submit.agentInvoked)
-      submit.respondWith?.(result.then(answerFor, () => "Error [failed]: The docs search index did not load. Try again."));
+    const words = query.trim();
+    if (!words) show({ found: null, busy: false });
+    else void search(words).catch(() => {});
   }
 
   return (
     <search className="docs-search">
-      <form
-        toolname="search_docs"
-        tooldescription="Search the WebMCP Agents docs from the landing page by typing key words into the search field in the FAQ section. Answers up to five matching pages with their paths and a line from each, and lists them on the page. Use when the user asks how something works or where it is documented. Needs nothing first. Next: open_docs, or tell the user which page to read."
-        toolautosubmit=""
-        onSubmit={onSubmit}
-        className="docs-search__form"
-      >
+      <form onSubmit={onSubmit} className="docs-search__form">
         <HugeiconsIcon icon={Search01Icon} aria-hidden="true" size={16} />
         <input
           name="query"
@@ -101,9 +129,12 @@ export const DocsSearch = () => {
           aria-label="Search the docs"
           autoComplete="off"
           enterKeyHint="search"
-          toolparamdescription="One or two key words, e.g. confirm or polyfill (not a whole sentence)"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
-        <button type="submit">{busy ? "Searching" : "Search"}</button>
+        <button type="submit" aria-label="Search the docs">
+          {busy ? "Searching" : "Search"}
+        </button>
       </form>
       <div aria-live="polite">
         {found &&

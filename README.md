@@ -2,7 +2,9 @@
 
 Helpers for [WebMCP](https://developer.chrome.com/docs/ai/webmcp) pages: make every agent action
 visible to the person using the page (a ghost cursor, field replay, a parked "waiting for your
-confirmation" state) without the tools knowing it exists, plus the tooling around it.
+confirmation" state) without the tools knowing it exists, plus the tooling around it. A tool is its `execute`
+function (and a schema): the cursor finds the control it belongs to by role and name, so nothing is added to your
+markup.
 
 ```
 pnpm install
@@ -12,40 +14,42 @@ pnpm e2e         # Playwright end-to-end tests of the example apps (desktop + mo
 # chat: put a provider key in apps/<app>/.env.local (see .env.example; Claude by default, or WEB_AGENTS_MODEL=openai/gpt-5.5 …), then open the Assistant bottom-left
 ```
 
-Works in any browser thanks to a dev-only polyfill of `document.modelContext`. In a Chrome
-build with native WebMCP the polyfill steps aside and the same code runs against the real API.
+Works in any browser: where there is no native WebMCP, the provider loads a polyfill of `document.modelContext` by
+itself (its own chunk, never downloaded by a browser that has WebMCP). In a Chrome build with native WebMCP nothing is
+loaded and the same code runs against the real API.
 
 ## Packages
 
-Docs (introduction, quickstart, concepts, guides, examples and the API reference): [docs/](docs/README.md). The website
+Docs (introduction, installation per framework, the Build path, concepts, examples and the API reference): [docs/](docs/README.md). The website
 is one app, [`apps/docs`](apps/docs/README.md) (`pnpm --filter @webmcp-agents/docs dev`, http://localhost:4321): the
 landing page at `/`, whose own actions are WebMCP tools you can try from the page, recorded demos of the examples at
 `/demos`, and the searchable docs under `/docs`.
 
 | Package | |
 |---|---|
-| [`@webmcp-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, field replay, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` and the tool registry. Framework-agnostic. |
-| [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider>` (global / route / component-scoped tools), `useWebTool`, `useEnableTools`, `useToolAnswer`, JSX types for the WebMCP attributes. |
-| [`@webmcp-agents/polyfill`](packages/polyfill) | `document.modelContext` polyfill with declarative form tools. |
-| [`@webmcp-agents/chat`](packages/chat) | `<AgentChat>`: a chat widget whose agent (any frontier model on your server through the AI SDK, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `defineWebAgent` for instructions, tool subsets and sub-agents; `/api/chat` handler and a Vite dev plugin. |
+| [`@webmcp-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, typing into fields, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` (`target`, `fields`, `fill`, `match`, flags, `invoke`), `locate`, `createWebAgents` (the framework-free entry that follows the URL itself) and the tool registry; the `document.modelContext` polyfill it loads where the browser has none (`@webmcp-agents/core/polyfill`). |
+| [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider tools availableTools>` (the same line in every framework), `useWebTool({ … })` returning `invoke`, `usePathname`, `useEnableTools`; `useToolAnswer` and JSX types for declarative forms. |
+| [`@webmcp-agents/tools`](packages/tools) | Common tools, ready-made: `getTime`, `getLocation`, `getPage`, `goTo`, `goBack`, `scrollTo`, `setTheme`. |
+| [`@webmcp-agents/polyfill`](packages/polyfill) | Deprecated: re-exports `@webmcp-agents/core/polyfill`, which the provider now loads itself. |
+| [`@webmcp-agents/chat`](packages/chat) | `<AgentChat agent>`: a chat widget whose agent (any frontier model on your server through the AI SDK, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `defineWebAgent` for instructions, tool subsets and sub-agents, with `agent.invoke(…)` and `useWebAgent` to run one without a chat; `/api/chat` handler and a Vite dev plugin. |
 | [`@webmcp-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
-| [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. Keeps `window.agent.run`. |
+| [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Each tool shows the control it finds, the fields it types into, its `match` and its flags. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. `window.agent.invoke` (`run` is an alias). |
 
 | App | |
 |---|---|
-| [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: declarative forms, global / route / component-scoped WebTools, confirm-gated checkout and clear-cart. |
+| [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: forms as `useWebTool` + React Hook Form, an app-wide catalog with `match`, confirm-gated place-order and clear-cart, and one declarative form as the alternative. |
 
 ## Examples
 
-Two realistic sites on mock data, with React Router 7. Each shows global, route-scoped and
-component-scoped tools, declarative forms and `defineWebTool` tools, and a confirm gate on the
-consequential step. Each app's README has its tool table.
+Two realistic sites on mock data, with React Router 7. Each shows
+app-wide tools (a catalog, some with `match`), component tools (`useWebTool`) and forms as tools on React Hook Form (Skyline's
+traveler details on TanStack Form), and a confirm gate on the consequential step. Each app's README has its tool table.
 
 | App | Port | |
 |---|---|---|
 | [`apps/ecommerce`](apps/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
 | [`apps/flights`](apps/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
-| [`apps/nextjs`](apps/nextjs) | 5176 | **Field Store on Next.js**: App Router + shadcn/ui; the chat is a shadcn block from the `@webmcp-agents` registry (`registry/`), `defineWebAgent` shared between the route handler and the client, the key tainted server-side. |
+| [`apps/nextjs`](apps/nextjs) | 5176 | **Field Store on Next.js**: App Router + shadcn/ui; the chat is a shadcn block from the `@webmcp-agents` registry (`registry/`), `defineWebAgent` shared between the route handler and the client, the key tainted server-side; the same `<WebAgentsProvider tools={tools}>` line as the Vite apps. |
 | [`apps/docs`](apps/docs) | 4321 | **The website**: the landing page, the Demos page (agent-browser clips of Skyline and Field Store) and the docs in one site. The site is an example too: its demos, docs links, FAQ, copy buttons, theme switch and search are WebMCP tools (`defineWebTool`), run from the hero's chips ("Try it as an agent would") or by any agent. |
 
 `pnpm --filter @webmcp-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
@@ -54,72 +58,148 @@ consequential step. Each app's README has its tool table.
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
-## The three layers (apps/playground)
+## How a tool looks
+
+A tool is one action with two callers. `useWebTool` registers it for agents; the button is what a person clicks.
+Nothing is added to the JSX for the cursor: it finds the control by role and accessible name (the tool's `title`), so a
+tool needs no `toolname`, ref or id. This is a confirm-gated tool: the cursor parks on "Clear cart" and `clear` runs
+only after the person's own click.
+
+```tsx
+export function ClearCart() {
+  const cart = useCart();
+
+  const clear = () => cart.clear();
+
+  // An agent calls this.
+  useWebTool({
+    id: "clear_cart",
+    title: "Clear cart",
+    description: "Empty the cart. The user confirms on the page.",
+    destructive: true,
+    requireConfirmation: true,
+    execute: clear,
+  });
+
+  // A person clicks this.
+  return (
+    <Button variant="destructive" onClick={clear}>
+      Clear cart
+    </Button>
+  );
+}
+```
+
+A form is the same hook plus an `inputSchema`: the cursor types each value into the field with that name or label (React
+Hook Form and TanStack Form inputs hear it like any typing), presses the button, and `execute` runs at the press. For a
+widget it cannot type into (a `Select`), `fill: (values) => form.reset(values)` puts the values on screen first.
+
+```tsx
+const schema = z.object({
+  quantity: z.number().int().min(1),
+});
+
+type AddToCartInput = z.infer<typeof schema>;
+
+export function AddToCart({ product }: { product: Product }) {
+  const cart = useCart();
+
+  const form = useForm<AddToCartInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { quantity: 1 },
+  });
+
+  const add = ({ quantity }: AddToCartInput) => {
+    cart.add(product.id, quantity);
+    return `Added ${quantity} × ${product.name}.`;
+  };
+
+  // An agent calls this.
+  useWebTool({
+    id: "add_to_cart",
+    title: "Add to cart",
+    description:
+      "Add this product to the cart. Use after open_product. " +
+      "Next: open_cart or checkout.",
+    inputSchema: schema,
+    execute: add,
+  });
+
+  // A person submits this.
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(add)} className="flex items-end gap-2">
+        <FormField
+          control={form.control}
+          name="quantity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Quantity</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit">Add to cart</Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+App-wide tools go in one object, beside the common ones, and the provider is the same line in Vite, TanStack Start,
+Next.js and Astro (the library follows the browser's URL itself, so nothing is wired to a router). A tool's `match`
+says where it is on (`"/orders"`, `["/cart", "/checkout"]`, a RegExp); `availableTools` narrows what an agent may use
+right now.
+
+```tsx
+export const tools = {
+  getTime: getTime(),
+  getPage: getPage(),
+  goTo: goTo({ pages: { home: "/", cart: "/cart", orders: "/orders" } }),
+  getCart,
+  listOrders, // defineWebTool({ id: "list_orders", match: "/orders", … })
+};
+
+<WebAgentsProvider tools={tools}>
+  <App />
+</WebAgentsProvider>
+```
+
+`await tools.getCart.invoke()` calls a tool the way an agent would (the cursor moves, confirmation applies);
+`await shopper.invoke("Reorder my last purchase.")` runs an agent with no chat on the page. Without React,
+`createWebAgents({ tools })` from `@webmcp-agents/core` is the same provider.
 
 ```
 apps/playground/src/
   tools/              ← PURE. No cursor code anywhere.
-    AddToCartForm.tsx    declarative <form toolname="add_to_cart_<sku>" toolautosubmit>
-    ApplyPromoForm.tsx   declarative <form toolname="apply_promo" toolautosubmit>   (only "123" is valid)
-    CheckoutForm.tsx     declarative <form toolname="place_order">   (no fields, no autosubmit → browser pauses)
-    ClearCartButton.tsx  useWebTool(clear_cart, requireConfirmation) + <button toolname="clear_cart">
-    catalog.ts           defineWebTool: get_cart (global), list_orders (/orders), remove_promo (while shown)
-  App.tsx             ← <WebAgentsProvider tools={catalog} global routes context={cart}> (installs the cursor)
-  store.tsx           ← app state (cart)
-  main.tsx            ← polyfill (dev) → render
+    index.ts             defineWebTool: get_cart (everywhere), list_orders (match "/orders")
+    AddToCartForm.tsx    useWebTool + React Hook Form: add_to_cart_<sku>
+    ClearCartButton.tsx  useWebTool clear_cart (destructive, requireConfirmation)
+    PlaceOrderButton.tsx useWebTool place_order (requireConfirmation)
+    ApplyPromoForm.tsx   the one declarative <form toolname="apply_promo"> (the alternative)
+  App.tsx             ← <WebAgentsProvider tools={tools}> (installs the cursor)
+  store.tsx           ← the cart: a module store
+  main.tsx            ← render (the provider loads the polyfill where it is needed)
   Devtools.tsx        ← dev only, lazy: <WebAgentsDevtools /> (or the TanStack tab with ?tanstack)
-packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool.
+packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool. Holds the polyfill (src/polyfill/).
 packages/react        ← provider + hooks: which tools are on, registered without churn
-packages/polyfill     ← dev only: document.modelContext + declarative forms + lifecycle events
+packages/polyfill     ← deprecated: re-exports core's polyfill (document.modelContext + declarative forms + events)
 packages/devtools     ← dev only: the panel that plays the agent and records every call
 ```
 
-A declarative tool is just a form with two attributes. Its submit handler answers the agent
-through `respondWith`:
-
-```jsx
-<form toolname={`add_to_cart_${sku}`} tooldescription="Add … to the cart" toolautosubmit="" onSubmit={onSubmit}>
-  <input name="qty" type="number" min="1" toolparamdescription="How many to add" />
-  <button type="submit">Add to cart</button>
-</form>
-
-function onSubmit(e) {
-  e.preventDefault();
-  const result = Promise.resolve(cart.add(sku, qty));
-  if (e.nativeEvent.agentInvoked) e.nativeEvent.respondWith(result);
-}
-```
-
-An imperative tool is a `WebTool`: one definition, typed by its schema (zod, valibot, arktype or
-plain JSON Schema), shaped like a Mastra / AI SDK tool so a server agent can reuse it. The
-provider decides when the agent sees it; the only link to the visual layer is still the
-`toolname` attribute (or the tool's `target` selector) on the element it acts on:
-
-```tsx
-const listOrders = defineWebTool({
-  id: "list_orders",
-  description: "List past orders",
-  inputSchema: z.object({ limit: z.number().int().optional() }),
-  execute: ({ limit }, ctx) => ctx.context!.orders.slice(0, limit),
-});
-
-<WebAgentsProvider tools={[getCart, listOrders, removePromo]} global={["get_cart"]} routes={{ "/orders": ["list_orders"] }} context={cart}>
-  …
-  <EnableTools names={["remove_promo"]} />   {/* on while this component is mounted */}
-</WebAgentsProvider>
-```
-
-A tool bound to component state uses `useWebTool`; `requireConfirmation` makes the agent wait for
-the person's click on the element (the cursor parks there):
-
-```tsx
-const tool = useMemo(() => defineWebTool({ id: "clear_cart", description: "…", requireConfirmation: true, execute: () => cart.clear() }), [cart]);
-useWebTool(tool, { enabled: cart.items.length > 0 });
-<button toolname="clear_cart" onClick={cart.clear}>Clear cart</button>
-```
-
-Tools registered by other libraries (e.g. `use-webmcp-tool`) still animate: the visual layer
-wraps `registerTool` whoever calls it. See [packages/react/README.md](packages/react/README.md).
+Declarative `<form toolname>` tools and `toolname` markers still work (the playground keeps one declarative form);
+they are covered in the docs' [Declarative forms](docs/more/declarative-forms.mdx) guide. Tools registered by other
+libraries (e.g. `use-webmcp-tool`) still animate: the visual layer wraps `registerTool` whoever calls it. See
+[packages/react/README.md](packages/react/README.md).
 
 How the visual layer works, its options, yield-to-user and the WebMCP quirks it handles:
 [packages/core/README.md](packages/core/README.md).
@@ -127,7 +207,7 @@ How the visual layer works, its options, yield-to-user and the WebMCP quirks it 
 ## Deploy your own
 
 Each example app deploys as its own Vercel project with a guarded `/api/chat` (origin allow-list, per-IP rate limits,
-a daily budget). Steps and the env var table: [docs/guides/deploy.md](docs/guides/deploy.md). Live demos: _coming with the first
+a daily budget). Steps and the env var table: [docs/more/deploy.md](docs/more/deploy.md). Live demos: _coming with the first
 deploy_.
 
 ## Repository

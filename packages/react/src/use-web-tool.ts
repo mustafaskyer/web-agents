@@ -1,29 +1,37 @@
 /**
- * A tool that lives in a component and closes over its state:
+ * A tool that lives in a component and closes over its state. The action is one function with two callers:
  *
- *   const tool = useMemo(() => defineWebTool({ id: "clear_cart", …, execute: () => cart.clear() }), [cart]);
- *   useWebTool(tool, { enabled: cart.items.length > 0 });
+ *   const clear = () => cart.clear();
+ *   useWebTool({ id: "clear_cart", title: "Clear cart", description: "…", requireConfirmation: true, execute: clear });
+ *   return <Button onClick={clear}>Clear cart</Button>;
  *
- * Calls always reach the latest render's `execute`, so new state never needs a
- * re-registration. The tool re-registers only when what the agent sees changes
- * (id, title, description, input schema, annotations, confirmation, target).
- * Disabling or unmounting releases it like the registry does: deferred, and
- * after in-flight calls settle (a tool that disables itself, like clear_cart
- * emptying the cart, still answers the agent).
+ * Nothing is added to the JSX: the cursor finds the control named like the tool's `title` (see `target`), and
+ * types the call's values into the fields named or labelled like its parameters (see `fields`, `fill`).
  *
- * Works without a provider; inside one it uses the provider's visuals and `context`.
+ * Calls always reach the latest render's `execute`, `target`, `fields` and `fill`, so new state never needs a
+ * re-registration. The tool re-registers only when what the agent sees changes (id, title, description, input
+ * schema, flags, confirmation, a non-function target). Disabling or unmounting releases it like the registry
+ * does: deferred, and after in-flight calls settle (a tool that disables itself, like clear_cart emptying the
+ * cart, still answers the agent).
+ *
+ * Works without a provider; inside one it uses the provider's visuals and `context`. While the provider loads the
+ * polyfill (a browser without WebMCP), the tool waits for it and registers once it is there.
  */
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   type CallTracker,
   createCallTracker,
+  defineWebTool,
   deferRelease,
   isWebMCPAvailable,
   RESPONSE_GRACE_MS,
   registerWebTool,
   type WebTool,
+  type WebToolConfig,
   webToolSignature,
+  whenModelContext,
 } from "@webmcp-agents/core";
-import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { WebAgentsContext } from "./context";
 import { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect";
 
@@ -32,10 +40,16 @@ export interface UseWebToolOptions {
   enabled?: boolean;
 }
 
-export interface WebToolState {
+export interface WebToolState<I = unknown, O = unknown> {
+  /**
+   * Call the tool the way an agent would: the cursor moves, fields are typed, confirmation applies. Resolves to
+   * what `execute` returned; rejects when the call fails or the tool is not registered (see `WebTool.invoke`).
+   * The same function on every render.
+   */
+  invoke: WebTool<I, O>["invoke"];
   /** The tool is registered with WebMCP. */
   registered: boolean;
-  /** The page has `document.modelContext` (native or polyfilled). */
+  /** The page has `document.modelContext` (native, or the polyfill once it has loaded). */
   supported: boolean;
 }
 
@@ -46,16 +60,33 @@ interface Registration {
   release?: { cancel(): void };
 }
 
-const subscribeNever = (): (() => void) => () => {};
+/** `supported` changes once, when the polyfill installs `document.modelContext`. */
+const subscribeSupport = (onChange: () => void): (() => void) => (isWebMCPAvailable() ? () => {} : whenModelContext(onChange));
 const onServer = (): boolean => false;
 
-/** Register `tool` while the component is mounted (and `enabled`). */
-export function useWebTool(tool: WebTool, { enabled = true }: UseWebToolOptions = {}): WebToolState {
+/**
+ * Register a tool while the component is mounted (and `enabled`). Pass the definition itself, as you would to
+ * `defineWebTool`, or a tool that is already defined.
+ */
+export function useWebTool<I, O>(
+  tool: WebToolConfig<I, O> & { inputSchema: StandardSchemaV1<unknown, I> },
+  options?: UseWebToolOptions,
+): WebToolState<I, O>;
+export function useWebTool<I = unknown, O = unknown>(
+  tool: WebToolConfig<I, O> | WebTool<I, O>,
+  options?: UseWebToolOptions,
+): WebToolState<I, O>;
+export function useWebTool<I, O>(
+  definition: WebToolConfig<I, O> | WebTool<I, O>,
+  { enabled = true }: UseWebToolOptions = {},
+): WebToolState<I, O> {
+  // A defined tool is used as it is; a definition is defined on every render (cheap: the schema is only read below).
+  const tool = ("kind" in definition ? definition : defineWebTool(definition)) as WebTool;
   // Only the provider's stable callbacks: its context value also changes with the pathname.
   const agents = useContext(WebAgentsContext);
   const ensureVisuals = agents?.ensureVisuals;
   const getContext = agents?.getContext;
-  const supported = useSyncExternalStore(subscribeNever, isWebMCPAvailable, onServer);
+  const supported = useSyncExternalStore(subscribeSupport, isWebMCPAvailable, onServer);
   const [registered, setRegistered] = useState(false);
   // Read in render: a bad schema throws here, at the component, not inside an effect.
   const signature = webToolSignature(tool);
@@ -80,18 +111,15 @@ export function useWebTool(tool: WebTool, { enabled = true }: UseWebToolOptions 
       current?.unregister();
       ensureVisuals?.();
       const calls = createCallTracker();
-      const live: WebTool = {
-        ...latest.current,
-        parse: (input) => latest.current.parse(input),
-        execute: (input, ctx) => latest.current.execute(input, ctx),
-        run: (input, ctx) => latest.current.run(input, ctx),
-      };
-      current = { signature, calls, unregister: registerWebTool(live, { calls, context: getContext }) };
+      // From a function: every call reads the latest render's execute, target, fields and fill.
+      current = { signature, calls, unregister: registerWebTool(() => latest.current, { calls, context: getContext }) };
       registration.current = current;
     }
-    setRegistered(isWebMCPAvailable());
     const mine = current;
+    // Registered now, or (the polyfill loading) once it is here: registerWebTool queued it before this listener.
+    const stopWaiting = whenModelContext(() => setRegistered(registration.current === mine));
     return () => {
+      stopWaiting();
       mine.release = deferRelease(
         () => {
           mine.release = undefined;
@@ -105,5 +133,6 @@ export function useWebTool(tool: WebTool, { enabled = true }: UseWebToolOptions 
     };
   }, [signature, enabled, ensureVisuals, getContext]);
 
-  return { registered, supported };
+  const invoke = useCallback((...args: unknown[]) => (latest.current.invoke as (...args: unknown[]) => Promise<unknown>)(...args), []);
+  return { invoke: invoke as WebTool<I, O>["invoke"], registered, supported };
 }

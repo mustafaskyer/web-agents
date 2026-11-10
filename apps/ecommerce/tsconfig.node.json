@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "types": ["node"] },
+  "compilerOptions": { "types": ["node"], "allowImportingTsExtensions": true },
   "include": ["api", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

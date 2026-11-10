@@ -1,61 +1,42 @@
+---
+description: "Returns the browser's current location.pathname, kept fresh without a router: use it to show something that depends on the page (a current-page marker in a navigation)."
+---
+
 # `usePathname`
 
-Returns the browser's current `location.pathname`, kept fresh without patching `history`. It is what [`<WebAgentsProvider>`](./web-agents-provider.md) matches `routes` against when you don't pass `pathname`.
+Returns the browser's current `location.pathname`, kept fresh without a router: use it to show something that depends on the page (a current-page marker in a navigation). It follows every client-side router because it is driven by core's URL tracking ([`watchPathname`](../core/watch-pathname.md)). It is the same path the provider tests tools' `match` against, so you rarely need it for tools.
+
+## Import
 
 ```ts
 import { usePathname } from "@webmcp-agents/react";
 ```
 
-## Signature
+## Example
 
-```ts
-function usePathname(): string;
-```
+Mark the current page in a navigation, with any router.
 
-## Parameters
+<include meta='title="components/nav.tsx"'>/_examples/shared/reference/react/use-pathname.tsx</include>
 
-—
+## Options
+
+None. The hook takes no arguments.
 
 ## Returns
 
-`string`: `location.pathname`. `"/"` during server rendering.
-
-## Example
-
-From `apps/playground/src/App.tsx`, trimmed. The app has no router: links call `history.pushState` and then dispatch a `popstate`, so browsers without the Navigation API see the change too.
-
-```tsx
-import { usePathname, WebAgentsProvider } from "@webmcp-agents/react";
-
-function NavLink({ to, path, children }) {
-  function onClick(e) {
-    e.preventDefault();
-    if (to === path) return;
-    history.pushState(null, "", to);
-    // pushState fires no event; the Navigation API reports it, but browsers without it need this.
-    dispatchEvent(new PopStateEvent("popstate"));
-  }
-  return <a href={to} onClick={onClick} aria-current={to === path ? "page" : undefined}>{children}</a>;
-}
-
-function Shell() {
-  const path = usePathname();
-  return (
-    <WebAgentsProvider tools={catalog} global={GLOBAL_TOOLS} routes={ROUTE_TOOLS} pathname={path}>
-      {path === "/orders" ? <Orders /> : <Shop />}
-    </WebAgentsProvider>
-  );
-}
-```
+`string`: `location.pathname`; `"/"` during server rendering. The component re-renders when it changes.
 
 ## Notes
 
-- Updates come from the Navigation API's `currententrychange` (which also sees `history.pushState`) and from `popstate`.
-- Browsers without the Navigation API (the source names Firefox < 147 and older Safari) only see back/forward here. Pass your router's pathname to `<WebAgentsProvider pathname>` instead, as `apps/ecommerce` and `apps/flights` do with React Router's `useLocation()`.
+- Updates come from the Navigation API's `currententrychange`, or, without it (Firefox before 147, older Safari), from `history.pushState` / `replaceState` (patched only while a component watches), `popstate` and `hashchange`.
+- Notices arrive just after the navigation call returns, never inside it (Next.js changes the URL inside a React insertion effect).
+- A hash route's path is not `location.pathname`: `usePathname()` stays on the real path. Tools' `match` does read `#/orders` as `/orders`.
 - Works without a provider.
 
 ## See also
 
+- [Where a tool is on](../../build/where-a-tool-is-on.mdx), how `match` reads the URL
 - [`WebAgentsProvider`](./web-agents-provider.md)
-- [`useWebAgents`](./use-web-agents.md) (`pathname`, the value routes actually match)
+- [`useWebAgents`](./use-web-agents.md) (`pathname`, the value tools are matched against)
+- [`watchPathname`](../core/watch-pathname.md)
 - [`matchPath`](../core/match-path.md)

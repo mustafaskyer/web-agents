@@ -21,20 +21,34 @@ export interface ToolListProps {
 }
 
 function Badges({ tool }: { tool: ToolView }) {
-  const a = tool.annotations;
   return (
     <span className="badges">
       <span className="badge" title={tool.kind === "declarative" ? "A <form toolname> on the page" : "Registered with registerTool"}>
         {tool.kind === "declarative" ? "form" : "imperative"}
       </span>
-      {a.readOnlyHint === true && <span className="badge">read-only</span>}
-      {a.destructiveHint === true && <span className="badge warn">destructive</span>}
+      {tool.flags.map((flag) => (
+        <span key={flag.flag} className={flag.warn ? "badge warn" : "badge"} title={flag.title}>
+          {flag.label}
+        </span>
+      ))}
       {tool.confirms && (
-        <span className="badge wait" title="Waits for the user to click its submit button">
+        <span className="badge wait" title="Waits for the user to click its control before it runs">
           confirm
         </span>
       )}
-      {!tool.onScreen && (
+      {!tool.registered && (
+        <span
+          className="badge warn"
+          title={
+            tool.fits
+              ? "In the catalog, not on right now: not available, or nothing on the page has turned it on"
+              : `Not on here: its match (${tool.match}) does not fit this path`
+          }
+        >
+          off here
+        </span>
+      )}
+      {!tool.onScreen && !tool.control && (
         <span className="badge" title="No element with this toolname on the page">
           off screen
         </span>
@@ -42,6 +56,52 @@ function Badges({ tool }: { tool: ToolView }) {
     </span>
   );
 }
+
+/** What the cursor will do for a tool: its control, the fields it types, where it is on. */
+function Resolved({ tool }: { tool: ToolView }) {
+  const { control, fields = [], match } = tool;
+  if (!control && match === undefined) return null;
+  return (
+    <dl className="resolved" aria-label={`Where ${tool.name} acts`}>
+      {control && (
+        <div>
+          <dt>Control</dt>
+          <dd className={control.warn ? "warn" : undefined} title={TITLES[control.by]}>
+            {control.label}
+          </dd>
+        </div>
+      )}
+      {fields.length > 0 && (
+        <div>
+          <dt>Fields</dt>
+          <dd>
+            {fields.map((f, i) => (
+              <span key={f.name} className={f.field ? undefined : "muted"}>
+                {i > 0 && ", "}
+                <code>{f.name}</code> → {f.field ?? "not typed"}
+              </span>
+            ))}
+          </dd>
+        </div>
+      )}
+      {match !== undefined && (
+        <div>
+          <dt>Match</dt>
+          <dd className={tool.fits ? undefined : "warn"}>
+            <code>{match}</code> · {tool.fits ? "fits this path" : "not this path"}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+const TITLES: Record<NonNullable<ToolView["control"]>["by"], string> = {
+  target: "Found by the tool's target",
+  marker: 'Found by a toolname="…" marker',
+  name: "Found by the tool's title (or its id as words) among buttons, links, tabs, menu items and switches",
+  call: "A function target: the control is found from each call's input",
+};
 
 /**
  * Run a tool straight from its row: with the arguments it last ran with from the panel, else the schema's defaults.
@@ -93,8 +153,9 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
   if (!supported) {
     return (
       <div className="empty" role="status">
-        <strong>document.modelContext isn't available.</strong>
-        Import <code>@webmcp-agents/polyfill/auto</code> in development, or use a Chrome build with WebMCP.
+        <strong>document.modelContext isn't available yet.</strong>
+        <code>&lt;WebAgentsProvider&gt;</code> and <code>createWebAgents</code> load the polyfill in a browser without WebMCP, unless{" "}
+        <code>polyfill</code> is <code>false</code>.
       </div>
     );
   }
@@ -152,7 +213,7 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
                     </span>
                   </button>
                   <Badges tool={tool} />
-                  <QuickRun store={store} tool={tool} args={argsFor(tool)} disabled={tool === gone} />
+                  <QuickRun store={store} tool={tool} args={argsFor(tool)} disabled={tool === gone || !tool.registered} />
                   <button
                     type="button"
                     className="btn icon ghost"
@@ -164,13 +225,14 @@ export function ToolList({ store, runner, onRunner }: ToolListProps) {
                     <LocateIcon />
                   </button>
                 </div>
+                <Resolved tool={tool} />
                 {expanded && runner && (
                   <ToolRunner
                     key={runner.key}
                     id={runnerId}
                     store={store}
                     tool={tool}
-                    gone={tool === gone}
+                    gone={tool === gone || !tool.registered}
                     initial={runner.args ?? lastArgs.current.get(tool.name) ?? defaultValueFor(tool.schema)}
                     onRun={(args) => lastArgs.current.set(tool.name, args)}
                   />

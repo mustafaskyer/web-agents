@@ -2,42 +2,42 @@
 
 /**
  * Puts the landing page's tools on `document.modelContext` and the agent cursor on the page, like any app built on
- * the packages. It renders nothing of its own and wraps nothing: the page is server-rendered and its tools are plain
- * elements, so the provider can mount after the polyfill has loaded without re-rendering the page.
+ * the packages: `<WebAgentsProvider tools={tools}>`. It renders nothing of its own and wraps nothing: the page is
+ * server-rendered and its tools find their controls by name. Where the browser has no WebMCP the provider loads the
+ * polyfill itself, and the tools register once it is there.
  *
  * On the home page it also plays the first-visit introduction, which is a real tool call: `show_tools`, the same
  * one a visitor can repeat from the row of tools under the title. It points at that row and touches nothing else.
  */
-import { executeTool, isWebMCPAvailable } from "@webmcp-agents/core";
-import { WebAgentsProvider } from "@webmcp-agents/react";
-import type { WebTool } from "@webmcp-agents/react";
-import { useEffect, useMemo, useState } from "react";
+import { whenModelContext } from "@webmcp-agents/core";
+import { type WebTool, type WebToolCatalog, WebAgentsProvider } from "@webmcp-agents/react";
+import { useEffect, useState } from "react";
+import { homeTools } from "./site-tools";
+import { toolsRow } from "./tools-row";
 
-let booting: Promise<void> | undefined;
+let devtools: Promise<void> | undefined;
 
-/** Load what the tools need in this browser: the polyfill where WebMCP is missing, the devtools in development. Once per page. */
-export function bootAgent(): Promise<void> {
-  booting ??= (async () => {
-    // Browsers without native WebMCP get the polyfill; it must exist before the first tool registers.
-    if (!isWebMCPAvailable()) await import("@webmcp-agents/polyfill/auto");
-    if (import.meta.env.DEV) {
-      // dev only: the panel (Alt+Shift+A) and window.agent.run(name, args)
-      const { installWebAgentsDevtools } = await import("@webmcp-agents/devtools");
-      installWebAgentsDevtools();
-    }
-  })();
-  return booting;
+/** Development only: the devtools panel (Alt+Shift+A) and window.agent.invoke(name, args). Once per page. */
+function installDevtools(): Promise<void> {
+  devtools ??= import("@webmcp-agents/devtools").then(({ installWebAgentsDevtools }) => {
+    installWebAgentsDevtools();
+  });
+  return devtools;
 }
 
+/** Resolve once the page has `document.modelContext`: native, or the polyfill the provider loads. */
+const modelContextReady = (): Promise<unknown> => new Promise((resolve) => whenModelContext(resolve));
+
 /**
- * Run one of the page's tools the way an agent does, once the page is ready for it. The provider registers the tools
- * a moment after it mounts, so an early call waits for the tool instead of failing.
+ * Call one of the page's tools the way an agent does (`tool.invoke`), once the page is ready for it. The provider
+ * registers the tools a moment after it mounts (after the polyfill, in a browser without WebMCP), so an early call
+ * waits for the tool instead of failing.
  */
-export async function runTool(name: string, args: Record<string, unknown>, signal?: AbortSignal) {
-  await bootAgent();
+export async function invokeWhenReady(tool: WebTool, args: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  await modelContextReady();
   for (let attempt = 0; ; attempt++) {
     try {
-      return await executeTool(name, args, { signal });
+      return await tool.invoke(args, { signal });
     } catch (err) {
       const early = err instanceof Error && /Unknown tool|not available/.test(err.message);
       if (!early || attempt >= 20) throw err;
@@ -87,7 +87,7 @@ async function introduce(signal: AbortSignal): Promise<void> {
   }
   if (matchMedia("(prefers-reduced-motion: reduce)").matches || location.hash || scrollY > 40) return;
   if (innerWidth < 768) return; // on a phone the hand is the person's own
-  const row = document.querySelector('[toolname="show_tools"]');
+  const row = toolsRow();
   if (!row || row.getBoundingClientRect().bottom > innerHeight) return;
 
   introduced = true;
@@ -97,7 +97,7 @@ async function introduce(signal: AbortSignal): Promise<void> {
     return;
   }
   try {
-    await runTool("show_tools", {}, signal);
+    await invokeWhenReady(homeTools.showTools, {}, signal);
     localStorage.setItem(SEEN_KEY, String(Date.now()));
   } catch {
     // cancelled by leaving the page, or storage is blocked: nothing to tell the visitor
@@ -105,25 +105,23 @@ async function introduce(signal: AbortSignal): Promise<void> {
 }
 
 export interface AgentLayerProps {
-  /** The page's imperative tools (site-tools.ts); all are on while the page is. */
-  tools: readonly WebTool[];
+  /** The page's tools (site-tools.ts); all are on while the page is. */
+  tools: WebToolCatalog;
   /** Play the first-visit introduction (`show_tools`). Only the home page has the row it points at. */
   intro?: boolean;
   /** Run once the tools are registered, e.g. the Demos page replaying the clip its URL names. */
   onReady?: () => void;
 }
 
+/** "Mu" is who the cursor says it is: the tag beside the arrow. */
+const VISUALS = { name: "Mu" };
+
 export const AgentLayer = ({ tools, intro = false, onReady }: AgentLayerProps) => {
+  // The tools are registered once the page has document.modelContext: the provider's own listener ran first.
   const [ready, setReady] = useState(false);
-  const ids = useMemo(() => tools.map((tool) => tool.id), [tools]);
+  useEffect(() => whenModelContext(() => setReady(true)), []);
   useEffect(() => {
-    let alive = true;
-    void bootAgent().then(() => {
-      if (alive) setReady(true);
-    });
-    return () => {
-      alive = false;
-    };
+    if (import.meta.env.DEV) void installDevtools();
   }, []);
 
   useEffect(() => {
@@ -135,7 +133,5 @@ export const AgentLayer = ({ tools, intro = false, onReady }: AgentLayerProps) =
     return () => leaving.abort();
   }, [ready, intro, onReady]);
 
-  if (!ready) return null;
-  // "Mu" is who the cursor says it is: the tag beside the arrow.
-  return <WebAgentsProvider tools={tools} global={ids} visuals={{ name: "Mu" }} />;
+  return <WebAgentsProvider tools={tools} visuals={VISUALS} />;
 };

@@ -106,14 +106,14 @@ export default function Demos({ year, calls }: DemosProps) {
             Give your own page its first tool
           </h2>
           <p className="demos__lede">
-            Define it with defineWebTool, put toolname on the element it acts on, and the cursor shows every call.{" "}
-            <a href={QUICKSTART}>Quickstart</a> · <a href={`${DOCS}/concepts/tools`}>Tools</a>
+            Call useWebTool beside the button it belongs to, name it like that button, and the cursor shows every call.{" "}
+            <a href={QUICKSTART}>Quickstart</a> · <a href={`${DOCS}/build/define-a-tool`}>Define a tool</a>
           </p>
           <InstallCommand />
         </section>
       </main>
 
-      <SiteFooter page="demos" year={year} />
+      <SiteFooter year={year} />
 
       <AgentLayer tools={demosTools} onReady={onReady} />
     </MotionBoundary>

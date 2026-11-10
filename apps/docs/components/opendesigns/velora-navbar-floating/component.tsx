@@ -2,7 +2,7 @@
 
 import { ArrowRight01Icon, Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { LinkButton, buttonVariants } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,25 +70,6 @@ const NavAction = ({
       )}
     </>
   );
-  // A link a tool acts on is a plain anchor carrying `toolname`. React Aria drops attributes it does not know, and
-  // its press handling re-fires a click that a confirm gate swallowed, which would follow the link anyway.
-  if (action.toolName) {
-    return (
-      <a
-        href={action.href}
-        toolname={action.toolName}
-        data-slot="button"
-        data-variant={variant}
-        data-size="touch"
-        className={cn(
-          buttonVariants({ size: "touch", variant }),
-          "max-w-full"
-        )}
-      >
-        {content}
-      </a>
-    );
-  }
   return (
     <LinkButton
       href={action.href}
@@ -229,35 +210,18 @@ export const NavbarFloating = ({
             <ul>
               {links.map((link) => (
                 <li key={link.id}>
-                  {link.toolName ? (
-                    // a tool's link: a plain anchor with `toolname` (see NavAction)
-                    <a
-                      href={link.href}
-                      toolname={link.toolName}
-                      aria-current={activeHref === link.href ? "page" : undefined}
-                      data-slot="button"
-                      data-variant="ghost"
-                      data-size="touch"
-                      className={cn(buttonVariants({ size: "touch", variant: "ghost" }), "max-w-full")}
-                    >
-                      <span className="min-w-0 text-balance whitespace-normal">
-                        {link.label}
-                      </span>
-                    </a>
-                  ) : (
-                    <LinkButton
-                      href={link.href}
-                      isDisabled={link.disabled}
-                      aria-current={activeHref === link.href ? "page" : undefined}
-                      size="touch"
-                      variant="ghost"
-                      className="max-w-full"
-                    >
-                      <span className="min-w-0 text-balance whitespace-normal">
-                        {link.label}
-                      </span>
-                    </LinkButton>
-                  )}
+                  <LinkButton
+                    href={link.href}
+                    isDisabled={link.disabled}
+                    aria-current={activeHref === link.href ? "page" : undefined}
+                    size="touch"
+                    variant="ghost"
+                    className="max-w-full"
+                  >
+                    <span className="min-w-0 text-balance whitespace-normal">
+                      {link.label}
+                    </span>
+                  </LinkButton>
                 </li>
               ))}
             </ul>

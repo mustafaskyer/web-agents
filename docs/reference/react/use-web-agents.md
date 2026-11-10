@@ -1,69 +1,46 @@
+---
+description: "Reads the nearest <WebAgentsProvider>: its tool registry, runtime cursor controls and pathname."
+---
+
 # `useWebAgents`
 
-Reads the nearest [`<WebAgentsProvider>`](./web-agents-provider.md): its tool registry, cursor controls and pathname. `useOptionalWebAgents` does the same but returns `null` outside a provider, for UI that also works without one (the devtools use it).
+Reads the nearest [`<WebAgentsProvider>`](./web-agents-provider.md): its tool registry, runtime cursor controls and pathname. Reach for it when a component has to change the cursor (spotlight, yield) or list the catalog's tools. `useOptionalWebAgents` does the same but returns `null` outside a provider, for UI that also works without one (the devtools use it).
+
+## Import
 
 ```ts
 import { useOptionalWebAgents, useWebAgents } from "@webmcp-agents/react";
 import type { WebAgentsContextValue, WebAgentsVisuals } from "@webmcp-agents/react";
 ```
 
-## Signature
-
-```ts
-function useWebAgents(): WebAgentsContextValue;
-function useOptionalWebAgents(): WebAgentsContextValue | null;
-
-interface WebAgentsContextValue {
-  registry: ToolRegistry;
-  visuals: WebAgentsVisuals | null;
-  pathname: string;
-  getContext(): unknown;
-  ensureVisuals(): void;
-}
-
-type WebAgentsVisuals = Pick<AgentVisuals, "setSpotlight" | "setYieldToUser">;
-```
-
-## Parameters
-
-—
-
-## Returns
-
-`WebAgentsContextValue`:
-
-| Name | Type | Description |
-|---|---|---|
-| `registry` | `ToolRegistry` | The provider's tool registry (its `tools` catalog). See [`createToolRegistry`](../core/create-tool-registry.md). |
-| `visuals` | `WebAgentsVisuals \| null` | Runtime control of the cursor the provider installed: `setSpotlight(value)` and `setYieldToUser(value)`. `null` with `visuals={false}`. |
-| `pathname` | `string` | The pathname routes are matched against (the `pathname` prop, or the browser's). |
-| `getContext()` | `() => unknown` | The latest `context` prop, read when a tool runs. |
-| `ensureVisuals()` | `() => void` | Install the cursor now if it isn't yet. Imperative tools must register after it to be animated. |
-
-`useWebAgents` throws `"useWebAgents must be used inside <WebAgentsProvider>"` outside a provider. `useOptionalWebAgents` returns `null` there.
-
 ## Example
 
-Turn the spotlight on at runtime:
+A button that turns the spotlight on at runtime. It sits inside the provider; with `visuals={false}` there is no cursor and `visuals` is `null`.
 
-```tsx
-import { useWebAgents } from "@webmcp-agents/react";
+<include meta='title="components/spotlight-button.tsx"'>/_examples/shared/reference/react/use-web-agents.tsx</include>
 
-function SpotlightToggle() {
-  const { visuals } = useWebAgents();
-  if (!visuals) return null; // visuals={false}
-  return <button onClick={() => visuals.setSpotlight(true)}>Spotlight</button>;
-}
-```
-
-Optional provider, from `packages/devtools/src/react.tsx` (trimmed):
+Where a component must also work without a provider, ask for the optional value:
 
 ```tsx
 const ctx = useOptionalWebAgents();
-// The provider installs its cursor lazily; the saved settings need it now.
-ctx?.ensureVisuals();
-startDevtools({ ...options, visuals: options.visuals ?? ctx?.visuals ?? null });
+ctx?.ensureVisuals(); // the provider installs its cursor lazily
 ```
+
+## Options
+
+Neither hook takes arguments: they return the nearest provider's value.
+
+## Returns
+
+A `WebAgentsContextValue`. `useWebAgents` throws `"useWebAgents must be used inside <WebAgentsProvider>"` outside a provider; `useOptionalWebAgents` returns `null` there.
+
+| Name | Type | Description |
+|---|---|---|
+| `registry` | `ToolRegistry` | The registry behind the provider's [`createWebAgents`](../core/create-web-agents.md): its `tools` catalog, which ids are on. See [`createToolRegistry`](../core/create-tool-registry.md). |
+| `visuals` | `WebAgentsVisuals \| null` | Runtime control of the cursor the provider installed: `setSpotlight(value)` and `setYieldToUser(value)`, each taking a boolean or its options object. `null` with `visuals={false}`. |
+| `pathname` | `string` | The pathname tools are matched against: the earlier-form `pathname` prop, else the browser's. |
+| `getContext()` | `() => unknown` | The latest earlier-form `context` prop, read when a tool runs. |
+| `ensureVisuals()` | `() => void` | Install the cursor now if it is not yet. A tool must register after it to be animated. |
 
 ## Notes
 
@@ -73,6 +50,7 @@ startDevtools({ ...options, visuals: options.visuals ?? ctx?.visuals ?? null });
 
 ## See also
 
+- [Add the chat](../../build/add-the-chat.mdx) and [Devtools](../../build/devtools.mdx) read the provider this way
 - [`WebAgentsProvider`](./web-agents-provider.md)
 - [`installAgentVisuals`](../core/install-agent-visuals.md) (`AgentVisuals`, `SpotlightOptions`, `YieldOptions`)
 - [`createToolRegistry`](../core/create-tool-registry.md)

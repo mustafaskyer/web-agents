@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { webAgentsChatDev } from "@webmcp-agents/chat/vite";
 import { defaultClientConditions, defineConfig } from "vite";
-import { shopper } from "./src/agents";
+import { shopper } from "./src/agents.ts";
 
 export default defineConfig({
   // /api/chat in dev; reads ANTHROPIC_API_KEY from .env.local on the server side only

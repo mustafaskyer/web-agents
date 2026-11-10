@@ -1,7 +1,7 @@
 /**
  * A browser-window frame on a padded "well", for a clip of one of the example apps. The clip plays by itself
- * (muted, looping); the frame says which app and which page it shows. The frame's bar is what `show_demo` acts on
- * on the Demos page (`data-demo-bar`): `showDemo(id)` replays that clip and draws an outline round its frame.
+ * (muted, looping); the frame says which app and which page it shows. On the Demos page `show_demo` acts on a frame
+ * (`demoFrame(id)`): `showDemo(id)` replays that clip and draws an outline round it.
  */
 import type { ReactNode } from "react";
 import { drawOutline } from "./outline";
@@ -24,7 +24,7 @@ export interface DemoFrameProps {
 export const DemoFrame = ({ demo, address, sources, poster, description, children }: DemoFrameProps) => (
   <figure className="demo-well">
     <div className="demo-frame" data-demo={demo}>
-      <div className="demo-frame__bar" data-demo-bar={demo}>
+      <div className="demo-frame__bar">
         <span className="demo-frame__dots" aria-hidden="true">
           <i />
           <i />
@@ -43,12 +43,16 @@ export const DemoFrame = ({ demo, address, sources, poster, description, childre
   </figure>
 );
 
+/** A demo's frame on this page, if it has one. */
+export const demoFrame = (demo: string): HTMLElement | null =>
+  document.querySelector<HTMLElement>(`.demo-frame[data-demo="${CSS.escape(demo)}"]`);
+
 /**
  * Bring a demo's frame into view, replay its clip from the first frame and outline the frame. False when this page
  * has no frame for `demo`.
  */
 export function showDemo(demo: string): boolean {
-  const frame = document.querySelector<HTMLElement>(`.demo-frame[data-demo="${CSS.escape(demo)}"]`);
+  const frame = demoFrame(demo);
   if (!frame) return false;
   const box = frame.getBoundingClientRect();
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;

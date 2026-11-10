@@ -13,7 +13,7 @@ import styles from "./Checkout.module.css";
 
 export function Checkout() {
   const cart = useCart();
-  // The placed order: placing it empties the cart, but the page keeps showing it until it moves to the confirmation.
+  // The placed order: placing it empties the cart, but the page keeps showing it (no empty state) until it moves on.
   const [placed, setPlaced] = useState<Order | null>(null);
   useTitle("Checkout");
   const { lines, totals, promo } = placed ?? cart;

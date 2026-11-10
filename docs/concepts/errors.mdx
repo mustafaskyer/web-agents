@@ -1,13 +1,17 @@
 ---
 title: Errors
-description: Every failed tool call carries one of seven error codes, readable by the model and by code, so the agent knows whether to retry, fix its input, or ask the person.
+description: Every failed tool call carries one of seven error codes, readable by the model and by code, so the agent knows whether to retry, fix its input or ask the person.
+related:
+  - /concepts/tool-descriptions
+  - /reference/core/web-tool-error
+  - /build/call-a-tool
 ---
 
-A tool's failure is not an exception that ends the run. It's a **result the agent reads**, and the same text the person
+A tool's failure is not an exception that ends the run. It is a **result the agent reads**, and the same text the person
 sees on the page. Every failure says why with one code, in two places:
 
-- in the text every model reads: `Error [invalid_input]: Invalid input for add_to_cart: qty: Too small`
-- in `structuredContent.error` as `{ code, retryable }`, for the devtools, the chat and any code that branches on it.
+- **In the text every model reads:** `Error [invalid_input]: Invalid input for add_to_cart: qty: Too small`
+- **In `structuredContent.error`,** as `{ code, retryable }`, for the devtools, the chat and any code that branches on it.
 
 ## The codes
 
@@ -19,9 +23,9 @@ sees on the page. Every failure says why with one code, in two places:
 | `unavailable` | no such tool on this page right now | get to the page that has it |
 | `invalid_input` | the arguments were wrong | fix them and retry |
 | `needs_user` | the person has to choose or confirm | ask them |
-| `failed` | the tool couldn't do it | read the message |
+| `failed` | the tool could not do it | read the message |
 
-## Choosing the code in a WebTool
+## Choosing the code
 
 Throw a `WebToolError` with a code and a message that says how to fix it:
 
@@ -36,23 +40,26 @@ execute: ({ slug }) => {
 };
 ```
 
-Codes you don't choose are filled in for you: any other throw is `failed`, input that fails the schema is
-`invalid_input`, and a confirmation with nothing to click is `unavailable`.
+Codes you do not choose are filled in for you:
 
-## In a declarative form
+| Situation | Code |
+|---|---|
+| Any other throw | `failed` |
+| Input that fails the schema | `invalid_input` |
+| A confirmation with nothing to click, or with several controls that match its name | `unavailable` |
+| The page changed under the call | `interrupted` |
 
-A form answers with text. Start it with the code and the agent and the chat read it the same way:
+## Calling a tool yourself
 
-```ts
-submit.respondWith(Promise.resolve('Error [needs_user]: Pick a size first: S, M or L.'));
-```
-
-A plain `"Error: …"` without a code is read as `failed`.
+A call you make with [`invoke`](/build/call-a-tool) rejects with a `WebToolError` that carries the same code, so
+`try { await tool.invoke(…) } catch (err) { err.code }` reads what an agent would have read. A form's validation error
+is the agent's answer too: see [Tools with input](/build/tools-with-input#validation-errors-are-the-answer). A
+[declarative form](/more/declarative-forms#errors) answers with text that starts with the code.
 
 ## Time limits and waiting for the person
 
-The chat stops a tool that hasn't answered in 30 s (`TOOL_TIMEOUT_MS`) with `timeout`, and cancels the call. That
-clock stops for good once the tool waits for the person, either on a confirmation or because the tool called
+The chat stops a tool that has not answered in 30 s (`TOOL_TIMEOUT_MS`) with `timeout`, and cancels the call. That clock
+stops for good once the tool waits for the person, either on a confirmation or because the tool called
 [`waitingForUser`](/reference/core/waiting-for-user):
 
 ```ts

@@ -9,11 +9,11 @@ export interface CounterProps {
   min: number;
   max: number;
   onChange(value: number): void;
-  paramDescription: string;
+  onBlur?(): void;
 }
 
-/** A labelled number field with −/+ buttons. The input is the real (agent-fillable) field. */
-export function Counter({ name, label, hint, value, min, max, onChange, paramDescription }: CounterProps) {
+/** A labelled number field with −/+ buttons. The input is the real field: a tool's parameter named like it is typed there. */
+export function Counter({ name, label, hint, value, min, max, onChange, onBlur }: CounterProps) {
   return (
     <div className={styles.counter}>
       <label htmlFor={`count-${name}`}>
@@ -34,7 +34,7 @@ export function Counter({ name, label, hint, value, min, max, onChange, paramDes
           className="tabular"
           value={Number.isNaN(value) ? "" : value}
           onChange={(e) => onChange(e.target.valueAsNumber)}
-          toolparamdescription={paramDescription}
+          onBlur={onBlur}
         />
         <button type="button" aria-label={`More ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(value + 1)}>
           <PlusIcon />
