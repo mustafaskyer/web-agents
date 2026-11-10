@@ -26,7 +26,7 @@ export function useWebAgents(): WebAgentsContextValue {
   return value;
 }
 
-/** Like `useWebAgents`, but null outside a provider: for UI that also works without one (devtools). */
+/** Like `useWebAgents`, but null outside a provider: for UI that also works without one. */
 export function useOptionalWebAgents(): WebAgentsContextValue | null {
   return useContext(WebAgentsContext);
 }

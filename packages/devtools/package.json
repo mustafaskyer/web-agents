@@ -31,15 +31,11 @@
   },
   "peerDependencies": {
     "@tanstack/react-devtools": ">=0.10",
-    "@webmcp-agents/react": "workspace:^",
     "react": ">=18",
     "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-devtools": {
-      "optional": true
-    },
-    "@webmcp-agents/react": {
       "optional": true
     }
   },
@@ -52,7 +48,6 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
-    "@webmcp-agents/react": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.7",

@@ -36,6 +36,7 @@ The APIs a reader meets first: define a tool, put the catalog on the page, find 
 | [`locate`](./locate.md) | Find a control by role and accessible name. Includes `ToolLocator`, `FieldTarget`. |
 | [`matchPath`](./match-path.md) | Match a pathname against a route pattern, as a tool's `match` does. |
 | [`watchPathname`](./watch-pathname.md) | Call a listener whenever the URL changes without a page load. |
+| [`currentAgentVisuals`](./current-agent-visuals.md) | The cursor controls of the started `createWebAgents` or provider, for UI beside it (the devtools' Settings). |
 | [`inspectTools`](./inspect-tools.md) | Where each tool's cursor would go and what it would type, as the cursor finds it. Includes `ToolInspection`, `ToolControls`. |
 
 ## Visual layer

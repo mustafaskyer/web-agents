@@ -40,7 +40,6 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@webmcp-agents/devtools": "workspace:*",
     "tailwindcss": "^4",
     "typescript": "~6.0.3"
   },

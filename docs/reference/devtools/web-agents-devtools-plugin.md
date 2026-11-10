@@ -15,7 +15,7 @@ import type { WebAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 ## Example
 
-Pass the plugin to `<TanStackDevtools>`, inside your `<WebAgentsProvider>` so Settings can drive the cursor. This needs `@tanstack/react-devtools` installed.
+Pass the plugin to `<TanStackDevtools>`, inside a `<WebAgentsProvider devtools={false}>`: Settings drive its cursor, and its own floating panel stays off. This needs `@tanstack/react-devtools` and `@webmcp-agents/devtools` installed.
 
 ```tsx
 import { TanStackDevtools } from "@tanstack/react-devtools";
@@ -32,7 +32,7 @@ import { webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `visuals` | `DevtoolsVisuals \| null` | the nearest `<WebAgentsProvider>`'s cursor, else `null` | What the Spotlight and Yield switches control. |
+| `visuals` | `DevtoolsVisuals \| null` | the started `<WebAgentsProvider>`'s cursor ([`currentAgentVisuals()`](../core/current-agent-visuals.md)), else `null` | What the Spotlight and Yield switches control. |
 | `initialSettings` | `Partial<DevtoolsSettings>` | not said | Starting settings, below what the person saved. Pass `spotlight` matching your visuals. |
 | `eventClient` | `boolean` | `true` | Bridge the store to TanStack Devtools' event bus. |
 
@@ -42,7 +42,7 @@ A `WebAgentsDevtoolsPlugin`: `{ id: "web-agents", name: "Web Agents", render: <P
 
 ## Notes
 
-- Render `<TanStackDevtools>` inside `<WebAgentsProvider>`, so Settings can drive the cursor.
+- Render `<TanStackDevtools>` inside `<WebAgentsProvider devtools={false}>`, so Settings can drive the cursor and the provider's floating panel does not show as well.
 - `@tanstack/react-devtools` (>= 0.10) is an optional peer dependency. Install it when you use the plugin.
 - The store also posts `web-agents:state` and `web-agents:agent-event` on TanStack's event bus. See [`webAgentsEventClient`](./event-client.md).
 - The embedded Settings tab hides the layout options (dock and size): the host owns the layout.

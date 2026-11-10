@@ -38,7 +38,7 @@ An unsubscribe function: `() => void`. When the last watcher leaves, everything 
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the `match` that follows the URL
+- [Tools across your app](../../build/tools-across-your-app.mdx), the `match` that follows the URL
 - [`createWebAgents`](./create-web-agents.md), which watches for you
 - [`usePathname`](../react/use-pathname.md), the same in React
 - [`matchPath`](./match-path.md), testing a path against a pattern

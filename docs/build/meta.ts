@@ -8,7 +8,7 @@ export default defineMeta({
     "define-a-tool",
     "tools-with-input",
     "confirm-before-it-runs",
-    "where-a-tool-is-on",
+    "tools-across-your-app",
     "common-tools",
     "call-a-tool",
     "define-an-agent",

@@ -35,7 +35,7 @@ None. The hook takes no arguments.
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the page that teaches `match` and `availableTools`
+- [Tools across your app](../../build/tools-across-your-app.mdx), the page that teaches `match` and `availableTools`
 - [`WebAgentsProvider`](./web-agents-provider.md)
 - [`useEnableTools` / `EnableTools`](./use-enable-tools.md)
 - [`createToolRegistry`](../core/create-tool-registry.md)

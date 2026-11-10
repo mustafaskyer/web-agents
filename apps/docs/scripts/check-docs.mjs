@@ -6,7 +6,8 @@
  *   1. A page written in <View> blocks has exactly the four framework views, in order.
  *   2. An installation page has the six step headings, in order, and its "Next" link carries its framework; neither it
  *      nor a file it includes mentions shadcn/ui or imports `@/components/ui/*` (installation is the framework only). A Build
- *      page has the five parts: "A complete example" in views first, then "Try it", "Options you'll use most", "Next".
+ *      page has its parts: "A complete example" in views first, then "Try it", "Options you'll use most", and no "Next"
+ *      card (Blume's pager links the next page; only the path's last page, which has none, ends with "## Next").
  *   3. A reference page on the template has the template's sections, in order (an allow-list names the pages not
  *      migrated yet; step C of the docs plan empties it).
  *   4. On a migrated page, a code block that shows a file carries its name, and a long one is an <include> of a
@@ -304,10 +305,17 @@ for (const page of pages.filter((p) => p.rel.startsWith("(get-started)/installat
 
 /** A Build page's five parts: the definition (prose before the first heading), then these H2s around its own sections. */
 const BUILD_FIRST = "A complete example";
-const BUILD_LAST = ["Try it", "Options you'll use most", "Next"];
+const BUILD_LAST = ["Try it", "Options you'll use most"];
+/** The path's last page: its pager leaves the path, so it ends with "## Next" and the places to go from here. */
+const BUILD_END = "build/devtools.mdx";
 
 for (const page of pages.filter((p) => p.rel.startsWith("build/") && !GUIDES_NOT_MIGRATED.has(p.rel))) {
-  const sections = h2s(page.text).map((h) => h.title);
+  const all = h2s(page.text).map((h) => h.title);
+  const last = page.rel === BUILD_END;
+  if (last && all.at(-1) !== "Next") fail(page.rel, 'the last page of the path ends with "## Next": where to go from here');
+  if (!last && all.includes("Next"))
+    fail(page.rel, 'no "## Next" on a Build page: Blume\'s Previous / Next pager already links the next page of the path');
+  const sections = last ? all.slice(0, -1) : all;
   if (sections[0] !== BUILD_FIRST) fail(page.rel, `a Build page starts with "## ${BUILD_FIRST}"; it starts with "## ${sections[0]}"`);
   if (sections.slice(-BUILD_LAST.length).join("|") !== BUILD_LAST.join("|"))
     fail(
@@ -315,7 +323,6 @@ for (const page of pages.filter((p) => p.rel.startsWith("build/") && !GUIDES_NOT
       `a Build page ends with ${BUILD_LAST.map((t) => `"## ${t}"`).join(", ")}; it ends with ${sections.slice(-3).join(", ")}`,
     );
   if (!/<View\s+title=/.test(page.text)) fail(page.rel, "a Build page shows its complete example in the four framework views");
-  if (!/<Card [^>]*href="\/(build|concepts|more)\//.test(page.text)) fail(page.rel, 'a Build page ends with a "Next" card');
 }
 
 // ---------- 3. reference template ----------

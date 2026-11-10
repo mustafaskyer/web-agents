@@ -44,7 +44,7 @@ Nothing. `EnableTools` renders `null`.
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the way new code scopes a tool
+- [Tools across your app](../../build/tools-across-your-app.mdx), the way new code scopes a tool
 - [`WebAgentsProvider`](./web-agents-provider.md)
 - [`useEnabledTools`](./use-enabled-tools.md)
 - [`useWebTool`](./use-web-tool.md) (a tool defined inside a component: on while it is mounted)

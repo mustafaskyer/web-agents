@@ -32,15 +32,11 @@ npx astro add react
 
 ## Install the packages
 
-The agent cursor and the React bindings, then the devtools panel for development. Browsers without WebMCP need
-nothing more: the provider loads a polyfill for them.
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
 
 ```package-install
 npm install @webmcp-agents/core @webmcp-agents/react
-```
-
-```package-install
-npm install -D @webmcp-agents/devtools
 ```
 
 ## Add the styles
@@ -56,7 +52,7 @@ import "@webmcp-agents/core/cursor.css"; // [!code highlight]
 ## Add the provider
 
 `<WebAgentsProvider>` installs the cursor and registers your tools; in a browser without WebMCP it loads a polyfill
-first, by itself. In development this component also loads the devtools. It goes on a page in the next step.
+first, by itself, and in development it installs the devtools panel. It goes on a page in the next step.
 
 <include meta='title="src/components/providers.tsx"'>/_examples/astro/src/components/providers.tsx</include>
 
@@ -100,7 +96,7 @@ empty."
 
 ## Next
 
-<Card title="Define a tool" href="/build/define-a-tool?view=Astro" icon="arrow-right">
+<Card title="Define a tool" href="/build/define-a-tool?view=Astro" arrow>
   What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
   not enough.
 </Card>

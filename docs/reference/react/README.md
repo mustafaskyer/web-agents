@@ -27,13 +27,13 @@ A tool that lives in a component is on while the component is mounted:
 
 <include meta='title="components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
 
-The page needs `document.modelContext`: a browser with WebMCP, or the [polyfill](../polyfill/README.md), which `<WebAgentsProvider>` loads by itself where the browser has none.
+The page needs `document.modelContext`: a browser with WebMCP, or the [polyfill](../polyfill/README.md), which `<WebAgentsProvider>` loads by itself where the browser has none. In development the provider also installs the [devtools](../devtools/README.md) panel: `@webmcp-agents/devtools` is a dependency of this package, so there is nothing else to install.
 
 ## APIs
 
 | API | Description |
 |---|---|
-| [`WebAgentsProvider`](./web-agents-provider.md) | The tool catalog (`tools`, `availableTools`) and the agent cursor, on `createWebAgents`. The earlier `global`, `routes`, `pathname` and `context` props are documented there too. Includes `WebAgentsProviderProps`. |
+| [`WebAgentsProvider`](./web-agents-provider.md) | The tool catalog (`tools`, `availableTools`), the agent cursor and, in development, the devtools, on `createWebAgents`. The earlier `global`, `routes`, `pathname` and `context` props are documented there too. Includes `WebAgentsProviderProps`, `ProviderDevtoolsOptions`. |
 | [`useWebTool`](./use-web-tool.md) | Write a tool in a component: the definition, `execute`, an optional `target`. Returns `{ invoke, registered, supported }`. Includes `UseWebToolOptions`, `WebToolState`. |
 | [`useWebAgents`](./use-web-agents.md) | The nearest provider's registry, cursor controls and pathname. Includes `useOptionalWebAgents`, `WebAgentsContextValue`, `WebAgentsVisuals`. |
 | [`useEnabledTools`](./use-enabled-tools.md) | The catalog tool ids registered right now. |

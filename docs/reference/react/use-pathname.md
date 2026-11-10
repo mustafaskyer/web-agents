@@ -35,7 +35,7 @@ None. The hook takes no arguments.
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), how `match` reads the URL
+- [Tools across your app](../../build/tools-across-your-app.mdx), how `match` reads the URL
 - [`WebAgentsProvider`](./web-agents-provider.md)
 - [`useWebAgents`](./use-web-agents.md) (`pathname`, the value tools are matched against)
 - [`watchPathname`](../core/watch-pathname.md)

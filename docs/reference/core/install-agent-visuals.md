@@ -37,7 +37,7 @@ Install the layer with a tag, a spotlight and tuned yielding, log events, and ch
 | `name` | `string` | `""` | Name shown in a tag beside the cursor (an assistant's name). Empty shows no tag. |
 | `sync` | `boolean` | `true` | Hold the agent's field values and submit until the cursor reaches them, so the page reacts at the cursor's click. `false` animates after the fact without touching the form. |
 | `spotlight` | `boolean \| SpotlightOptions` | `false` | Blur and dim the page except the tool the cursor is working in. `true` uses the defaults below. |
-| `yieldToUser` | `boolean \| YieldOptions` | `true` | Hide the cursor when a person moves the mouse, clicks, scrolls, touches or types; the running tool then finishes without waiting for animations. `false` turns it off. |
+| `yieldToUser` | `boolean \| YieldOptions` | `true` | Hide the cursor when a person clicks, scrolls, touches or types; the running tool then finishes without waiting for animations. `false` turns it off. |
 
 ### `SpotlightOptions`
 
@@ -51,7 +51,7 @@ Install the layer with a tag, a spotlight and tuned yielding, log events, and ch
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `moveThreshold` | `number` | `6` | Pointer travel (px) that counts as the person moving. Ignores sensor jitter. |
+| `moveThreshold` | `number` | none | Pointer travel (px, within 150 ms) that counts as the person interacting. By default moving the pointer never yields: only a click, a scroll, a touch or a key does. Set a number (`6` ignores sensor jitter) to hide the cursor the moment the pointer moves. |
 | `resumeAfter` | `number` | `800` | Quiet time (ms) after the person's last input before the cursor may appear again. |
 | `ignore` | `string` | `"[data-web-agents-ui]"` | Input inside an element matching this selector never yields: a panel the person drives the agent from. See [`UI_HOST_ATTR`](./ui-host-attr.md). |
 

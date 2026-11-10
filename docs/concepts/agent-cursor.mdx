@@ -20,16 +20,22 @@ rest of this page is what the person sees and what you can tune.
   <source src="../media/cursor/yield.mp4" type="video/mp4" />
 </video>
 
-*The person moves the mouse while the agent is adding to the cart: the cursor vanishes and the tool still completes.*
+*The person scrolls while the agent is adding to the cart: the cursor vanishes and the tool still completes.*
 
-A real person always wins. When they move the mouse more than a few pixels, click, scroll, touch or press a key, the
+A real person always wins. When they click, scroll, touch or press a key, the
 cursor, its tag and the spotlight fade out in 80 ms, and every pending step fast-forwards: moves arrive at once, typing
 writes the final value, and a held press or `execute()` runs immediately. **The tool still completes and answers the
 agent**; it just stops waiting for the animation.
 
 - **Only trusted input counts.** The agent's own fills never make the cursor yield.
+- **Moving the pointer is not using the page.** Someone who starts a call and moves the mouse away still sees it
+  run. Pass `yieldToUser: { moveThreshold: 6 }` for a cursor that hides the moment the pointer moves.
 - **A confirmation keeps its ring.** While the browser waits for a confirming click, the ring on that button stays, so
-  the person knows where to confirm.
+  the person knows where to confirm. Once they go quiet the cursor returns to it.
+- **A press still leaves a mark.** A control pressed while the cursor was out of the way gets the ring for a moment,
+  so a call made while the person was busy is not a silent one.
+- **A background tab counts as away.** No frame is drawn there, so calls run at once instead of waiting for a cursor
+  nobody sees.
 - **It comes back on the next call.** After `resumeAfter` ms (800 by default) without input, the next tool call shows
   the cursor again, entering from where the person's pointer was.
 - **Your own agent UI never counts.** Input inside an element marked with `data-web-agents-ui`
@@ -47,13 +53,29 @@ agent**; it just stops waiting for the animation.
 
 A tool with **`requireConfirmation: true`** makes the agent wait for the person: the cursor types what it can, then
 parks on the tool's control with a `Click "…" to confirm` prompt, and the call waits for a trusted click on it. That
-click is the only thing that completes the call, and there is no timeout while it waits. A
+click is the only thing that completes the call. It waits 10 seconds: after that the agent is told the person did
+not confirm (`needs_user`), and the prompt goes. A
 [declarative form](/more/declarative-forms) without `toolautosubmit` gets the same pause from the browser.
 
 The control that is parked on carries `data-agent-active`, and the cursor has the `is-waiting` class (what the example
 apps' tests look for before they click). If the name of the control matches two buttons, or none, the call fails with
 `unavailable` instead of parking somewhere wrong. [Confirm before it runs](/build/confirm-before-it-runs) is the page
 for writing one.
+
+A waiting call always shows where to confirm:
+
+- **Out of view.** The control is scrolled to once. If the person then scrolls away, the page is left alone and the
+  cursor waits at the edge of the window nearest the control, prompt beside it.
+- **Busy when the call started.** Nothing scrolls under a person who is using the page. When the person goes quiet, the page scrolls
+  to the control and the cursor parks on it.
+- **The control changes.** If the tool's `target` now finds another control (a header link that folds into a menu on
+  scroll, leaving the footer's), the cursor and `data-agent-active` move to it, and a click there confirms.
+- **The agent calls something else meanwhile.** The cursor does that call's work without the prompt, then returns to
+  the waiting control. An agent cannot dismiss a confirmation it asked for.
+- **The person runs something else.** A call the person starts themself (a button or chip that runs a tool, the
+  devtools) cancels the waiting one: the agent reads `cancelled`, and the prompt goes.
+- **The control is hidden.** With no control left to click (removed, disabled, or hidden by CSS), the call fails with
+  `unavailable` instead of waiting for ever.
 
 ## How it moves
 
@@ -71,7 +93,9 @@ The cursor goes to the tool's control, then to each field it types into, then ba
 |---|---|
 | **Curved paths** | The target point travels an arc with a minimum-jerk profile, the curve a human reach follows. The arrow chases it on a near-critically-damped spring, so a new move mid-flight bends the path instead of restarting it. |
 | **Fitts's-law timing** | Travel takes 180 to 650 ms depending on distance and target size, and each step waits for _arrival_, not a fixed delay. |
-| **Anchored until the click** | Positions are re-read every frame, so the cursor rides along with scrolling and layout shifts. After the click it stays put, even if the action moves the button. |
+| **Anchored until the click** | Positions are re-read every frame, so the cursor rides along with scrolling and layout shifts. |
+| **A press in sight** | A control outside the window is scrolled to the middle first, and the cursor waits inside the window, at the edge nearest it, until it is there: the press never happens off screen. A control in a sticky or fixed box (a header, a drawer) that is already in view is left where it is. |
+| **Gone when the control is** | After the click the cursor rests on the control for `linger` ms. If the control is no longer under it (a drawer opened over it, the list shifted, it was removed), the cursor fades out at once instead of pointing at the wrong thing. |
 | **At rest** | It sways gently around its tip, a little more while waiting for the person. |
 | **Reduced motion** | Under `prefers-reduced-motion`, everything snaps and fades. |
 

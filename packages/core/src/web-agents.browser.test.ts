@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupFixtures, fixture, modelContext, resultText, uniqueName, until } from "./test-utils";
-import { createWebAgents, type WebAgents, watchPathname } from "./web-agents";
+import { createWebAgents, currentAgentVisuals, type WebAgents, watchPathname } from "./web-agents";
 import { defineWebTool, type WebTool, type WebToolConfig } from "./web-tool";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -223,6 +223,20 @@ describe("createWebAgents", () => {
     await off(a.id);
     modelContext().removeEventListener("toolchange", changes);
     expect(changes).toHaveBeenCalledTimes(2);
+  });
+  it("currentAgentVisuals is the cursor of the latest started instance that has one", async () => {
+    expect(currentAgentVisuals()).toBeNull();
+    agents = createWebAgents({ tools: {}, visuals: { linger: 50 } });
+    expect(currentAgentVisuals()).toBe(agents.visuals);
+    const bare = createWebAgents({ tools: {}, visuals: false }); // no cursor: not the answer
+    expect(currentAgentVisuals()).toBe(agents.visuals);
+    const later = createWebAgents({ tools: {}, visuals: { linger: 50 } });
+    expect(currentAgentVisuals()).toBe(later.visuals);
+    later.destroy();
+    bare.destroy();
+    expect(currentAgentVisuals()).toBe(agents.visuals);
+    agents.destroy();
+    expect(currentAgentVisuals()).toBeNull();
   });
 });
 

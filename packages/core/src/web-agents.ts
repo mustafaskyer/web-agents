@@ -64,7 +64,10 @@ export interface WebAgents {
   setPathname(pathname: string | undefined): void;
   /** The registry behind it: enable a catalog tool by hand while a part of the page is on screen (`registry.enable([id])`). */
   readonly registry: ToolRegistry;
-  /** Change the cursor's spotlight and yielding at runtime. No-ops while nothing is installed. */
+  /**
+   * Change the cursor's spotlight and yielding at runtime. Before the cursor is installed (the polyfill is loading) a
+   * change is kept as its starting option; with `visuals: false` it does nothing.
+   */
   readonly visuals: Pick<AgentVisuals, "setSpotlight" | "setYieldToUser">;
 }
 
@@ -135,8 +138,18 @@ const currentPath = (): string => (location.hash.startsWith("#/") ? (location.ha
 const fits = (match: WebTool["match"], path: string): boolean =>
   match === undefined || (match instanceof RegExp ? path.search(match) >= 0 : [match].flat().some((pattern) => matchPath(pattern, path)));
 
-/** The catalogs of every started `createWebAgents`, for `inspectTools`. */
-const catalogs = new Set<() => readonly WebTool[]>();
+/** Every started `createWebAgents`: its catalog (for `inspectTools`) and its cursor controls, null with `visuals: false`. */
+const started = new Map<() => readonly WebTool[], WebAgents["visuals"] | null>();
+
+/**
+ * The cursor controls of the most recently started `createWebAgents` (so of `<WebAgentsProvider>`) that has a cursor,
+ * or null. For tools that sit beside it without a handle on it, like the devtools' Settings switches.
+ */
+export function currentAgentVisuals(): WebAgents["visuals"] | null {
+  let last: WebAgents["visuals"] | null = null;
+  for (const visuals of started.values()) last = visuals ?? last;
+  return last;
+}
 
 /**
  * One tool as `inspectTools` sees it: its definition, whether its `match` fits here, and where the cursor would act
@@ -156,7 +169,7 @@ export interface ToolInspection extends ToolControls {
  */
 export function inspectTools(): ToolInspection[] {
   const all = new Map<string, WebTool>();
-  for (const catalog of catalogs) for (const tool of catalog()) all.set(tool.id, tool);
+  for (const catalog of started.keys()) for (const tool of catalog()) all.set(tool.id, tool);
   for (const [id, stage] of stages) all.set(id, stage.tool); // what is registered wins: it is what an agent calls
   // nothing is registered or started on the server, so the browser globals below are read only in a browser
   return [...all.values()].map((tool) => ({
@@ -229,15 +242,22 @@ export function createWebAgents({
 
   const agents: WebAgents = {
     registry,
+    // Before the cursor installs (the polyfill is loading), a change becomes its starting option.
     visuals: {
-      setSpotlight: (value) => installed?.setSpotlight(value),
-      setYieldToUser: (value) => installed?.setYieldToUser(value),
+      setSpotlight(spotlight) {
+        if (installed) installed.setSpotlight(spotlight);
+        else if (visuals) visuals = { ...visuals, spotlight };
+      },
+      setYieldToUser(yieldToUser) {
+        if (installed) installed.setYieldToUser(yieldToUser);
+        else if (visuals) visuals = { ...visuals, yieldToUser };
+      },
     },
     start() {
       if (stop || typeof document === "undefined") return;
       teardown?.cancel();
       stop = watchPathname(apply);
-      catalogs.add(listed);
+      started.set(listed, visuals === false ? null : agents.visuals);
       if (polyfill && !document.modelContext && !waiting) {
         // Kept across destroy(): it was queued before any tool's registration, so the cursor is in place first.
         waiting = true;
@@ -270,7 +290,7 @@ export function createWebAgents({
     destroy() {
       if (!stop) return;
       stop();
-      catalogs.delete(listed);
+      started.delete(listed);
       stop = on = undefined;
       held?.();
       // Deferred: a restart in the same tick (React StrictMode) keeps the layer, and the registerTool wrapper live tools rely on.

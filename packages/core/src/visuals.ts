@@ -53,8 +53,8 @@ export interface AgentVisualsOptions {
    */
   spotlight?: boolean | SpotlightOptions;
   /**
-   * Get out of the user's way: when a person moves the mouse, scrolls, touches
-   * or types, the cursor hides at once and the running tool finishes without
+   * Get out of the user's way: when a person clicks, scrolls, touches
+   * or types (moving the pointer alone does not count, see `YieldOptions.moveThreshold`), the cursor hides at once and the running tool finishes without
    * waiting for animations. Default true. Pass options to tune it, false to turn it off.
    */
   yieldToUser?: boolean | YieldOptions;
@@ -103,6 +103,13 @@ interface Run {
   closed: boolean;
   /** The browser paused on the submit button and the cursor is parked on it. */
   parked: boolean;
+  /** The control a parked run waits on, and the prompt shown there. */
+  parkedOn?: Element;
+  prompt?: string;
+  /** Parked while the person was busy: the control has yet to be shown to them (scrolled to, pointed at). */
+  unseen?: boolean;
+  /** A parked WebTool's control may change while it waits (a header that folds away): how to find it again. */
+  where?: () => Element | null;
   /** Guards linger timers, so a late one can't end a newer run of the same tool. */
   generation: number;
 }
@@ -254,6 +261,7 @@ function start({
   snapshotIdle();
   const snapshots = setInterval(() => {
     if (!document.hidden) snapshotIdle();
+    followParked();
   }, 400);
 
   /** Take ownership of a field the agent just filled, and (in sync mode) put the old value back. */
@@ -287,6 +295,9 @@ function start({
       parked: false,
       generation: ++generation,
     };
+    // Another call is waiting for the person: the hand is this call's for now, without the other's prompt
+    // (`finish` hands it back).
+    for (const other of runs.values()) if (other.parked) agentCursor.unpark();
     runs.set(toolName, run);
     claimRecentFills(run);
     return run;
@@ -365,8 +376,7 @@ function start({
       await agentCursor.moveTo(btn);
       if (!isCurrent(toolName, run)) return;
       const prompt = `Click "${labelOf(btn, "submit")}" to confirm`;
-      agentCursor.park(prompt, btn);
-      run.parked = true;
+      park(run, btn, prompt);
       report({ type: "park", tool: toolName, prompt });
     },
     signal,
@@ -567,12 +577,13 @@ function start({
       if (settled || !current()) return release();
       el.setAttribute("data-agent-active", "");
       if (!confirm) {
-        agentCursor.highlight(el);
+        // forced: pressed while the person was busy, the control still glows (see GhostCursor.click)
+        agentCursor.highlight(el, true);
         return agentCursor.click(release);
       }
       const prompt = confirmPrompt(el, tool.name);
-      agentCursor.park(prompt, el);
-      run.parked = true;
+      run.where = () => stage?.at(args) ?? null;
+      park(run, el, prompt);
       log({ type: "park", tool: tool.name, prompt }); // the gate itself emits it to onAgentEvent
     })();
 
@@ -583,7 +594,7 @@ function start({
       if (confirm && current()) {
         // The cursor clicks only after the user confirmed.
         if (run.parked) agentCursor.unpark();
-        agentCursor.highlight(el);
+        agentCursor.highlight(run.parkedOn ?? el, true);
         void agentCursor.click();
       }
       report({ type: "result", tool: tool.name, result, ms: performance.now() - run.startedAt });
@@ -622,6 +633,45 @@ function start({
   }
 
   // ---------- helpers ----------
+  /** Park the cursor on the control `run` waits on. */
+  function park(run: Run, el: Element, prompt: string): void {
+    run.parked = true;
+    run.parkedOn = el;
+    run.prompt = prompt;
+    run.unseen = agentCursor.isYielded();
+    agentCursor.park(prompt, el);
+  }
+
+  /**
+   * A parked call waits on the person, so its control must be findable for as long as it waits. The control a
+   * WebTool resolves to can change meanwhile (a header link that folds into a menu once the page scrolls, leaving
+   * the footer's): the cursor moves on to the new one. `back`: the person went quiet after a yield, so the cursor
+   * returns to the control, scrolling to it only if it has never been shown to them.
+   */
+  function followParked(back = false): void {
+    for (const [toolName, run] of runs) {
+      if (!run.parked || !run.parkedOn) continue;
+      const el = run.where?.() ?? run.parkedOn;
+      const moved = el !== run.parkedOn;
+      if (!moved && !back) continue;
+      // another call borrowed the cursor meanwhile (see `startRun`): this one's prompt and ring go back on
+      if (!moved && run.prompt) agentCursor.park(run.prompt, el);
+      if (moved) {
+        run.parkedOn.removeAttribute("data-agent-active");
+        el.setAttribute("data-agent-active", "");
+        if (run.el === run.parkedOn) run.el = el;
+        // The person's own scrolling can cause this: never answer it by scrolling the page (`unseen` stays as it was).
+        const { unseen } = run;
+        agentCursor.unpark();
+        park(run, el, confirmPrompt(el, toolName));
+        run.unseen = unseen;
+      }
+      const reveal = !!run.unseen && !agentCursor.isYielded();
+      if (reveal) run.unseen = false;
+      void agentCursor.moveTo(el, reveal);
+    }
+  }
+
   /**
    * Visit each field: glide there, type the value in, flash. `steps` are a tool's parameters and their fields;
    * left out, the fields of the run's form that the agent filled.
@@ -677,6 +727,7 @@ function start({
     const run = runs.get(toolName);
     if (!run || (onlyGeneration !== undefined && run.generation !== onlyGeneration)) return;
     run.el.removeAttribute("data-agent-active");
+    run.parkedOn?.removeAttribute("data-agent-active");
     runs.delete(toolName);
     // the shared cursor would otherwise stay parked while any other run is still open
     if (run.parked) agentCursor.unpark();
@@ -685,10 +736,12 @@ function start({
       known.set(field, fieldValue(field));
     }
     if (runs.size === 0) void agentCursor.hide();
+    // a call still waits for the person: back to its control, where they confirm
+    else followParked(true);
   }
 
   // ---------- 5. yield to the user ----------
-  // A person moving the mouse, scrolling, touching or typing wins: the cursor
+  // A person clicking, scrolling, touching or typing wins: the cursor
   // vanishes and every pending step fast-forwards (see GhostCursor.yieldToUser).
   let yielding: AbortController | null = null;
   let resumeTimer = 0;
@@ -713,6 +766,7 @@ function start({
         resumeTimer = window.setTimeout(() => {
           agentCursor.resume();
           report({ type: "resume" });
+          followParked(true);
         }, resumeAfter);
       },
       opts,

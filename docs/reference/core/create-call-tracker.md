@@ -41,7 +41,7 @@ A `CallTracker`:
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), where tools turn on and off
+- [Tools across your app](../../build/tools-across-your-app.mdx), where tools turn on and off
 - [`deferRelease`](./defer-release.md)
 - [`registerWebTool`](./register-web-tool.md)
 - [`createToolRegistry`](./create-tool-registry.md)

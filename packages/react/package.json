@@ -2,7 +2,7 @@
   "name": "@webmcp-agents/react",
   "version": "0.1.0",
   "type": "module",
-  "description": "React bindings for WebMCP tools: a provider that turns tools on per route or component, inline tools bound to state, and the agent cursor.",
+  "description": "React bindings for WebMCP tools: a provider that turns tools on per route or component, inline tools bound to state, the agent cursor, and the devtools in development.",
   "license": "MIT",
   "sideEffects": false,
   "files": [
@@ -25,11 +25,13 @@
     "check-exports": "publint && attw --pack . --profile esm-only"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "react-dom": ">=18"
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",
-    "@webmcp-agents/core": "workspace:^"
+    "@webmcp-agents/core": "workspace:^",
+    "@webmcp-agents/devtools": "workspace:^"
   },
   "devDependencies": {
     "@hookform/resolvers": "^7.0.3",

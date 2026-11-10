@@ -11,7 +11,12 @@ function the form already submits to. There is no `form` option, no adapter and 
 
 ## A complete example
 
-shadcn/ui's `Form` on React Hook Form, with one zod schema for the agent's call and the person's submit.
+shadcn/ui's `Form` on React Hook Form, with one zod schema for the agent's call and the person's submit. To follow
+along, add the components this page uses (`form` brings React Hook Form, its zod resolver and zod with it):
+
+```package-install
+npx shadcn@latest add form input select label
+```
 
 <View title="Vite">
 
@@ -127,6 +132,10 @@ registered until the agent has its answer, so nothing else is needed.
 The same hook works with any form library: the cursor writes a field the way a person does (the native setter, then
 `input` and `change` events), so any controlled input hears it. Here it is with TanStack Form:
 
+```package-install
+npm install @tanstack/react-form
+```
+
 <View title="Vite">
 
 <include meta='title="src/components/subscribe.tsx"'>/_examples/shared/components/subscribe.tsx</include>
@@ -178,9 +187,3 @@ field.
 | `execute` | The action, shared with the form's submit. Its return value is the answer. |
 
 Every option: [`useWebTool`](/reference/react/use-web-tool) and [`defineWebTool`](/reference/core/define-web-tool).
-
-## Next
-
-<Card title="Confirm before it runs" href="/build/confirm-before-it-runs" icon="arrow-right">
-  Make a tool wait for the person's own click before it does anything they would regret.
-</Card>

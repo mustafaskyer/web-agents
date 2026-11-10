@@ -28,7 +28,7 @@ export type {
 } from "./web-tool";
 export { locate } from "./locate";
 export type { FieldTarget, ToolLocator } from "./locate";
-export { createWebAgents, inspectTools, watchPathname } from "./web-agents";
+export { createWebAgents, currentAgentVisuals, inspectTools, watchPathname } from "./web-agents";
 export { loadWebMCPPolyfill, whenModelContext } from "./model-context";
 export type { PolyfillOption } from "./model-context";
 export type { AvailableTools, ToolInspection, WebAgents, WebAgentsOptions, WebToolCatalog } from "./web-agents";

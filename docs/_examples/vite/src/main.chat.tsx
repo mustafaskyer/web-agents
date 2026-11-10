@@ -10,21 +10,14 @@ import { shopper } from "@/agents";
 import { tools } from "@/tools";
 import { App } from "./App";
 
-// Development only: the devtools panel.
-if (import.meta.env.DEV) {
-  const { installWebAgentsDevtools } = await import(
-    "@webmcp-agents/devtools"
-  );
-  installWebAgentsDevtools();
-}
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <WebAgentsProvider tools={tools}>
       <App />
       <AgentChat
         agent={shopper}
-        // In development, the devtools' launcher has the other corner.
+        // In development the provider's devtools launcher has
+        // the other corner.
         position={import.meta.env.DEV ? "bottom-left" : "bottom-right"}
       />
     </WebAgentsProvider>

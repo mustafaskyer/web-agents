@@ -5,8 +5,8 @@ The source of the docs site (`apps/docs`, built with [Blume](https://github.com/
 
 | Folder | |
 |---|---|
-| [`(get-started)/`](<(get-started)>) | Introduction (`index.mdx`, the home page) and `installation/`: the card grid and one page per framework (Vite, Next.js, TanStack Start, Astro, No framework). The parentheses group the pages in the sidebar without a URL segment. |
-| [`build/`](build) | The path, in order: define a tool, tools with input, confirm before it runs, where a tool is on, common tools, call a tool, define an agent, add the chat, call an agent, devtools |
+| [`(get-started)/`](<(get-started)>) | The docs home (`index.mdx`, opened by the "Get started" heading: its own sidebar row is hidden) and `installation/`: the card grid and one page per framework (Vite, Next.js, TanStack Start, Astro, No framework). The parentheses group the pages in the sidebar without a URL segment. |
+| [`build/`](build) | The path, in order: define a tool, tools with input, confirm before it runs, tools across your app, common tools, call a tool, define an agent, add the chat, call an agent, devtools |
 | [`concepts/`](concepts) | Framework-free: how it works, the agent cursor, tool lifecycle, errors, writing tool descriptions |
 | [`more/`](more) | On-device agent, shadcn chat blocks, declarative forms (the alternative to the Build path), polyfill, deploy |
 | [`examples/`](examples) | The playground, Field Store, Skyline and Field Store on Next.js apps |
@@ -32,10 +32,27 @@ the ones it can.
   view with exactly that title exists, so a typo in a title breaks the chain: the check verifies the titles.
 - Arriving with `?view=Next.js` shows that view but saves nothing. The installation pages (one per framework, no
   views) save the choice with `<RememberFramework name="Next.js" />` (`apps/docs/components/docs/remember-framework.astro`,
-  registered in `apps/docs/components.ts`), and their "Next" card links `/build/define-a-tool?view=<framework>` so
+  registered in `apps/docs/components.ts`), and their "Next" card links `/build/define-a-tool?view=<framework>` (not a repeat of the pager, which goes to the
+  next installation page; the card's arrow sits at its right edge, `apps/docs/theme.css`) so
   the link works even when storage is off. Links between Build pages carry nothing: the saved choice does it.
 - Pages with no framework-specific code (Concepts, Reference, the installation pages themselves) have no views and
   no picker. "No framework" readers get `installation/no-framework`, then Concepts and the Reference.
+
+### Tabs: the hook or the definition
+
+- Tools and agents each have two forms, and a page that teaches one shows both, in `<Tabs>`, **hook first**:
+  `useWebTool` then `defineWebTool` (`syncKey="tool-api"`), `useWebAgent` then `defineWebAgent`
+  (`syncKey="agent-api"`). The tab titles are exactly those API names, so a pick in one group switches every group
+  with the same key on the page (Blume does not remember it across pages, so every page opens on the hook).
+  `hash={false}` keeps the tabs out of the URL, which the framework view owns.
+- A code block loses its header inside a tab, so each include in a tab has the file's name on the line above it, in
+  bold code: ``**`src/tools/clear-cart.ts`**``.
+- Where the code differs by framework, the tabs go inside each `<View>` (Define a tool, Call a tool, Call an agent);
+  where it does not, one group stands alone (Define an agent's "Use it"). One line above the group says how to pick:
+  the hook for a component (its state, its lifetime), the definition for a module of its own (the whole app, a
+  store, a file a server can import). Prose after the group is written for both.
+- The agent tab is titled `defineWebAgent` even where its code is `agent.invoke`: `invoke` belongs to the defined
+  agent, and the title names what the reader wrote.
 
 ### Examples live in `_examples/` and compile
 
@@ -76,7 +93,8 @@ the ones it can.
   (the Astro tsconfig uses `astro/client` types for `astro:env/server`). The Vite, TanStack Start and Astro tsconfigs
   include `node` types, because the chat's server entry reads `process`.
 - Example style: on the Build pages, shadcn/ui components and React Hook Form (Define a tool says once, at the top, that
-  both are optional), never plain HTML; on the installation pages and the No framework page, plain elements, since
+  both are optional; each page installs exactly the components and libraries its own examples import, with a
+  `package-install` fence before its first example), never plain HTML; on the installation pages and the No framework page, plain elements, since
   installation is about the framework only. One prop per line where it helps, blank lines between logical groups; the
   comments `// An agent calls this.` and `// A person clicks this.` (or `submits`) where both callers appear; `@/`
   imports on the Build pages (shadcn/ui's setup uses that alias); relative imports on the installation pages of Vite,
@@ -108,13 +126,15 @@ The five parts, in order: a one-paragraph definition; `## A complete example` (f
 files a step touches); two or three
 `##` sections with the things to know, shared prose, each with a small shared snippet or a four-view example;
 `## Try it` (one line to run from the devtools or the console); `## Options you'll use most` (a short table linking
-to the reference); `## Next` (one card to the next page of the path). Titles stay as the plan names them; the sidebar
+to the reference). No `## Next` card: Blume's Previous / Next pager at the foot of every page already links the next
+page of the path, and a card to the same page says it twice. Only the path's last page (Devtools), whose pager leaves
+the path, ends with `## Next` and the places to go from here. Titles stay as the plan names them; the sidebar
 numbers come from each page's `sidebar.label` ("3. Confirm before it runs"). Prose is short and direct: one or two
 sentences per step, second person, no filler. Where the framework only changes a word (the env prefix to avoid:
 `VITE_`, `NEXT_PUBLIC_`, `PUBLIC_`), shared prose names all of them rather than adding views. Shared prose never shows
 `import.meta.env` or `process.env`: those belong in a view. When "Try it" needs something a later page adds (a model
-for an agent), it says so and says what you will see. The check verifies the first and the last three headings, the
-views and the "Next" card.
+for an agent), it says so and says what you will see. The check verifies the first and the last two headings, the
+views, and that no `## Next` repeats the pager.
 
 ### A reference page
 
@@ -184,7 +204,7 @@ page that teaches it. When an app's README changes, change its page.
    folder's `meta.ts` `pages` (a reference page needs no entry: its folder's `meta.ts` sets only the package's title and order, and the page list builds itself).
 3. **Write it on the template** for that section (above). Code that is more than an excerpt goes in
    `docs/_examples/` first: write the file, run `pnpm --filter @webmcp-agents/docs-examples typecheck`, then `<include>` it.
-4. **Link it**: from the page before it ("Next" card), from `related:` of its siblings and, for an API, from the Build page
+4. **Link it**: from the page before it (its place in `meta.ts` gives the pager), from `related:` of its siblings and, for an API, from the Build page
    that teaches it. Renaming or moving a page adds a `redirects` entry in `apps/docs/blume.config.ts` and the same rule in
    `apps/docs/vercel.json`.
 5. **Run `pnpm --filter @webmcp-agents/docs test`** (link validation plus the docs check). Before you finish, `pnpm check`
@@ -197,8 +217,8 @@ page that teaches it. When an app's README changes, change its page.
 
 1. A page with views has exactly the four titles, in order, in every block of views.
 2. An installation page has the six step headings in order, its `RememberFramework`, and a "Next" link carrying
-   its framework. A Build page starts with `## A complete example`, ends with `## Try it`, `## Options you'll use
-   most`, `## Next`, has views and a "Next" card.
+   its framework. A Build page starts with `## A complete example`, ends with `## Try it` and `## Options you'll use
+   most` (Devtools, the last, then `## Next`), has views, and has no `## Next` card repeating the pager.
 3. A reference page on the template has the template's sections in order (`REFERENCE_NOT_MIGRATED` is empty, like
    `GUIDES_NOT_MIGRATED`).
 4. On a migrated page, a code block that shows a file has its name, an inline `ts`/`tsx`/`js` fence is at most 12

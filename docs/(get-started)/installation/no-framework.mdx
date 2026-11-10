@@ -24,8 +24,9 @@ npm create vite@latest
 
 ## Install the packages
 
-The agent cursor, then the devtools panel for development. The panel draws itself with React, so React comes along
-as a development dependency. Browsers without WebMCP need nothing more: `createWebAgents` loads a polyfill for them.
+The agent cursor, then the devtools panel for development. Without React, nothing installs the panel for you, and it
+draws itself with React, so React comes along as a development dependency. Browsers without WebMCP need nothing more:
+`createWebAgents` loads a polyfill for them.
 
 ```package-install
 npm install @webmcp-agents/core
@@ -47,7 +48,8 @@ import "@webmcp-agents/core/cursor.css";
 
 Without a framework there is no provider component: `createWebAgents` is the function `<WebAgentsProvider>` wraps. It
 installs the cursor and registers your tools, which you write in the next step; in a browser without WebMCP it loads a
-polyfill first, by itself. In development the same file loads the devtools.
+polyfill first, by itself. In development the same file loads the devtools: `<WebAgentsProvider>` installs them
+itself, but `createWebAgents` cannot (the devtools are built on core), so this page keeps that one block.
 
 <include meta='title="src/main.ts"'>/_examples/no-framework/src/main.ts</include>
 

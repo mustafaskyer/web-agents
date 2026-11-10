@@ -178,7 +178,7 @@ export const TryIt = () => {
         {run?.state === "running" && (
           <>
             <code>{run.code}</code>{" "}
-            {run.yielded ? "is finishing without the cursor: you moved, so it stepped aside." : "is running. Watch the cursor."}
+            {run.yielded ? "is finishing without the cursor: you took over, so it stepped aside." : "is running. Watch the cursor."}
           </>
         )}
         {run?.state === "parked" && (
@@ -194,7 +194,7 @@ export const TryIt = () => {
         {run?.state === "done" && (
           <>
             <code>{run.code}</code> answered: {run.text}
-            {run.yielded && " (You moved, so the cursor stepped aside.)"}
+            {run.yielded && " (You took over, so the cursor stepped aside.)"}
           </>
         )}
         {run?.state === "error" && (

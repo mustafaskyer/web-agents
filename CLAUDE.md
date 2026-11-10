@@ -33,7 +33,7 @@ pnpm install
 pnpm dev                                   # every app with HMR into package source: playground :5173, ecommerce :5174, flights :5175,
                                            # nextjs :5176, the website (landing + docs) :4321
 pnpm check                                 # biome ci + typecheck + test + build + size (what CI runs)
-pnpm --filter @webmcp-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 9.25 KB, whole package ≤ 16.5 KB
+pnpm --filter @webmcp-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 10 KB, whole package ≤ 17.5 KB
                                            # (the polyfill chunk, loaded on demand, is reported, not counted)
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
@@ -74,8 +74,8 @@ apps/docs/              @webmcp-agents/docs (private, port 4321): the one websit
                         pages/demos.astro (/demos) hydrates components/landing/demos.tsx the same way: the recorded clips
                         (demos-data.ts) in browser frames; pages/docs/demos.astro redirects the docs header's Demos link.
                         components/landing/: site-tools.ts (the site's own defineWebTool tools: homeTools, demosTools),
-                        docs-search.tsx (search_docs, a tool with an input), agent-layer.tsx (provider + devtools + the
-                        first-visit intro, a real show_tools call), try-it.tsx (the hero's grouped chips that run the tools),
+                        docs-search.tsx (search_docs, a tool with an input), agent-layer.tsx (the provider, which brings the
+                        devtools in dev, + the first-visit intro, a real show_tools call), try-it.tsx (the hero's grouped chips that run the tools),
                         site-chrome.tsx (the header and footer both pages share), demo-frame.tsx, outline.ts, steps.tsx,
                         faq-data.ts. Consumes the packages' dist (predev builds them). scripts/record-demo.sh <demo>
                         re-records public/demo (agent-browser); theme.css gives the docs the landing's dark palette;
@@ -88,12 +88,13 @@ packages/core/          @webmcp-agents/core: visuals (cursor.ts, motion.ts, visu
                         holds Chrome's native-pseudo-class rules),
                         web-tool.ts (defineWebTool, tool.invoke, a call's Stage), locate.ts (controls by role + name, a parameter's
                         field), write.ts (writing a native control), web-agents.ts (createWebAgents, URL tracking, `match`,
-                        inspectTools for the devtools; loads the polyfill), registry.ts, confirm.ts, deferred.ts (deferred
+                        inspectTools and currentAgentVisuals for the devtools; loads the polyfill), registry.ts, confirm.ts, deferred.ts (deferred
                         release + call tracking), model-context.ts (loadWebMCPPolyfill, whenModelContext, the queue a tool
                         registered before document.modelContext waits in), polyfill/ (the document.modelContext polyfill +
                         declarative forms, its own chunk; exported as @webmcp-agents/core/polyfill and /polyfill/auto)
-packages/react/         @webmcp-agents/react: <WebAgentsProvider> (a wrapper over createWebAgents), useWebTool({…}) → { invoke },
-                        useEnableTools, useToolAnswer, JSX attr types
+packages/react/         @webmcp-agents/react: <WebAgentsProvider> (a wrapper over createWebAgents; installs the devtools in
+                        development, `devtools` prop), useWebTool({…}) → { invoke }, useEnableTools, useToolAnswer, JSX attr
+                        types. Depends on @webmcp-agents/devtools (a regular dependency)
 packages/polyfill/      @webmcp-agents/polyfill: deprecated, re-exports @webmcp-agents/core/polyfill (+ /auto)
 packages/chat/         @webmcp-agents/chat: <AgentChat> (components/), AgentAdapter types, agent.ts (defineWebAgent: instructions,
                         tool subsets, sub-agents; /agent entry, isomorphic), createCloudAdapter (adapter/cloud.ts: the model ↔ tool loop,
@@ -109,7 +110,8 @@ packages/vercel-api/    @webmcp-agents/vercel-api (private): createVercelChatRou
 packages/devtools/      @webmcp-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
                         TanStack plugin), event-client.ts, inspect.ts (a tool's resolved control, fields, match and flags in
-                        words, from core's inspectTools); window.agent.invoke (run is an alias)
+                        words, from core's inspectTools); window.agent.invoke (run is an alias). Never imports
+                        @webmcp-agents/react (react depends on devtools): the cursor comes from core's currentAgentVisuals()
 packages/tools/         @webmcp-agents/tools: one factory per common tool (get-time.ts, get-location.ts, get-page.ts, go-to.ts,
                         go-back.ts, scroll-to.ts, set-theme.ts; calendar.ts is pure), each a defineWebTool tool, no framework
 capture/                the docs media harness: playwright.config.ts (webServer for the four apps; stills, mobile, clips
@@ -154,6 +156,12 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
   missing, in production too; `false` never loads it. While it loads, `registerWebTool` queues registrations (in order;
   an unregister before then cancels) and createWebAgents installs the cursor before any of them register (the cursor
   binds to `document.modelContext` when it installs). Apps render on first paint: no "ready" gate, no polyfill import.
+- **The provider loads the devtools in development.** Dependency direction: react → devtools → core (never devtools →
+  react, or Turbo has a cycle). `<WebAgentsProvider devtools>` (default on) imports `@webmcp-agents/devtools` inside
+  `if (process.env.NODE_ENV === "development")` and installs it with its own `agents.visuals`; one panel per page,
+  ref-counted, released with `deferRelease`. `createWebAgents` cannot (core is below devtools): a no-framework page
+  calls `installWebAgentsDevtools()` itself. Apps have no devtools code; `devtools={false}` + `<WebAgentsDevtools />`
+  places it by hand (the playground's `?tanstack`).
 
 ---
 
@@ -214,7 +222,7 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 ## Validation
 
 Before finishing any change: `pnpm check`. For visual changes also run the playground and drive a tool
-(`agent.invoke("add_to_cart_mug-01", { qty: 3 })` in DevTools, or the agent-browser skill), including moving the mouse
+(`agent.invoke("add_to_cart_mug-01", { qty: 3 })` in DevTools, or the agent-browser skill), including scrolling or clicking
 mid-run (the cursor must vanish and the tool still complete).
 
 ---
@@ -235,6 +243,12 @@ mid-run (the cursor must vanish and the tool still complete).
   (`apps/docs/scripts/record-demo.sh`), or drive the app with Playwright's Chromium (`node_modules/playwright`).
 - `executeTool` arg shapes differ by Chrome version (object vs JSON string); use core's `executeTool()` (`packages/core/src/execute.ts`),
   never `document.modelContext.executeTool` directly from library UI.
+- The provider's devtools check must stay literally `process.env.NODE_ENV === "development"` around the `import()`,
+  inside the effect (not a helper, not `globalThis.process?.…`): bundlers replace that exact expression and only drop a
+  branch, and its chunk, that is dead where the `import()` sits. It is wrapped in try/catch for pages without a bundler.
+  `packages/react` builds with tsdown `platform: "neutral"`: `"browser"` replaces `process.env.NODE_ENV` at library build
+  time. Under NODE_ENV "test" (Vitest, an app's tests) there is no panel; react's devtools test runs in its own Vitest
+  project with `define` NODE_ENV "development" (`vitest.config.ts`).
 - The devtools hotkey (Alt+Shift+A) is a trusted keydown on the page, so pressing it makes the cursor yield like any
   other key; drive tools ~1 s later in scripted checks (input inside the panel itself never yields).
 - Example apps keep the cart / booking in a module store (`src/store/*.ts`, read in React with `useSyncExternalStore`), so
@@ -269,6 +283,16 @@ mid-run (the cursor must vanish and the tool still complete).
 - React Aria's press handling re-fires a `click()` when the trusted click was stopped; core's confirm gate swallows that
   scripted click for 300 ms (`REFIRE_MS`), so a `requireConfirmation` tool on a React Aria `Link`/`Button` does not follow
   its link after the person's click. The cursor finds such controls by name like any other (no attribute is needed).
+- The cursor never presses out of sight: `moveTo` scrolls a target outside the viewport (or within 64 px of its edge)
+  to the middle and resolves only once the target is in view (`REVEAL_MS` cap), the hand waiting at the viewport's
+  edge meanwhile. A target in a sticky / fixed box that is already in view never scrolls the page. After a click the
+  hand rests on the control (`rest`) and hides as soon as the control is not under it any more (covered, moved,
+  removed, hidden). A parked run follows its control (`followParked` in visuals.ts: the tool's `target` is resolved
+  again every 400 ms, and on resume the cursor returns to it); the confirm gate fails with `unavailable` once no
+  usable control is left, CSS-hidden included (it polls: a container query mutates nothing). The gate also gives up
+  after 10 s (`CONFIRM_TIMEOUT_MS`, `needs_user`), and a call the person starts themself (one that begins within 1 s
+  of a trusted click elsewhere: a chip, the devtools' Run) cancels every waiting confirmation (`supersedeWaiting`,
+  `cancelled`); an agent's own next call never does, the cursor just returns to the waiting control afterwards.
 - The cursor scrolls its target to the middle of the viewport when the target is within 64 px of the fold; `show_demo`
   targets a demo frame element (`demoFrame(id)`, a function `target` returning an Element). On the Demos page a frame is
   header-wide unless the window is too short to show all of it (`landing.css`, `.demo .demo-well`).
@@ -276,8 +300,9 @@ mid-run (the cursor must vanish and the tool still complete).
   redirect page (`pages/docs/demos.astro`) to `/demos`.
 - `scripts/record-demo.sh` waits for the cursor's own parked state (`.agent-cursor.is-waiting`) before the trusted
   click: native Chrome sets `:tool-submit-active` as soon as a call starts, before the cursor has typed.
-- A hidden Browser pane (or a backgrounded tab) fires no rAF: the cursor freezes mid-flight and form tools never finish.
-  Show the pane before driving the site's tools there.
+- A backgrounded tab (`document.hidden`) counts as "yielded": calls run at once, nothing animates. A hidden Browser
+  pane that reports itself visible but fires no rAF is slower, not stuck: each move lands by timer (`STALLED_MS`
+  after it should have). Show the pane before driving the site's tools there if you want to see or time the cursor.
 - Nothing gates rendering on the polyfill, so Next.js prerenders every page inside `<Providers>`: a client component that
   calls `useSearchParams()` needs a `<Suspense>` boundary (`apps/nextjs/app/cart/page.tsx`), or `next build` fails.
 - Playwright's `page.waitForFunction` does not await an async predicate (a Promise is truthy): wait for `window.agent`,

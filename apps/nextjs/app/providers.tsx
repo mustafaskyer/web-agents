@@ -2,8 +2,8 @@
 /**
  * The client shell: the WebMCP provider (agent cursor + the app-wide tools), the header and the chat. A client
  * component because tools need the DOM; it is server-rendered with the page all the same, and the pages themselves
- * stay Server Components. The provider follows the URL itself (no pathname, no router hook) and loads the polyfill
- * itself where the browser has no WebMCP: there is no "ready" gate.
+ * stay Server Components. The provider follows the URL itself (no pathname, no router hook), loads the polyfill
+ * itself where the browser has no WebMCP (there is no "ready" gate) and the devtools in development.
  */
 import { createCloudAdapter } from "@webmcp-agents/chat";
 import { WebAgentsProvider } from "@webmcp-agents/react";
@@ -22,12 +22,9 @@ export function Providers({ children }: { children: ReactNode }) {
   // the app-wide tools navigate with the App Router: no page load, so no call is lost
   const router = useRouter();
   useEffect(() => setNavigate((to) => router.push(to)), [router]);
-  // dev only: the devtools panel (Alt+Shift+A) and window.agent for the e2e tests
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production") void import("@webmcp-agents/devtools").then((m) => m.installWebAgentsDevtools());
-  }, []);
   // Server-rendered with the page: the provider loads the WebMCP polyfill in a browser without WebMCP, and the
-  // tools register once it is there.
+  // tools register once it is there. In `next dev` it also installs the devtools panel (Alt+Shift+A) and
+  // window.agent, which the e2e tests drive.
   return (
     <WebAgentsProvider tools={tools}>
       <Header />

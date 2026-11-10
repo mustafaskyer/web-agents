@@ -2,7 +2,7 @@
 title: Field Store
 description: A realistic storefront in apps/ecommerce on React Router 7, where tools are on everywhere, while a component is mounted or while the cart drawer is open, and checkout waits for the person.
 related:
-  - /build/where-a-tool-is-on
+  - /build/tools-across-your-app
   - /build/define-an-agent
   - /examples/nextjs
 ---
@@ -72,7 +72,7 @@ on the page. [Define an agent](/build/define-an-agent) teaches both shapes.
 - **State outside React.** The cart and the drawer are small stores (`src/store/cart.ts`, `src/store/ui.ts`) that components
   read with `useCart()` and `useUi()` and catalog tools import. Catalog tools navigate with the router's own
   `router.navigate` (`src/lib/navigate.ts`, handed over by `main.tsx`), so no call is lost to a page load, and
-  `src/agents.ts` can import the catalog on the server. [Where a tool is on](/build/where-a-tool-is-on).
+  `src/agents.ts` can import the catalog on the server. [Tools across your app](/build/tools-across-your-app).
 - **Tools in the component that owns the control.** `update_cart_item`, `remove_from_cart` and `close_cart` live in
   `CartDrawer.tsx` with `enabled: cartOpen`; `checkout` lives in the checkout form, with
   `fill: (values) => form.reset(values)` ([Tools with input](/build/tools-with-input)).

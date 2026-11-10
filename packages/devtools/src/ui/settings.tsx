@@ -53,7 +53,8 @@ export function Settings({ store, embedded, hotkey }: { store: DevtoolsStore; em
     <div className="settings">
       {!hasVisuals && (
         <p className="notice">
-          No agent cursor to control. Render the devtools inside <code>&lt;WebAgentsProvider&gt;</code>, or pass <code>visuals</code>.
+          No agent cursor to control. Start <code>&lt;WebAgentsProvider&gt;</code> or <code>createWebAgents</code> first, or pass{" "}
+          <code>visuals</code>.
         </p>
       )}
       <Switch
@@ -65,7 +66,7 @@ export function Settings({ store, embedded, hotkey }: { store: DevtoolsStore; em
       />
       <Switch
         label="Yield to the user"
-        hint="Hide the cursor while you move the mouse, scroll or type. Input in this panel never counts."
+        hint="Hide the cursor while you click, scroll or type. Input in this panel never counts."
         checked={settings.yieldToUser}
         disabled={!hasVisuals}
         onChange={set("yieldToUser")}

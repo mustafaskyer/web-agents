@@ -28,12 +28,12 @@ landing page at `/`, whose own actions are WebMCP tools you can try from the pag
 | Package | |
 |---|---|
 | [`@webmcp-agents/core`](packages/core) | The visual layer (ghost cursor, spotlight, typing into fields, confirmation parking, yield-to-user, `onAgentEvent`), `defineWebTool` (`target`, `fields`, `fill`, `match`, flags, `invoke`), `locate`, `createWebAgents` (the framework-free entry that follows the URL itself) and the tool registry; the `document.modelContext` polyfill it loads where the browser has none (`@webmcp-agents/core/polyfill`). |
-| [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider tools availableTools>` (the same line in every framework), `useWebTool({ … })` returning `invoke`, `usePathname`, `useEnableTools`; `useToolAnswer` and JSX types for declarative forms. |
+| [`@webmcp-agents/react`](packages/react) | `<WebAgentsProvider tools availableTools>` (the same line in every framework; it loads the polyfill where needed and the devtools in development), `useWebTool({ … })` returning `invoke`, `usePathname`, `useEnableTools`; `useToolAnswer` and JSX types for declarative forms. |
 | [`@webmcp-agents/tools`](packages/tools) | Common tools, ready-made: `getTime`, `getLocation`, `getPage`, `goTo`, `goBack`, `scrollTo`, `setTheme`. |
 | [`@webmcp-agents/polyfill`](packages/polyfill) | Deprecated: re-exports `@webmcp-agents/core/polyfill`, which the provider now loads itself. |
 | [`@webmcp-agents/chat`](packages/chat) | `<AgentChat agent>`: a chat widget whose agent (any frontier model on your server through the AI SDK, or a custom `AgentAdapter`) works the live page through its WebMCP tools; `defineWebAgent` for instructions, tool subsets and sub-agents, with `agent.invoke(…)` and `useWebAgent` to run one without a chat; `/api/chat` handler and a Vite dev plugin. |
 | [`@webmcp-agents/local-agent`](packages/local-agent) | An on-device `AgentAdapter`: Chrome's built-in model, or a small Qwen3 model in a Web Worker (transformers.js, WebGPU/WASM). Opt-in download; nothing leaves the browser. |
-| [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Each tool shows the control it finds, the fields it types into, its `match` and its flags. Floating, `<WebAgentsDevtools />` or a TanStack Devtools tab. `window.agent.invoke` (`run` is an alias). |
+| [`@webmcp-agents/devtools`](packages/devtools) | Devtools panel: the page's tools with a generated form per schema, a timeline of every call (yours or an agent's), cursor settings. Each tool shows the control it finds, the fields it types into, its `match` and its flags. Installed by the provider in development; or by hand: `installWebAgentsDevtools()`, `<WebAgentsDevtools />` or a TanStack Devtools tab. `window.agent.invoke` (`run` is an alias). |
 
 | App | |
 |---|---|
@@ -186,14 +186,14 @@ apps/playground/src/
     ClearCartButton.tsx  useWebTool clear_cart (destructive, requireConfirmation)
     PlaceOrderButton.tsx useWebTool place_order (requireConfirmation)
     ApplyPromoForm.tsx   the one declarative <form toolname="apply_promo"> (the alternative)
-  App.tsx             ← <WebAgentsProvider tools={tools}> (installs the cursor)
+  App.tsx             ← <WebAgentsProvider tools={tools}> (installs the cursor, and the devtools in dev)
   store.tsx           ← the cart: a module store
   main.tsx            ← render (the provider loads the polyfill where it is needed)
-  Devtools.tsx        ← dev only, lazy: <WebAgentsDevtools /> (or the TanStack tab with ?tanstack)
+  Devtools.tsx        ← dev only, lazy, with ?tanstack: the devtools as a TanStack tab (devtools={false} on the provider)
 packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool. Holds the polyfill (src/polyfill/).
-packages/react        ← provider + hooks: which tools are on, registered without churn
+packages/react        ← provider + hooks: which tools are on, registered without churn; loads the devtools in dev
 packages/polyfill     ← deprecated: re-exports core's polyfill (document.modelContext + declarative forms + events)
-packages/devtools     ← dev only: the panel that plays the agent and records every call
+packages/devtools     ← dev only: the panel that plays the agent and records every call (react depends on it, not back)
 ```
 
 Declarative `<form toolname>` tools and `toolname` markers still work (the playground keeps one declarative form);

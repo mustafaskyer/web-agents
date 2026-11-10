@@ -9,6 +9,11 @@ navigating or remounting causes no `toolchange` churn.
 pnpm add @webmcp-agents/react @webmcp-agents/core
 ```
 
+That is the whole install: the provider loads a WebMCP polyfill where the browser has none, and in development
+installs the devtools panel (Alt+Shift+A, `window.agent`), wired to its cursor. `devtools={false}` turns the panel off,
+`devtools={{ initialOpen: true }}` configures it; a production build has no devtools code (the `import()` sits behind
+`process.env.NODE_ENV === "development"`, which your bundler replaces).
+
 ## A tool in a component
 
 The action is one function with two callers. When an agent calls `clear_cart`, the cursor finds the button named
@@ -127,7 +132,7 @@ types what it can, `fill`, the cursor parks on the button, the person clicks, `e
 
 ## The provider
 
-App-wide tools go in one object (`defineWebTool`, with `match` to say where a tool is on) and the provider is the same
+App-wide tools go in one object (`defineWebTool`, with `match` to choose the pages each one is on) and the provider is the same
 line in Vite, TanStack Start, Next.js and Astro, because the library follows the browser's URL itself:
 
 ```tsx

@@ -1,13 +1,11 @@
 /**
- * Dev-only devtools, loaded lazily by App. `?tanstack` shows them as a tab in
- * TanStack Devtools instead of the floating panel.
+ * `?tanstack` (dev only, loaded lazily by App): the devtools as a "Web Agents" tab in TanStack Devtools, instead of
+ * the floating panel <WebAgentsProvider> installs in development. App passes devtools={false} meanwhile, and the tab
+ * drives the provider's cursor all the same.
  */
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { WebAgentsDevtools, webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
-
-const TANSTACK = new URLSearchParams(location.search).has("tanstack");
+import { webAgentsDevtoolsPlugin } from "@webmcp-agents/devtools/react";
 
 export default function Devtools() {
-  if (TANSTACK) return <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />;
-  return <WebAgentsDevtools />;
+  return <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />;
 }

@@ -187,6 +187,21 @@
       "statusCode": 301
     },
     {
+      "destination": "/docs/build/tools-across-your-app",
+      "source": "/docs/build/where-a-tool-is-on",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-across-your-app.md",
+      "source": "/docs/build/where-a-tool-is-on.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-across-your-app.mdx",
+      "source": "/docs/build/where-a-tool-is-on.mdx",
+      "statusCode": 301
+    },
+    {
       "destination": "/docs/build/call-a-tool",
       "source": "/docs/guides/invoke",
       "statusCode": 301

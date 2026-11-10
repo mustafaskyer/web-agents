@@ -50,6 +50,13 @@ title matches too.
 
 The input is validated before the cursor moves, so the person never approves a call that then fails its schema.
 
+## How long it waits
+
+The call waits 10 seconds for the click. After that it fails with `Error [needs_user]`, which tells the agent to ask
+the person and call again, and the prompt leaves the page. It also ends early, with `Error [cancelled]`, when the
+person starts another tool call themself (a button or chip that runs a tool, the devtools): they chose to do
+something else. An agent's own next call never cancels it.
+
 ## It needs exactly one control
 
 A confirm-gated tool **fails closed**. When there is no control to click (not on the page, disabled, or gone while it
@@ -104,7 +111,7 @@ await agent.invoke("place_order");
 ```
 
 The cursor parks on **Place order** and the promise waits. Click the button: the call resolves with "Order FS-…
-placed, $28.00." Move the mouse while the cursor travels: it gets out of the way, and the
+placed, $28.00." Scroll or click while the cursor travels: it gets out of the way, and the
 call still waits for your click.
 
 ## Options you'll use most
@@ -117,9 +124,3 @@ call still waits for your click.
 | `destructive`, `external` | Tell the agent what kind of action it is about to ask for. |
 
 Every option, with flags and annotations: [`defineWebTool`](/reference/core/define-web-tool#flags-and-annotations).
-
-## Next
-
-<Card title="Where a tool is on" href="/build/where-a-tool-is-on" icon="arrow-right">
-  Tools for the whole app in one object, and `match` to turn each one on where it belongs.
-</Card>

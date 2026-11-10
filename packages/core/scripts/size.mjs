@@ -29,10 +29,16 @@ const index = fileURLToPath(new URL("../src/index.ts", import.meta.url));
  * about 280 B (16.29 KB), so the whole-package budget went from 16.25 KB to 16.5 KB. The polyfill itself (about
  * 2.5 KB) is a chunk reached only by dynamic import: it is reported, not counted, since browsers with WebMCP never
  * download it.
+ *
+ * Cursor reliability (2026-11-10): a press that waits for its control to scroll into view, pinned (sticky / fixed)
+ * controls, leaving a control that is no longer under the hand, a parked confirmation that follows its control,
+ * a background tab and a frame-less pane add about 0.7 KB to both: 9.96 KB and 17.2 KB. Budgets raised to 10 KB and
+ * 17.25 KB. The confirm gate's 10 s limit and a person's own call cancelling a waiting confirmation add about 0.2 KB
+ * outside the visuals (17.41 KB): the whole-package budget went to 17.5 KB.
  */
 const CHECKS = [
-  { name: "visuals (installAgentVisuals, onAgentEvent)", exports: "{ installAgentVisuals, onAgentEvent }", budget: 9.25 * KB },
-  { name: "whole package", exports: "*", budget: 16.5 * KB },
+  { name: "visuals (installAgentVisuals, onAgentEvent)", exports: "{ installAgentVisuals, onAgentEvent }", budget: 10 * KB },
+  { name: "whole package", exports: "*", budget: 17.5 * KB },
 ];
 
 async function size(exports) {

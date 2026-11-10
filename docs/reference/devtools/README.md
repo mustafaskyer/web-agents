@@ -24,12 +24,17 @@ panel never makes the agent cursor yield.
 
 ## Install
 
+Nothing to install in a React app: [`<WebAgentsProvider>`](../react/web-agents-provider.md) depends on this package
+and installs the panel in development (its `devtools` prop turns it off or configures it). Install it yourself for a
+page without the provider, or to place the panel by hand:
+
 ```sh
 pnpm add -D @webmcp-agents/devtools
 ```
 
-React and React DOM (>= 18) are peer dependencies, also for the vanilla host. `@tanstack/react-devtools` and
-`@webmcp-agents/react` are optional peers.
+React and React DOM (>= 18) are peer dependencies, also for the vanilla host. `@tanstack/react-devtools` is an
+optional peer. The package does not depend on `@webmcp-agents/react` (the dependency goes the other way): the React
+entry finds the provider's cursor through core's [`currentAgentVisuals()`](../core/current-agent-visuals.md).
 
 ## Entry points
 
@@ -38,17 +43,23 @@ React and React DOM (>= 18) are peer dependencies, also for the vanilla host. `@
 | `@webmcp-agents/devtools` | `installWebAgentsDevtools`, the store, the event-client bridge, `SchemaForm`, the copy-as-code helpers and other building blocks |
 | `@webmcp-agents/devtools/react` | `<WebAgentsDevtools>`, `useDevtoolsStore`, `webAgentsDevtoolsPlugin` |
 
+```tsx
+// React: nothing. In development the provider installs the panel, wired to its cursor.
+<WebAgentsProvider tools={tools}>
+```
+
 ```ts
-// Vanilla
+// A page built on createWebAgents: one line, after it
 import { installWebAgentsDevtools } from "@webmcp-agents/devtools";
-if (import.meta.env.DEV) installWebAgentsDevtools({ visuals });
+if (import.meta.env.DEV) installWebAgentsDevtools();
 ```
 
 ```tsx
-// React, dev only: the condition guards the import() itself, so production bundles leave the devtools out
-const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
-  : () => null;
+// Placing it yourself: the provider's panel off, the component inside the provider
+<WebAgentsProvider tools={tools} devtools={false}>
+  <App />
+  <WebAgentsDevtools />
+</WebAgentsProvider>
 ```
 
 ## The hotkey
@@ -86,8 +97,8 @@ While the devtools are installed, `window.agent` lets you play the agent from th
 
 | API | Description |
 |---|---|
-| [`installWebAgentsDevtools`](./install-web-agents-devtools.md) | Mount the floating panel on any page. Includes `DevtoolsOptions`. |
-| [`WebAgentsDevtools`](./web-agents-devtools.md) | The panel as a React component, wired to the provider's cursor. Includes `WebAgentsDevtoolsProps`, `useDevtoolsStore`. |
+| [`installWebAgentsDevtools`](./install-web-agents-devtools.md) | Mount the floating panel on any page; the provider calls it in development. Includes `DevtoolsOptions`. |
+| [`WebAgentsDevtools`](./web-agents-devtools.md) | The panel as a React component you place yourself (with the provider's `devtools={false}`), wired to the provider's cursor. Includes `WebAgentsDevtoolsProps`, `useDevtoolsStore`. |
 | [`webAgentsDevtoolsPlugin`](./web-agents-devtools-plugin.md) | The panel as a "Web Agents" tab of TanStack Devtools. Includes `WebAgentsDevtoolsPlugin`. |
 | [`createDevtoolsStore`](./create-devtools-store.md) | The panel's state without a UI: tools, calls, settings, `runTool`, and the `window.agent` console helper. Includes `DevtoolsStore`, `DevtoolsState`, `DEFAULT_SETTINGS` and the store types. |
 | [`webAgentsEventClient`](./event-client.md) | Post the store's state and agent events to TanStack Devtools' event bus. Includes `bridgeStoreToEventClient`, `WebAgentsEvents`. |

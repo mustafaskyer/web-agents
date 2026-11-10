@@ -89,7 +89,7 @@ Always confirm versions with `npm view <pkg> version` before pinning; numbers ab
 ├── packages/
 │   ├── core/              @webmcp-agents/core      visuals (cursor, motion, spotlight), events, WebTool, registry, the polyfill (/polyfill)
 │   ├── polyfill/          @webmcp-agents/polyfill  deprecated (2026-11-10): re-exports @webmcp-agents/core/polyfill
-│   ├── react/             @webmcp-agents/react     <WebAgentsProvider>, useWebTool, useEnableTools, <EnableTools>, JSX attr types
+│   ├── react/             @webmcp-agents/react     <WebAgentsProvider> (+ the devtools in dev), useWebTool, useEnableTools, <EnableTools>, JSX attr types
 │   ├── devtools/          @webmcp-agents/devtools  panel + TanStack plugin + schema runner
 │   ├── chat/              @webmcp-agents/chat      <AgentChat>, AgentAdapter, cloud adapter, /server handler, /vite dev plugin
 │   ├── local-agent/       @webmcp-agents/local-agent  in-browser adapter (Worker + transformers.js / Prompt API)
@@ -101,7 +101,8 @@ Always confirm versions with `npm view <pkg> version` before pinning; numbers ab
 ```
 
 Dependency direction (no cycles, enforced by review): `core` → none (types only from `@standard-schema/spec`; the
-polyfill is core's own `src/polyfill`, reached by dynamic import); `polyfill` (deprecated) → core; `react` → core; `devtools` → core (react entry → react); `chat` → core, react;
+polyfill is core's own `src/polyfill`, reached by dynamic import); `polyfill` (deprecated) → core; `react` → core, devtools (2026-11-10: the provider loads the devtools in development); `devtools` → core (never react:
+its React entry finds the cursor with core's `currentAgentVisuals()`); `chat` → core, react;
 `local-agent` → chat (types only); `tools` → core. Apps → anything.
 
 ---
@@ -278,6 +279,7 @@ export function watchPathname(listener: () => void): () => void;        // URL c
 
 // inspection — Phase 14 (for the devtools; the cursor's own resolver, no second implementation)
 export function inspectTools(): ToolInspection[];  // registered WebTools + every started createWebAgents catalog (on or off here)
+export function currentAgentVisuals(): WebAgents["visuals"] | null;  // 2026-11-10: the latest started createWebAgents' cursor controls (visuals: false skipped); devtools' default `visuals`
 export interface ToolInspection extends ToolControls { tool: WebTool; fits: boolean }  // fits: `match` fits the current path
 export interface ToolControls {
   by: "target" | "marker" | "name" | "call";      // "call": a function target, resolved per call only
@@ -305,6 +307,9 @@ export class PolyfillModelContext extends EventTarget implements ModelContext { 
   availableTools={[tools.getCart]}        // optional: what an agent may use right now (tools by reference or key); default all
   visuals={{ spotlight: true }}           // AgentVisualsOptions | false
   polyfill={false}                        // optional: "auto" (default) loads the polyfill where WebMCP is missing; children render meanwhile
+  devtools={false}                        // 2026-11-10, optional: boolean | ProviderDevtoolsOptions (DevtoolsOptions minus visuals); default true =
+                                          //   installWebAgentsDevtools({ visuals: its cursor }) when process.env.NODE_ENV === "development" only
+                                          //   (literal check around the import(): no devtools chunk in production; none under "test")
 >
 // Earlier form, still working: an ARRAY `tools` is opt-in (off until named), plus
 //   global={["search_products"]}  routes={{ "/checkout": ["place_order"] }}  (matchPath patterns)
@@ -327,7 +332,7 @@ useAgentEvents(listener);                  // subscribe to core events
 ```ts
 export function installWebAgentsDevtools(options?: DevtoolsOptions): () => void;  // vanilla floating panel (idempotent)
 export interface DevtoolsOptions {
-  visuals?: Pick<AgentVisuals, "setSpotlight" | "setYieldToUser"> | null;  // React host defaults to the provider's
+  visuals?: Pick<AgentVisuals, "setSpotlight" | "setYieldToUser"> | null;  // default: core's currentAgentVisuals() (the started provider's)
   initialOpen?: boolean;                    // default false
   initialSettings?: Partial<DevtoolsSettings>;  // below saved settings; pass `spotlight` matching the installed visuals
   hotkey?: string | false;                  // default "Alt+Shift+A"
@@ -342,7 +347,8 @@ export { SchemaForm, defaultValueFor, parseSchema, toAgentInvokeCode, toExecuteT
 export function installAgentConsole(o?): () => void;   // deprecated alias
 // "@webmcp-agents/devtools/react":   <WebAgentsDevtools {...DevtoolsOptions} />, useDevtoolsStore(options),
 //                                 webAgentsDevtoolsPlugin(options) → { id: "web-agents", name: "Web Agents", render }
-// peers: react, react-dom (required); @webmcp-agents/react, @tanstack/react-devtools (optional; /react entry)
+// peers: react, react-dom (required); @tanstack/react-devtools (optional; /react entry). No @webmcp-agents/react (it depends on this).
+// <WebAgentsProvider> installs the floating panel in development; these are for pages without it, or placing it by hand (devtools={false})
 // window.agent = { invoke(name, args), run (= invoke, back-compat), list() } (set by the store, restored on destroy).
 ```
 
@@ -444,6 +450,11 @@ Library UIs call tools through core's `executeTool()`, never `document.modelCont
   `createWebAgents` or split the package. Raised to 16.5 KB on 2026-11-10 for the provider loading the polyfill itself
   (`loadWebMCPPolyfill`, `whenModelContext`, the registration queue, the `polyfill` option: +279 B, 16.29 KB). The polyfill
   is a chunk reached only by dynamic import (2.45 KB): the size script reports it apart and does not count it.
+  Raised again on 2026-11-10, to **10 KB** (visuals, 9.96 KB measured) and **17.5 KB** (whole package, 17.41 KB; 17.25 KB
+  before the confirm gate's 10 s limit and the person's own call cancelling a waiting confirmation), for the
+  cursor's reliability pass: a press waits for its control to scroll into view, pinned controls don't scroll the page, the
+  cursor leaves a control that is no longer under it, a parked confirmation follows its control and fails when CSS hides
+  it, and calls never wait on frames that are not drawn (a background tab, a hidden pane).
   Decision (Phase 3): no `@webmcp-agents/core/tools` split. Consumers bundle with tree-shaking, so a subpath would not
   shrink what a visuals-only page pays, and it would churn every import for no gain. The per-import budget keeps the
   cursor lean; the whole-package budget caps WebTool/registry/executeTool growth. Revisit if a non-bundled (CDN) build ships;

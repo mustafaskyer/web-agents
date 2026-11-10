@@ -50,5 +50,5 @@ by role and accessible name.
   [`/api/chat`](./chat/create-chat-handler.md) by default; add
   [`createLocalAdapter`](./local-agent/create-local-adapter.md) for an on-device model).
 - **When a tool fails:** every failure carries a code (`Error [timeout]: …`), see [tool error codes](./core/tool-error.md).
-- **Debug tools:** [`installWebAgentsDevtools`](./devtools/install-web-agents-devtools.md) (Alt+Shift+A): each tool's control, fields and `match`.
+- **Debug tools:** the devtools panel (Alt+Shift+A), which [`<WebAgentsProvider>`](./react/web-agents-provider.md) installs in development: each tool's control, fields and `match`. Without the provider: [`installWebAgentsDevtools`](./devtools/install-web-agents-devtools.md).
 - **Deploy the examples:** [Deploy](../more/deploy.md).

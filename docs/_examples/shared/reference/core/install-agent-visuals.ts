@@ -5,7 +5,7 @@ const visuals = installAgentVisuals({
   name: "Assistant",
   linger: 1500,
   spotlight: { blur: 4, dim: 0.08, padding: 12 },
-  yieldToUser: { moveThreshold: 6, resumeAfter: 800 },
+  yieldToUser: { resumeAfter: 800 },
 });
 
 // The same events `log` would get, for your own use.

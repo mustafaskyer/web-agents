@@ -2,7 +2,7 @@
 title: Skyline
 description: A flight-booking site in apps/flights where the search lives in the URL, results tools are on only on the results route, a TanStack Form fills the travelers, and booking waits for the person's click.
 related:
-  - /build/where-a-tool-is-on
+  - /build/tools-across-your-app
   - /build/common-tools
   - /examples/field-store
 ---
@@ -62,7 +62,7 @@ agent, which knows the booking flow in a few plain lines.
   renders a readable error instead of a blank page.
 - **Results tools say where they are on.** `filter_results` and friends carry `match: RESULTS_PATTERN`: the library follows
   the URL, so they turn on and off with back and forward and nothing is wired to React Router.
-  [Where a tool is on](/build/where-a-tool-is-on).
+  [Tools across your app](/build/tools-across-your-app).
 - **Store first, then navigate.** A `match` tool turns on as soon as the URL changes, before the results page has rendered,
   so `search_flights` stores the search **before** it navigates (the tools read it).
   [Tool lifecycle](/concepts/tool-lifecycle#tools-that-come-and-go-with-the-url).

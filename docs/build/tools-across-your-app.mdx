@@ -1,13 +1,13 @@
 ---
-title: Where a tool is on
-description: "The catalog, match and availableTools: which tools an agent sees on which page. One object for the app's tools, one provider prop, no router wiring."
+title: Tools across your app
+description: "Put app-wide tools in one catalog the provider registers, then choose the pages each one is on with match, and which ones an agent may use with availableTools. No router setup."
 sidebar:
-  label: 4. Where a tool is on
+  label: 4. Tools across your app
 ---
 
-A tool that belongs to one component is on while the component is on the page. A tool that belongs to the **whole
-app** (read the cart, list orders, go to a page) goes in one object, the **catalog**, written with `defineWebTool`.
-The provider registers it, and its **`match`** says on which pages it is on.
+A tool in a component is on while that component is on the page. A tool for the **whole app** (read the cart, list
+orders, go to a page) lives in one object, the **catalog**, written with `defineWebTool`. You hand it to the provider
+once, and each tool's **`match`** chooses the pages it is on.
 
 ## A complete example
 
@@ -17,7 +17,7 @@ The catalog, then one prop on the provider you added at installation. The highli
 
 <include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
 
-<include meta='title="src/main.tsx" {7,20}'>/_examples/vite/src/main.catalog.tsx</include>
+<include meta='title="src/main.tsx" {7,12}'>/_examples/vite/src/main.catalog.tsx</include>
 
 </View>
 
@@ -25,7 +25,7 @@ The catalog, then one prop on the provider you added at installation. The highli
 
 <include meta='title="tools/index.ts"'>/_examples/shared/tools/index.ts</include>
 
-<include meta='title="app/providers.tsx" {6,21}'>/_examples/nextjs/app/providers.catalog.tsx</include>
+<include meta='title="app/providers.tsx" {6,10}'>/_examples/nextjs/app/providers.catalog.tsx</include>
 
 </View>
 
@@ -33,7 +33,7 @@ The catalog, then one prop on the provider you added at installation. The highli
 
 <include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
 
-<include meta='title="src/components/providers.tsx" {4,19}'>/_examples/tanstack-start/src/components/providers.catalog.tsx</include>
+<include meta='title="src/components/providers.tsx" {4,8}'>/_examples/tanstack-start/src/components/providers.catalog.tsx</include>
 
 </View>
 
@@ -41,7 +41,7 @@ The catalog, then one prop on the provider you added at installation. The highli
 
 <include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
 
-<include meta='title="src/components/providers.tsx" {4,19}'>/_examples/astro/src/components/providers.catalog.tsx</include>
+<include meta='title="src/components/providers.tsx" {4,8}'>/_examples/astro/src/components/providers.catalog.tsx</include>
 
 </View>
 
@@ -153,9 +153,3 @@ It answers with the newest order. Go back to `/`: in the devtools panel, `list_o
 
 Every option: [`defineWebTool`](/reference/core/define-web-tool), [`<WebAgentsProvider>`](/reference/react/web-agents-provider)
 and [`matchPath`](/reference/core/match-path) for the pattern syntax.
-
-## Next
-
-<Card title="Common tools" href="/build/common-tools" icon="arrow-right">
-  The time, the user's location, the current page, go to, go back, scroll to and the theme: seven tools, ready-made.
-</Card>

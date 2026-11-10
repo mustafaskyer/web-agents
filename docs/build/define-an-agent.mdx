@@ -48,7 +48,7 @@ npm install @webmcp-agents/chat
 ## Instructions
 
 `instructions` is a string or a list of lines, added to the system prompt under "About this site". Write what the
-model cannot read from the tools: the order of a task ("list_orders before track_order"), where a tool is on, what to
+model cannot read from the tools: the order of a task ("list_orders before track_order"), which page a tool is on, what to
 ask the person, and what never to do. Tool descriptions say what each tool does; instructions say how they fit.
 
 The browser sends only the agent's **id**. The server reads the instructions from its own copy of this file, so page
@@ -95,6 +95,38 @@ Ids must be unique across the whole tree.
 It is a string, never a key: the server resolves it with the provider's key from its own environment. A provider
 other than the default needs its key and its SDK on the server ([Add the chat](/build/add-the-chat#pick-a-model)).
 
+## Use it
+
+The definition is the same wherever the agent runs. The chat takes it as a prop (`<AgentChat agent={shopper} />`,
+the next page). To run it with no chat on the page, pick the tab that fits:
+
+<Tabs syncKey="agent-api" hash={false}>
+<Tab title="useWebAgent">
+
+In a component, with live status:
+
+```tsx
+const agent = useWebAgent(shopper);
+
+<Button onClick={() => agent.invoke("Where is my last order?")}>
+  {agent.status === "running" ? "Working…" : "Track my last order"}
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebAgent">
+
+Anywhere else, on the agent itself:
+
+```ts
+const { text } = await shopper.invoke("Where is my last order?");
+```
+
+</Tab>
+</Tabs>
+
+[Call an agent](/build/call-an-agent) has both in full.
+
 ## Try it
 
 An agent needs a model to run, and the next page adds one: the chat and its `/api/chat` route. Then ask the chat
@@ -113,10 +145,5 @@ An agent needs a model to run, and the next page adds one: the chat and its `/ap
 | `model` | `"<provider>/<model>"`. Default: the server's. |
 | `maxSteps` | Model steps per message for this agent. |
 
-Every option: [`defineWebAgent`](/reference/chat/define-web-agent).
-
-## Next
-
-<Card title="Add the chat" href="/build/add-the-chat" icon="arrow-right">
-  Put the agent on the page in a chat, and serve `/api/chat` with your model's key on the server.
-</Card>
+Every option: [`defineWebAgent`](/reference/chat/define-web-agent) and
+[`useWebAgent`](/reference/chat/use-web-agent).

@@ -4,7 +4,8 @@
  * Puts the landing page's tools on `document.modelContext` and the agent cursor on the page, like any app built on
  * the packages: `<WebAgentsProvider tools={tools}>`. It renders nothing of its own and wraps nothing: the page is
  * server-rendered and its tools find their controls by name. Where the browser has no WebMCP the provider loads the
- * polyfill itself, and the tools register once it is there.
+ * polyfill itself, and the tools register once it is there. In `astro dev` it also installs the devtools panel
+ * (Alt+Shift+A) and window.agent.invoke(name, args), wired to the cursor.
  *
  * On the home page it also plays the first-visit introduction, which is a real tool call: `show_tools`, the same
  * one a visitor can repeat from the row of tools under the title. It points at that row and touches nothing else.
@@ -14,16 +15,6 @@ import { type WebTool, type WebToolCatalog, WebAgentsProvider } from "@webmcp-ag
 import { useEffect, useState } from "react";
 import { homeTools } from "./site-tools";
 import { toolsRow } from "./tools-row";
-
-let devtools: Promise<void> | undefined;
-
-/** Development only: the devtools panel (Alt+Shift+A) and window.agent.invoke(name, args). Once per page. */
-function installDevtools(): Promise<void> {
-  devtools ??= import("@webmcp-agents/devtools").then(({ installWebAgentsDevtools }) => {
-    installWebAgentsDevtools();
-  });
-  return devtools;
-}
 
 /** Resolve once the page has `document.modelContext`: native, or the polyfill the provider loads. */
 const modelContextReady = (): Promise<unknown> => new Promise((resolve) => whenModelContext(resolve));
@@ -120,9 +111,6 @@ export const AgentLayer = ({ tools, intro = false, onReady }: AgentLayerProps) =
   // The tools are registered once the page has document.modelContext: the provider's own listener ran first.
   const [ready, setReady] = useState(false);
   useEffect(() => whenModelContext(() => setReady(true)), []);
-  useEffect(() => {
-    if (import.meta.env.DEV) void installDevtools();
-  }, []);
 
   useEffect(() => {
     if (!ready) return;

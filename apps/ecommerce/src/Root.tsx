@@ -1,11 +1,10 @@
 /**
- * The layout every page renders in: the WebMCP provider, header, cart drawer and (dev only) the devtools. The
- * provider follows the URL itself, so it needs nothing from React Router.
+ * The layout every page renders in: the WebMCP provider, header and cart drawer. The provider follows the URL
+ * itself, so it needs nothing from React Router, and installs the devtools panel in development.
  */
 import { AgentChat, createCloudAdapter } from "@webmcp-agents/chat";
 import { createLocalAdapter, DEFAULT_MODEL } from "@webmcp-agents/local-agent";
 import { useAgentEvents, WebAgentsProvider } from "@webmcp-agents/react";
-import { lazy, Suspense } from "react";
 import { Outlet, ScrollRestoration } from "react-router";
 import { shopper } from "./agents";
 import { CartDrawer } from "./components/CartDrawer";
@@ -13,11 +12,6 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { ui, useUi } from "./store/ui";
 import { DRAWER_SAFE, tools } from "./tools";
-
-// Dev only: the condition guards the import() itself, so the production bundle has no devtools.
-const Devtools = import.meta.env.DEV
-  ? lazy(() => import("@webmcp-agents/devtools/react").then((m) => ({ default: m.WebAgentsDevtools })))
-  : () => null;
 
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 // Both follow the `shopper` agent (src/agents.ts): the cloud reads it from the server registry, the on-device model here.
@@ -52,9 +46,6 @@ export function Root() {
       <CloseDrawerForOtherTools />
       {/* inside the provider: the assistant sees exactly the tools this page has on */}
       <AgentChat adapters={ADAPTERS} agent={shopper} title="Assistant" position={import.meta.env.DEV ? "bottom-left" : "bottom-right"} />
-      <Suspense>
-        <Devtools />
-      </Suspense>
       <ScrollRestoration />
     </WebAgentsProvider>
   );

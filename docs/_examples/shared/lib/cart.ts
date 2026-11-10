@@ -18,6 +18,10 @@ export const cart = {
     else lines.push(line);
   },
 
+  clear() {
+    lines.length = 0;
+  },
+
   total: () =>
     lines.reduce((sum, line) => sum + line.quantity * line.price, 0),
 

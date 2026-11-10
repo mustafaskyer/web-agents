@@ -226,6 +226,8 @@ test("a tool's control is found by the call: remove_from_cart presses that line'
   await expect.poll(() => list(page)).toContain("add_to_cart");
   await run(page, "add_to_cart", { qty: 1 });
   await run(page, "open_product", { slug: "canvas-tote" });
+  // the mug page's add_to_cart is still registered for a moment after the route swap: wait for the tote's page
+  await expect(page.getByRole("heading", { level: 1, name: "Canvas Tote" })).toBeVisible();
   await expect.poll(() => list(page)).toContain("add_to_cart");
   await run(page, "add_to_cart", { qty: 2 });
   const drawer = page.getByRole("dialog", { name: /Your cart/ });
@@ -260,7 +262,10 @@ test.describe("with motion", () => {
     await expect(page.getByRole("dialog", { name: /Your cart/ })).toBeVisible();
   });
 
-  test("the person moving the mouse hides the cursor; the tool still completes", async ({ page, isMobile }) => {
+  test("the person using the page hides the cursor (moving the mouse alone does not); the tool still completes", async ({
+    page,
+    isMobile,
+  }) => {
     test.skip(isMobile, "a phone has no mouse to move");
     await open(page, "/product/ocean-tee");
     await expect.poll(() => list(page)).toContain("add_to_cart");
@@ -268,6 +273,8 @@ test.describe("with motion", () => {
     await expect(page.locator(".agent-cursor.is-visible")).toBeVisible();
     await page.mouse.move(200, 300);
     await page.mouse.move(600, 500, { steps: 10 });
+    await expect(page.locator(".agent-cursor.is-visible")).toBeVisible();
+    await page.mouse.wheel(0, 40);
     await expect(page.locator(".agent-cursor.is-visible")).toHaveCount(0);
     expect(await done).toMatch(/^Added 3 × Ocean Tee \(L\) to the cart/);
     await expect(page.getByRole("dialog", { name: /Your cart/ }).getByLabel("Quantity of Ocean Tee (L)")).toHaveValue("3");

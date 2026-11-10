@@ -1,10 +1,10 @@
 ---
-description: "Puts your app's tools on the page and installs the agent cursor: tools is everything the app has, availableTools what an agent may use right now, and each tool's own match says on which pages it is on."
+description: "Puts your app's tools on the page and installs the agent cursor (and, in development, the devtools): tools is everything the app has, availableTools what an agent may use right now, and each tool's own match says on which pages it is on."
 ---
 
 # `WebAgentsProvider`
 
-Puts your app's tools on the page and installs the agent cursor: `tools` is everything the app has, `availableTools` what an agent may use right now, and each tool's own `match` says on which pages it is on. Reach for it once, near the root of a React app. It is a thin wrapper over [`createWebAgents`](../core/create-web-agents.md); the library follows the browser's URL itself, and loads the WebMCP polyfill itself where the browser has none, so the same line works in Vite, TanStack Start, Next.js and Astro, with nothing wired to a router and nothing to load first.
+Puts your app's tools on the page and installs the agent cursor (and, in development, the [devtools](../devtools/README.md) panel): `tools` is everything the app has, `availableTools` what an agent may use right now, and each tool's own `match` says on which pages it is on. Reach for it once, near the root of a React app. It is a thin wrapper over [`createWebAgents`](../core/create-web-agents.md); the library follows the browser's URL itself, and loads the WebMCP polyfill itself where the browser has none, so the same line works in Vite, TanStack Start, Next.js and Astro, with nothing wired to a router and nothing to load first.
 
 ## Import
 
@@ -35,6 +35,7 @@ Without `availableTools`, every tool is available, each where its `match` fits:
 | `availableTools` | `AvailableTools` | every tool of an object catalog | What an agent may use right now, decided by your own state: tools by reference (`tools.getCart`) or by their key in `tools`. A tool that leaves is released once its call in flight is answered. An inline array is fine: it is compared by the tools' ids. |
 | `visuals` | `AgentVisualsOptions \| false` | `{}` | Options for [`installAgentVisuals`](../core/install-agent-visuals.md), read when the cursor installs. `spotlight` and `yieldToUser` also apply when they change. `false` installs nothing: tools still register, without animation, and [`useWebAgents`](./use-web-agents.md) gives `visuals: null`. |
 | `polyfill` | `"auto" \| false` | `"auto"` | Where the browser has no `document.modelContext` (Firefox, Safari, Chrome without WebMCP), `"auto"` loads the [polyfill](../core/load-webmcp-polyfill.md), a chunk of its own that browsers with WebMCP never download. The children render meanwhile, and their tools register once it is there. In production too, so every visitor gets the tools and the chat. `false` never loads it: tools register only where the browser has WebMCP. Read once, on mount. |
+| `devtools` | `boolean \| ProviderDevtoolsOptions` | `true` | The [devtools](../../build/devtools.mdx) panel (launcher bottom-right, `Alt+Shift+A`, and `window.agent`), wired to this provider's cursor so its Settings switches work. Development only: installed when `process.env.NODE_ENV` is `"development"` (`vite dev`, `next dev`, webpack's development mode), never in a production build, whose bundler drops the `import()` of `@webmcp-agents/devtools`, nor under `NODE_ENV=test`. `false` turns it off (to [place it yourself](../../build/devtools.mdx#place-it-yourself)); an object turns it on with panel options: [`DevtoolsOptions`](../devtools/install-web-agents-devtools.md#options) without `visuals` (`initialOpen`, `hotkey`, `initialSettings`, `eventClient`). Read once, on mount. |
 | `children` | `ReactNode` | none | The app. |
 | `global` | `readonly string[]` | `[]` | Earlier form: tool ids enabled on every page. |
 | `routes` | `Readonly<Record<string, readonly string[]>>` | `{}` | Earlier form: tool ids per route pattern (`/orders`, `/product/:slug`, `/flights/*`, `*`). Every matching pattern contributes. Today a tool says this itself, with `match`. |
@@ -71,13 +72,15 @@ A context provider. Descendants read it with [`useWebAgents`](./use-web-agents.m
 - A changed definition (id, title, description, schema, flags, `requireConfirmation`, a non-function `target`) re-registers at once. A changed `execute` does not: calls always go to the definition the catalog holds now.
 - `visuals` options other than `spotlight` and `yieldToUser` are only read at install. Inline objects are fine for those two: they are compared by value.
 - On the server it renders its children and does nothing else. In the browser it renders them at once too: there is nothing to wait for before mounting it, and no "ready" state to keep.
+- In development it loads `@webmcp-agents/devtools` (a dependency of this package: nothing to install) and calls [`installWebAgentsDevtools`](../devtools/install-web-agents-devtools.md) with its own cursor. One panel per page however many providers mount; the last to unmount removes it, a macrotask later, so StrictMode's remount keeps it and its timeline. The check is literally `process.env.NODE_ENV === "development"` around the `import()`, which Vite, Next.js (webpack and Turbopack) and Astro replace, so a production build has no devtools chunk. A page loaded without a bundler (no `process`) gets no panel.
 - Where the browser has no WebMCP it loads the polyfill when it mounts (unless `polyfill={false}`). The cursor installs and the tools register once `document.modelContext` exists, including those of [`useWebTool`](./use-web-tool.md) components that mounted meanwhile. With native WebMCP nothing is loaded.
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the page that teaches `tools`, `match` and `availableTools`
+- [Tools across your app](../../build/tools-across-your-app.mdx), the page that teaches `tools`, `match` and `availableTools`
 - [`createWebAgents`](../core/create-web-agents.md), the same without React
 - [Browsers without WebMCP](../../more/polyfill.mdx), what `polyfill` loads
+- [Devtools](../../build/devtools.mdx), what `devtools` installs
 - [`useWebTool`](./use-web-tool.md), a tool that lives in a component
 - [`useWebAgents`](./use-web-agents.md), read the provider
 - [`defineWebTool`](../core/define-web-tool.md)

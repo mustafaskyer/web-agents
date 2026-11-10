@@ -4,7 +4,7 @@ description: "Reads the nearest <WebAgentsProvider>: its tool registry, runtime 
 
 # `useWebAgents`
 
-Reads the nearest [`<WebAgentsProvider>`](./web-agents-provider.md): its tool registry, runtime cursor controls and pathname. Reach for it when a component has to change the cursor (spotlight, yield) or list the catalog's tools. `useOptionalWebAgents` does the same but returns `null` outside a provider, for UI that also works without one (the devtools use it).
+Reads the nearest [`<WebAgentsProvider>`](./web-agents-provider.md): its tool registry, runtime cursor controls and pathname. Reach for it when a component has to change the cursor (spotlight, yield) or list the catalog's tools. `useOptionalWebAgents` does the same but returns `null` outside a provider, for UI that also works without one.
 
 ## Import
 
@@ -50,7 +50,7 @@ A `WebAgentsContextValue`. `useWebAgents` throws `"useWebAgents must be used ins
 
 ## See also
 
-- [Add the chat](../../build/add-the-chat.mdx) and [Devtools](../../build/devtools.mdx) read the provider this way
+- [Add the chat](../../build/add-the-chat.mdx) reads the provider this way; the [devtools](../../build/devtools.mdx) use core's [`currentAgentVisuals`](../core/current-agent-visuals.md) instead
 - [`WebAgentsProvider`](./web-agents-provider.md)
 - [`installAgentVisuals`](../core/install-agent-visuals.md) (`AgentVisuals`, `SpotlightOptions`, `YieldOptions`)
 - [`createToolRegistry`](../core/create-tool-registry.md)

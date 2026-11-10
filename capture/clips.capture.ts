@@ -46,7 +46,8 @@ test("clip-yield", async ({ page }) => {
   const pending = run(page, "add_to_cart", { variant: "L", qty: 3 });
   await sleep(700); // the cursor is on its way
   await page.mouse.move(200, 300);
-  await page.mouse.move(600, 500, { steps: 20 }); // the person moves: the cursor gets out of the way
+  await page.mouse.move(600, 500, { steps: 20 });
+  await page.mouse.wheel(0, 60); // the person scrolls: the cursor gets out of the way (moving the pointer alone would not)
   await pending;
   await sleep(1500);
 });

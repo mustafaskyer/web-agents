@@ -26,15 +26,11 @@ npm create vite@latest
 
 ## Install the packages
 
-The agent cursor and the React bindings, then the devtools panel for development. Browsers without WebMCP need
-nothing more: the provider loads a polyfill for them.
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
 
 ```package-install
 npm install @webmcp-agents/core @webmcp-agents/react
-```
-
-```package-install
-npm install -D @webmcp-agents/devtools
 ```
 
 ## Add the styles
@@ -49,10 +45,10 @@ import "@webmcp-agents/core/cursor.css"; // [!code highlight]
 ## Add the provider
 
 `<WebAgentsProvider>` installs the cursor and registers your tools. In a browser without WebMCP it loads a polyfill
-first, by itself; your app renders meanwhile. In development the same file loads the devtools. The highlighted lines
-are the ones you add.
+first, by itself; your app renders meanwhile. In development it also installs the devtools panel. The highlighted
+lines are the ones you add.
 
-<include meta='title="src/main.tsx" {1,6,9-15,19,21}'>/_examples/vite/src/main.tsx</include>
+<include meta='title="src/main.tsx" {1,6,11,13}'>/_examples/vite/src/main.tsx</include>
 
 ## Add your first tool
 
@@ -82,7 +78,7 @@ empty."
 
 ## Next
 
-<Card title="Define a tool" href="/build/define-a-tool?view=Vite" icon="arrow-right">
+<Card title="Define a tool" href="/build/define-a-tool?view=Vite" arrow>
   What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
   not enough.
 </Card>

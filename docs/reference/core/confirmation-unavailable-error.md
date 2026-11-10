@@ -32,7 +32,7 @@ An `Error` instance whose `name` is `"ConfirmationUnavailableError"`.
 
 ## Notes
 
-- It is thrown for a tool with `requireConfirmation: true` (see [`defineWebTool`](./define-web-tool.md)) when its control is missing or `:disabled` at call time, when a control found by name (its `title`, or a locator `target`) matches several, or when the control stops being clickable while waiting.
+- It is thrown for a tool with `requireConfirmation: true` (see [`defineWebTool`](./define-web-tool.md)) when its control is missing, hidden (`display: none`, `visibility: hidden`, inside `inert`) or `:disabled` at call time, when a control found by name (its `title`, or a locator `target`) matches several, or when the control stops being clickable while waiting.
 - A tool that needs confirming needs exactly one matching control: give it a `title` that names one button, or a [`target`](./define-web-tool.md#where-the-cursor-goes) that picks one.
 - [`toModelContextTool`](./to-model-context-tool.md) turns it into an `isError` result with code `unavailable`, so the agent reads the message. Any other error is `failed`.
 - Only a trusted click on the control confirms; a script calling `el.click()` cannot.

@@ -12,35 +12,127 @@ onboarding step.
 
 ## A complete example
 
-`useWebAgent` runs an agent from a component and keeps its status live.
+One task, "Track my last order", run two ways. Pick the tab that fits where the call is made:
 
 <View title="Vite">
 
+<Tabs syncKey="agent-api" hash={false}>
+<Tab title="useWebAgent">
+
+In a component: the hook runs the agent and keeps its status live.
+
+**`src/components/track-last-order.tsx`**
+
 <include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</Tab>
+<Tab title="defineWebAgent">
+
+Anywhere else (an event handler in plain code, a keyboard shortcut, a test): the agent you defined has `invoke` on it.
+
+```ts
+import { shopper } from "@/agents";
+
+const { text, steps } = await shopper.invoke("Where is my last order?", {
+  onStep: (step) => console.log(step.tool, step.state),
+});
+```
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="Next.js">
 
+<Tabs syncKey="agent-api" hash={false}>
+<Tab title="useWebAgent">
+
+In a component: the hook runs the agent and keeps its status live.
+
+**`components/track-last-order.tsx`**
+
 <include meta='title="components/track-last-order.tsx"'>/_examples/nextjs/components/track-last-order.tsx</include>
+
+</Tab>
+<Tab title="defineWebAgent">
+
+Anywhere else (an event handler in plain code, a keyboard shortcut, a test): the agent you defined has `invoke` on it.
+
+```ts
+import { shopper } from "@/agents";
+
+const { text, steps } = await shopper.invoke("Where is my last order?", {
+  onStep: (step) => console.log(step.tool, step.state),
+});
+```
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="TanStack Start">
 
+<Tabs syncKey="agent-api" hash={false}>
+<Tab title="useWebAgent">
+
+In a component: the hook runs the agent and keeps its status live.
+
+**`src/components/track-last-order.tsx`**
+
 <include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</Tab>
+<Tab title="defineWebAgent">
+
+Anywhere else (an event handler in plain code, a keyboard shortcut, a test): the agent you defined has `invoke` on it.
+
+```ts
+import { shopper } from "@/agents";
+
+const { text, steps } = await shopper.invoke("Where is my last order?", {
+  onStep: (step) => console.log(step.tool, step.state),
+});
+```
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="Astro">
 
+<Tabs syncKey="agent-api" hash={false}>
+<Tab title="useWebAgent">
+
+In a component: the hook runs the agent and keeps its status live.
+
+**`src/components/track-last-order.tsx`**
+
 <include meta='title="src/components/track-last-order.tsx"'>/_examples/shared/components/track-last-order.tsx</include>
+
+</Tab>
+<Tab title="defineWebAgent">
+
+Anywhere else (an event handler in plain code, a keyboard shortcut, a test): the agent you defined has `invoke` on it.
+
+```ts
+import { shopper } from "@/agents";
+
+const { text, steps } = await shopper.invoke("Where is my last order?", {
+  onStep: (step) => console.log(step.tool, step.state),
+});
+```
+
+</Tab>
+</Tabs>
 
 </View>
 
-It needs the `/api/chat` route from [Add the chat](/build/add-the-chat), but not the widget: by default an agent runs
-on the same shared adapter, which talks to that route. Render the component inside your provider, so the agent sees
-the page's tools.
+Both need the `/api/chat` route from [Add the chat](/build/add-the-chat), but not the widget: by default an agent runs
+on the same shared adapter, which talks to that route. Both run in the browser, on a page inside your provider, so
+the agent sees the page's tools.
 
 ## What `useWebAgent` gives you
 
@@ -57,19 +149,9 @@ the page's tools.
 
 Each `invoke` is a fresh conversation: the agent remembers nothing from the last one.
 
-## From anywhere: `agent.invoke`
+## What `agent.invoke` gives you
 
-Outside a component (an event handler in plain code, a test, a keyboard shortcut), call the agent itself:
-
-```ts
-import { shopper } from "@/agents";
-
-const { text, steps } = await shopper.invoke("Where is my last order?", {
-  onStep: (step) => console.log(step.tool, step.state),
-});
-```
-
-It resolves to `{ text, steps, messages }`: the answer, every tool call it made, and the whole conversation. Unlike the
+`agent.invoke(text, { adapter?, signal?, onStep? })` is the same run with no component around it. It resolves to `{ text, steps, messages }`: the answer, every tool call it made, and the whole conversation. Unlike the
 hook, it **rejects**: with the adapter's message and `code` when the run fails, with an `AbortError` when its `signal`
 aborts, for an empty message, and on the server. `invoke` runs in the browser, because the agent's tools are the
 page's; on the server, register the agent with `createChatHandler({ agents })` instead.
@@ -99,9 +181,3 @@ in your layout: `go_to` clicks it, so your router navigates without reloading th
 
 Reference: [`useWebAgent`](/reference/chat/use-web-agent) and [`defineWebAgent`](/reference/chat/define-web-agent)
 (the agent's `invoke`).
-
-## Next
-
-<Card title="Devtools" href="/build/devtools" icon="arrow-right">
-  See every tool on the page, what the cursor will do for it, and a timeline of every call.
-</Card>

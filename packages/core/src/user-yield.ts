@@ -8,7 +8,12 @@
 import type { Vec } from "./motion";
 
 export interface YieldOptions {
-  /** Pointer travel (px) that counts as "the user is moving". Ignores sensor jitter. Default 6. */
+  /**
+   * Pointer travel (px, within 150 ms) that counts as the user interacting. Default: none, moving the pointer never
+   * yields. A person who starts a call and moves the mouse off the button would otherwise never see the cursor, and a
+   * moving pointer does not compete with it: a click, a scroll, a touch or a key does. Set a number (6 ignores sensor
+   * jitter) for a cursor that hides the moment the pointer moves.
+   */
   moveThreshold?: number;
   /** Quiet time (ms) after the user's last input before the cursor may appear again. Default 800. */
   resumeAfter?: number;
@@ -36,7 +41,7 @@ const MOVE_WINDOW_MS = 150;
  */
 export function watchUserInput(
   onInput: (reason: YieldReason, at: Vec | null) => void,
-  { moveThreshold = 6, ignore = `[${UI_HOST_ATTR}]` }: YieldOptions,
+  { moveThreshold = Infinity, ignore = `[${UI_HOST_ATTR}]` }: YieldOptions,
   signal: AbortSignal,
 ): void {
   let travelled = 0;

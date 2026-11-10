@@ -27,7 +27,7 @@ add.
 
 <View title="Vite">
 
-<include meta='title="src/main.tsx" {1,8-9,25-29}'>/_examples/vite/src/main.chat.tsx</include>
+<include meta='title="src/main.tsx" {1,8-9,17-22}'>/_examples/vite/src/main.chat.tsx</include>
 
 In development, the Vite plugin serves `/api/chat` from the dev server. Add it to the config you have:
 
@@ -48,7 +48,7 @@ secret. In production, `/api/chat` is a function of your host's. On Vercel, a fi
 
 <View title="Next.js">
 
-<include meta='title="app/providers.tsx" {3,7-8,26-30}'>/_examples/nextjs/app/providers.chat.tsx</include>
+<include meta='title="app/providers.tsx" {3,7-8,11,17-22}'>/_examples/nextjs/app/providers.chat.tsx</include>
 
 `/api/chat` is a route handler, in development and in production:
 
@@ -63,7 +63,7 @@ does ([Field Store on Next.js](/examples/nextjs)). The taint APIs are behind a f
 
 <View title="TanStack Start">
 
-<include meta='title="src/components/providers.tsx" {1,5-6,24-28}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
+<include meta='title="src/components/providers.tsx" {1,5-6,9,15-20}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
 
 `/api/chat` is a server route, in development and in production:
 
@@ -80,7 +80,7 @@ unused, so it never shadows the real route.
 
 <View title="Astro">
 
-<include meta='title="src/components/providers.tsx" {1,5-6,24-28}'>/_examples/astro/src/components/providers.chat.tsx</include>
+<include meta='title="src/components/providers.tsx" {1,5-6,9,15-20}'>/_examples/astro/src/components/providers.chat.tsx</include>
 
 `/api/chat` is an endpoint rendered on demand, so the site needs a server adapter (Node, Vercel, Netlify…):
 
@@ -176,9 +176,3 @@ your `<AddToCart />` form, ask "Add two more in size L": the cursor types into t
 Every option: [`<AgentChat>`](/reference/chat/agent-chat), [`createChatHandler`](/reference/chat/create-chat-handler)
 and [`webAgentsChatDev`](/reference/chat/web-agents-chat-dev). To render the chat with your own shadcn/ui components
 instead of the built-in widget, see [shadcn chat blocks](/more/shadcn-chat-blocks).
-
-## Next
-
-<Card title="Call an agent" href="/build/call-an-agent" icon="arrow-right">
-  Run the same agent from your own code, with no chat on the page: `agent.invoke()` and `useWebAgent`.
-</Card>

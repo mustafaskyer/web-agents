@@ -1,9 +1,9 @@
 /** Drive WebMCP tools the way an agent would, through the devtools' `window.agent` (dev only). */
 import { expect, type Locator, type Page } from "@playwright/test";
-// `window.agent`: set by the devtools in dev
-import type {} from "@webmcp-agents/devtools";
+// `window.agent`'s type: the devtools <WebAgentsProvider> installs in development declare it
+import type {} from "@webmcp-agents/react";
 
-/** Open a page and wait until the devtools have set `window.agent` and the page's tools are registered. */
+/** Open a page and wait until the devtools (installed by the provider in dev) have set `window.agent` and the page's tools are registered. */
 export async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await page.waitForFunction(() => !!window.agent);

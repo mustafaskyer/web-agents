@@ -11,35 +11,38 @@ real agent's. Open it with the button in the bottom-right corner, or **Alt+Shift
 
 ## A complete example
 
-You added it at installation: the highlighted lines load the panel in development only, so a production build leaves
-it out.
+There is nothing to add: the highlighted provider installs the panel whenever the app runs in development (`vite dev`,
+`next dev`, `astro dev`), wired to its cursor. It comes with `@webmcp-agents/react`, and a production build has no
+devtools code at all: the provider's `import()` of it sits behind `process.env.NODE_ENV === "development"`, which your
+bundler replaces.
 
 <View title="Vite">
 
-<include meta='title="src/main.tsx" {13-18}'>/_examples/vite/src/main.chat.tsx</include>
+<include meta='title="src/main.tsx" {15}'>/_examples/vite/src/main.chat.tsx</include>
 
 </View>
 
 <View title="Next.js">
 
-<include meta='title="app/providers.tsx" {11,14-21}'>/_examples/nextjs/app/providers.chat.tsx</include>
+<include meta='title="app/providers.tsx" {15}'>/_examples/nextjs/app/providers.chat.tsx</include>
 
 </View>
 
 <View title="TanStack Start">
 
-<include meta='title="src/components/providers.tsx" {9,12-19}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
+<include meta='title="src/components/providers.tsx" {13}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
 
 </View>
 
 <View title="Astro">
 
-<include meta='title="src/components/providers.tsx" {9,12-19}'>/_examples/astro/src/components/providers.chat.tsx</include>
+<include meta='title="src/components/providers.tsx" {13}'>/_examples/astro/src/components/providers.chat.tsx</include>
 
 </View>
 
 The panel lives in a shadow root, so no CSS leaks either way, and its host carries `data-web-agents-ui`, so using it
-never makes the cursor get out of the way.
+never makes the cursor get out of the way. Tests get no panel: under `NODE_ENV=test` (Vitest, Jest) the provider
+leaves it out, so it never shows up among your queries.
 
 ## What the Tools tab shows
 
@@ -70,20 +73,27 @@ does not fit is listed **off here**, with its Run disabled. **Locate** scrolls t
 
 ![The Timeline tab: each call with its arguments, result and timing](../media/devtools/timeline.png)
 
-The cursor switches need the panel to know your cursor. Render the panel as a component inside the provider instead of
-calling `installWebAgentsDevtools()`:
+The cursor switches drive the provider's cursor. A page without the provider (built on `createWebAgents`, as in
+[No framework](/installation/no-framework)) installs the panel itself with `installWebAgentsDevtools()`, after
+`createWebAgents`; the switches then drive that cursor.
+
+## Place it yourself
+
+To choose where and when the panel shows (in production too, or as a tab in TanStack Devtools), turn the provider's
+off and render the component inside it:
 
 ```tsx
 import { WebAgentsDevtools } from "@webmcp-agents/devtools/react";
 
-<WebAgentsProvider tools={tools}>
+<WebAgentsProvider tools={tools} devtools={false}>
   {children}
   <WebAgentsDevtools />
 </WebAgentsProvider>
 ```
 
-Import it behind the same development check, with a lazy `import()`, so production leaves it out. With TanStack
-Devtools, `webAgentsDevtoolsPlugin()` from the same entry adds the panel as a "Web Agents" tab.
+Install `@webmcp-agents/devtools` yourself for this, and keep it behind your own development check with a lazy
+`import()` unless you want it in production. With TanStack Devtools, `webAgentsDevtoolsPlugin()` from the same entry
+adds the panel as a "Web Agents" tab. Either way its Settings drive the provider's cursor.
 
 ## From the console
 
@@ -114,14 +124,21 @@ listed **off here**.
 
 ## Options you'll use most
 
-| `installWebAgentsDevtools` option | What it is for |
+The provider's `devtools` prop: `false` turns the panel off, an object configures it (still in development only).
+
+```tsx
+<WebAgentsProvider tools={tools} devtools={{ initialOpen: true }}>
+```
+
+| `devtools` option | What it is for |
 |---|---|
 | `initialOpen` | Open the panel on load. Default `false`. |
 | `hotkey` | The shortcut that toggles it. Default `"Alt+Shift+A"`; `false` for none. |
-| `visuals` | The cursor its Settings drive, when it is not inside your provider. |
-| `initialSettings` | Settings to start from, below what the person saved. |
+| `initialSettings` | Settings to start from, below what the person saved: `{ dock: "right" }`, `{ size: 420 }`. |
+| `eventClient` | Post to TanStack Devtools' event bus. Default `true`. |
 
-Every option: [`installWebAgentsDevtools`](/reference/devtools/install-web-agents-devtools) and
+Every option: [`<WebAgentsProvider devtools>`](/reference/react/web-agents-provider),
+[`installWebAgentsDevtools`](/reference/devtools/install-web-agents-devtools) and
 [`<WebAgentsDevtools>`](/reference/devtools/web-agents-devtools).
 
 ## Next

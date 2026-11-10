@@ -1,11 +1,14 @@
 /**
  * @webmcp-agents/devtools/react
  *
- *   <WebAgentsDevtools />                               // floating panel, wired to <WebAgentsProvider>'s cursor
- *   <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />   // a "Web Agents" tab in TanStack Devtools
+ *   <WebAgentsProvider devtools={false}> … <WebAgentsDevtools /> …   // the panel where you render it
+ *   <TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />          // a "Web Agents" tab in TanStack Devtools
+ *
+ * `<WebAgentsProvider>` already installs the floating panel in development; these are for placing it yourself.
+ * The cursor they drive is the started provider's (core's `currentAgentVisuals()`), so this entry needs nothing
+ * from `@webmcp-agents/react`, which depends on this package.
  */
 import { deferRelease } from "@webmcp-agents/core";
-import { useOptionalWebAgents } from "@webmcp-agents/react";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { type DevtoolsOptions, startDevtools } from "./host";
 import type { DevtoolsStore } from "./store";
@@ -19,13 +22,13 @@ export interface WebAgentsDevtoolsProps extends DevtoolsOptions {}
 
 /**
  * The devtools store for a React host, created on mount and destroyed on
- * unmount. The cursor defaults to the nearest `<WebAgentsProvider>`'s. Options
- * are read once. Destruction waits a macrotask, so StrictMode's remount (and
- * any quick remount) keeps the same store, with its timeline.
+ * unmount. The cursor defaults to the started `<WebAgentsProvider>`'s (its
+ * layout effect starts it before this effect runs). Options are read once.
+ * Destruction waits a macrotask, so StrictMode's remount (and any quick
+ * remount) keeps the same store, with its timeline.
  */
 export function useDevtoolsStore(options: DevtoolsOptions = {}): DevtoolsStore | null {
-  const ctx = useOptionalWebAgents();
-  const [initial] = useState(() => ({ ...options, ctx }));
+  const [initial] = useState(() => ({ ...options }));
   const [store, setStore] = useState<DevtoolsStore | null>(null);
   const held = useRef<(ReturnType<typeof startDevtools> & { release?: { cancel(): void } }) | null>(null);
 
@@ -35,10 +38,7 @@ export function useDevtoolsStore(options: DevtoolsOptions = {}): DevtoolsStore |
       current.release?.cancel();
       current.release = undefined;
     } else {
-      const { ctx, ...options } = initial;
-      // The provider installs its cursor lazily; the saved Settings need it now.
-      ctx?.ensureVisuals();
-      current = held.current = startDevtools({ ...options, visuals: options.visuals ?? ctx?.visuals ?? null });
+      current = held.current = startDevtools(initial);
     }
     setStore(current.store);
     const mine = current;
@@ -53,7 +53,10 @@ export function useDevtoolsStore(options: DevtoolsOptions = {}): DevtoolsStore |
   return store;
 }
 
-/** The floating devtools panel (launcher bottom-right, Alt+Shift+A). Render it once, inside your provider. */
+/**
+ * The floating devtools panel (launcher bottom-right, Alt+Shift+A). `<WebAgentsProvider>` installs one in development
+ * already: render this inside a provider with `devtools={false}`, to choose where and when it shows (production too).
+ */
 export function WebAgentsDevtools(props: WebAgentsDevtoolsProps) {
   const store = useDevtoolsStore(props);
   if (!store) return null;
@@ -83,7 +86,8 @@ export interface WebAgentsDevtoolsPlugin {
 
 /**
  * The panel as a TanStack Devtools tab: `<TanStackDevtools plugins={[webAgentsDevtoolsPlugin()]} />`.
- * Render TanStackDevtools inside `<WebAgentsProvider>` so Settings can drive the cursor.
+ * Render TanStackDevtools inside `<WebAgentsProvider devtools={false}>` so Settings can drive its cursor and the
+ * floating panel does not show as well.
  */
 export function webAgentsDevtoolsPlugin(options: Omit<DevtoolsOptions, "initialOpen" | "hotkey"> = {}): WebAgentsDevtoolsPlugin {
   return { id: "web-agents", name: "Web Agents", render: <PluginPanel {...options} /> };

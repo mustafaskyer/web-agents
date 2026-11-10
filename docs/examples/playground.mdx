@@ -33,7 +33,8 @@ below from a sentence: "add three mugs and check out with code 123".
     - ClearCartButton.tsx (clear_cart: a button, `requireConfirmation`)
     - PlaceOrderButton.tsx (place_order: a button, `requireConfirmation`)
     - ApplyPromoForm.tsx (apply_promo: the one declarative form, the alternative)
-  - App.tsx (`<WebAgentsProvider tools={tools}>`, chat, devtools; remove_promo)
+  - App.tsx (`<WebAgentsProvider tools={tools}>`, chat; remove_promo; `?tanstack` swaps the provider's devtools panel
+    for a TanStack Devtools tab, Devtools.tsx)
   - Orders.tsx (the /orders page)
   - store.tsx (the cart, a store outside React)
   - main.tsx (render; the provider loads the polyfill where it is needed)
@@ -63,7 +64,7 @@ below from a sentence: "add three mugs and check out with code 123".
 - **Wait for the person.** `place_order` and `clear_cart` park the cursor on the button until a real click.
   [Confirm before it runs](/build/confirm-before-it-runs).
 - **A catalog tool with a `match`.** `list_orders` is on while the path is `/orders`; the provider needs nothing from the
-  router. [Where a tool is on](/build/where-a-tool-is-on).
+  router. [Tools across your app](/build/tools-across-your-app).
 - **One declarative form,** labelled as the alternative in the UI, with `useToolAnswer` so it can hide itself after applying
   a code. [Declarative forms](/more/declarative-forms).
 

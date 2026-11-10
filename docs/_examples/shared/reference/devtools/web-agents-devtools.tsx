@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 
 import { tools } from "@/tools";
 
-// Render it once, inside the provider: its Settings switches then
-// drive the provider's cursor. Development only in a real app.
+// The provider's own panel is off: this one is placed by hand, in
+// production too. Its Settings switches drive the provider's cursor.
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <WebAgentsProvider tools={tools}>
+    <WebAgentsProvider tools={tools} devtools={false}>
       {children}
       <WebAgentsDevtools initialOpen hotkey="Alt+Shift+D" />
     </WebAgentsProvider>

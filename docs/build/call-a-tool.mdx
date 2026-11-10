@@ -11,37 +11,14 @@ button, a keyboard shortcut, a guided tour or an end-to-end test.
 
 ## A complete example
 
-A catalog tool, called from a button.
+A tool called from a button. Where `invoke` comes from depends on how the tool was written:
 
 <View title="Vite">
 
-<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
 
-</View>
-
-<View title="Next.js">
-
-<include meta='title="components/cart-summary.tsx"'>/_examples/nextjs/components/cart-summary.tsx</include>
-
-</View>
-
-<View title="TanStack Start">
-
-<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
-
-</View>
-
-<View title="Astro">
-
-<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
-
-</View>
-
-`invoke` resolves to what `execute` returned, typed: here `{ lines, total }`, straight from `get_cart`.
-
-## A component's tool
-
-`useWebTool` returns the same `invoke` for the tool it registers, the same function on every render:
+The hook returns `invoke` for the tool it registers, the same function on every render.
 
 ```tsx
 const addToCart = useWebTool({
@@ -57,7 +34,128 @@ const addToCart = useWebTool({
 </Button>
 ```
 
-It works only while the tool is on: a component's tool while the component is mounted, a catalog tool while its
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="Next.js">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`components/cart-summary.tsx`**
+
+<include meta='title="components/cart-summary.tsx"'>/_examples/nextjs/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="TanStack Start">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="Astro">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+`invoke` resolves to what `execute` returned, typed: for `get_cart`, `{ lines, total }`.
+
+It works only while the tool is on: a component's tool while the component is mounted, a defined tool while its
 `match` fits.
 
 ## What it resolves and rejects with
@@ -109,9 +207,3 @@ await agent.invoke("get_cart");
 
 Reference: [`defineWebTool`](/reference/core/define-web-tool) (the `WebTool` it returns, with `invoke` and `run`) and
 [`useWebTool`](/reference/react/use-web-tool) (what the hook returns).
-
-## Next
-
-<Card title="Define an agent" href="/build/define-an-agent" icon="arrow-right">
-  What the assistant knows, which tools it may use, and the helpers it hands work to.
-</Card>

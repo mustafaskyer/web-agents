@@ -10,8 +10,11 @@ import { ClearCartButton } from "./tools/ClearCartButton";
 import { tools } from "./tools";
 import { PlaceOrderButton } from "./tools/PlaceOrderButton";
 
-// Dev only: the condition guards the import() itself, so the production bundle has no devtools.
-const Devtools = import.meta.env.DEV ? lazy(() => import("./Devtools")) : () => null;
+// The provider installs the devtools panel in development. `?tanstack` shows them as a tab in TanStack Devtools
+// instead: the provider's panel is off (devtools={false}) and Devtools.tsx places the tab. Dev only: the condition
+// guards the import() itself, so the production bundle has no devtools.
+const TANSTACK = import.meta.env.DEV && new URLSearchParams(location.search).has("tanstack");
+const Devtools = TANSTACK ? lazy(() => import("./Devtools")) : () => null;
 
 // Once per page. Cloud checks /api/chat on first use; on-device downloads a model only after the person's click.
 const ADAPTERS = [createCloudAdapter(), createLocalAdapter({ models: [DEFAULT_MODEL, "onnx-community/Qwen3-1.7B-ONNX"] })];
@@ -134,7 +137,7 @@ function NavLink({ to, path, children }: { to: string; path: string; children: R
 export default function App() {
   const path = usePathname();
   return (
-    <WebAgentsProvider tools={tools}>
+    <WebAgentsProvider tools={tools} devtools={!TANSTACK}>
       <nav className="tabs" aria-label="Sections">
         <NavLink to="/" path={path}>
           Shop

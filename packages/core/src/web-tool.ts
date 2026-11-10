@@ -25,6 +25,7 @@ import {
   type Stage,
   type Staged,
   stages,
+  supersedeWaiting,
   type ToolControls,
   TARGET,
   waitForConfirmation,
@@ -103,6 +104,7 @@ export interface WebToolConfig<I = unknown, O = unknown> {
    * Wait for the person to click the tool's control (see `target`) before running. For destructive or
    * consequential actions. With the visuals installed, the cursor parks on the control instead of clicking it.
    * The call fails rather than run unconfirmed when there is no control to click, or when a name matches several.
+   * It waits 10 s (then fails with `needs_user`), and a call the person starts themself meanwhile cancels it.
    * Default false.
    */
   requireConfirmation?: boolean;
@@ -364,6 +366,8 @@ export function toModelContextTool(tool: WebTool, { context, calls }: ToModelCon
   const stage: Stage = Object.assign(
     async (args: unknown): Promise<Staged> => {
       const input = await tool.parse(fromJson(args));
+      // A valid call the person started takes over from a confirmation still waiting (an agent's call never does).
+      supersedeWaiting(tool.id);
       const { hits, what } = resolve(input);
       const el = pick(hits);
       const fields: FieldStep[] = [];

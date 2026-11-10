@@ -72,6 +72,7 @@ export default defineConfig({
     { from: "/guides", to: "/build/define-a-tool" },
     { from: "/guides/forms", to: "/build/tools-with-input" },
     { from: "/guides/common-tools", to: "/build/common-tools" },
+    { from: "/build/where-a-tool-is-on", to: "/build/tools-across-your-app" },
     { from: "/guides/invoke", to: "/build/call-a-tool" },
     { from: "/guides/agents", to: "/build/define-an-agent" },
     { from: "/guides/chat", to: "/build/add-the-chat" },

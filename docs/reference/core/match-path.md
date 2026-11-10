@@ -48,7 +48,7 @@ matchPath("*", "/anything"); // true
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the page that teaches `match`
+- [Tools across your app](../../build/tools-across-your-app.mdx), the page that teaches `match`
 - [`defineWebTool`](./define-web-tool.md)
 - [`createWebAgents`](./create-web-agents.md)
 - [`createToolRegistry`](./create-tool-registry.md)

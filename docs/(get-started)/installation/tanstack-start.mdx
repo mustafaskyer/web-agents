@@ -26,15 +26,11 @@ npx @tanstack/cli@latest create
 
 ## Install the packages
 
-The agent cursor and the React bindings, then the devtools panel for development. Browsers without WebMCP need
-nothing more: the provider loads a polyfill for them.
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
 
 ```package-install
 npm install @webmcp-agents/core @webmcp-agents/react
-```
-
-```package-install
-npm install -D @webmcp-agents/devtools
 ```
 
 ## Add the styles
@@ -55,8 +51,8 @@ links: [
 ## Add the provider
 
 `<WebAgentsProvider>` installs the cursor and registers your tools; in a browser without WebMCP it loads a polyfill
-first, by itself. Your page renders inside it right away, on the server too. In development this component also loads
-the devtools, in the browser.
+first, by itself, and in development it installs the devtools panel. Your page renders inside it right away, on the
+server too.
 
 <include meta='title="src/components/providers.tsx"'>/_examples/tanstack-start/src/components/providers.tsx</include>
 
@@ -92,7 +88,7 @@ empty."
 
 ## Next
 
-<Card title="Define a tool" href="/build/define-a-tool?view=TanStack+Start" icon="arrow-right">
+<Card title="Define a tool" href="/build/define-a-tool?view=TanStack+Start" arrow>
   What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
   not enough.
 </Card>

@@ -12,7 +12,8 @@
  * when it saw no click arrive (see `REFIRE_MS`).
  */
 import { emit } from "./events";
-import { abortError } from "./result";
+import { usable } from "./locate";
+import { abortError, WebToolError } from "./result";
 import type { WebTool } from "./web-tool";
 import type { FieldValue } from "./write";
 
@@ -99,14 +100,38 @@ export class ConfirmationUnavailableError extends Error {
  */
 const REFIRE_MS = 300;
 
+/** How long a call waits for the person's click before it gives up with `needs_user`, in ms. */
+export const CONFIRM_TIMEOUT_MS = 10_000;
+
+/** A call that starts this soon after a trusted click was started by the person (a button, a chip, the devtools), in ms. */
+const USER_CALL_MS = 1000;
+
+/** The gates waiting for the person right now: each gives up when told which call took its place. */
+const waiting = new Set<(by: string) => void>();
+/** When the person last clicked somewhere other than a waiting control (only tracked while a gate waits). */
+let userClickedAt = -Infinity;
+
+/**
+ * A call the person starts themself ends every confirmation still waiting: they chose to do something else, and
+ * the prompt left behind would ask them to approve what they walked away from. Each waiting call answers
+ * `cancelled`, naming `by`. An agent's own next call never does this: it cannot dismiss a confirmation it asked for.
+ */
+export function supersedeWaiting(by: string): void {
+  if (performance.now() - userClickedAt > USER_CALL_MS) return;
+  for (const give of [...waiting]) give(by);
+}
+
 /** Keep a click from the page: no default action, no handlers. Window capture runs before React's root listeners. */
 const swallow = (e: Event): void => {
   e.preventDefault();
   e.stopImmediatePropagation();
 };
 
-/** True when a person can click it: on the page and not disabled. */
-const clickable = (el: Element | null): el is Element => !!el?.isConnected && !el.matches(":disabled");
+/** True when a person can click it: on the page, shown and not disabled (see `usable`). */
+const clickable = (el: Element): boolean => el.isConnected && usable(el);
+
+/** How often a waiting gate checks that its control is still there to click: CSS can hide one without a mutation. */
+const RECHECK_MS = 300;
 
 /**
  * Resolve when the user clicks one of the elements `target` finds (a selector, or a resolver returning the
@@ -133,22 +158,48 @@ export function waitForConfirmation(
       return [];
     }
   };
-  const el = find()[0] ?? null;
+  const el = find().find(clickable) ?? null;
   const unavailable = (): unknown =>
     failure ??
     new ConfirmationUnavailableError(
       `"${toolId}" needs the user's confirmation, but there is nothing to confirm on (${what}) on the page right now.`,
     );
-  if (!clickable(el)) return Promise.reject(unavailable());
+  if (!el) return Promise.reject(unavailable());
   return new Promise<void>((resolve, reject) => {
     const settled = new AbortController();
-    const observer = new MutationObserver(() => {
-      if (clickable(find()[0] ?? null)) return;
+    const check = (): void => {
+      if (find().some(clickable)) return;
       done();
       reject(unavailable());
-    });
+    };
+    const observer = new MutationObserver(check);
+    // A media or container query hides a control (a header link folding into a menu) with no mutation to observe.
+    const recheck = setInterval(check, RECHECK_MS);
+    const give = (by: string): void => {
+      done();
+      reject(
+        new WebToolError(
+          "cancelled",
+          `"${toolId}" was waiting for the user's confirmation; the user ran "${by}" instead. Call it again only if they still want it.`,
+        ),
+      );
+    };
+    waiting.add(give);
+    // Nobody is there to confirm: the agent hears so, rather than hold a prompt on the page for ever.
+    const expire = setTimeout(() => {
+      done();
+      reject(
+        new WebToolError(
+          "needs_user",
+          `The user did not confirm "${toolId}" within ${CONFIRM_TIMEOUT_MS / 1000} s. Ask them, then call it again.`,
+        ),
+      );
+    }, CONFIRM_TIMEOUT_MS);
     const done = (): void => {
+      waiting.delete(give);
+      clearTimeout(expire);
       observer.disconnect();
+      clearInterval(recheck);
       settled.abort();
     };
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled"] });
@@ -156,8 +207,11 @@ export function waitForConfirmation(
       "click",
       (e) => {
         const at = e.target;
-        const hit = e.isTrusted && at instanceof Element && find().find((el) => el.contains(at));
-        if (!hit) return;
+        const hit = e.isTrusted && at instanceof Element && find().find((el) => clickable(el) && el.contains(at));
+        if (!hit) {
+          if (e.isTrusted) userClickedAt = performance.now(); // a call that follows at once is the person's own
+          return;
+        }
         swallow(e); // the app's onClick never sees this click
         done();
         resolve();

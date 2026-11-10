@@ -1,5 +1,5 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { useWebAgents, WebAgentsProvider, type WebAgentsVisuals } from "@webmcp-agents/react";
+import { createWebAgents, type WebAgents } from "@webmcp-agents/core";
 import { StrictMode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -9,24 +9,23 @@ import { byText, deepText, devtoolsRoot, modelContext, until } from "./test-util
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function Probe({ onVisuals }: { onVisuals(visuals: WebAgentsVisuals | null): void }) {
-  onVisuals(useWebAgents().visuals);
-  return null;
-}
-
+// With <WebAgentsProvider> itself: packages/react/src/provider.devtools.browser.test.tsx (react depends on devtools).
 describe("@webmcp-agents/devtools/react", () => {
   beforeAll(() => modelContext());
   beforeAll(() => localStorage.clear());
-  afterEach(() => sleep(20)); // deferred store release of the unmounted tree
+  let agents: WebAgents | undefined;
+  afterEach(async () => {
+    agents?.destroy();
+    agents = undefined;
+    await sleep(20); // deferred store release of the unmounted tree
+  });
 
-  it("mounts one panel under StrictMode and drives the provider's cursor", async () => {
-    let visuals: WebAgentsVisuals | null = null;
+  it("mounts one panel under StrictMode and drives the started createWebAgents' cursor", async () => {
+    agents = createWebAgents({ tools: {}, visuals: { spotlight: false, yieldToUser: false } });
+    const setSpotlight = vi.spyOn(agents.visuals, "setSpotlight");
     const screen = await render(
       <StrictMode>
-        <WebAgentsProvider visuals={{ spotlight: false, yieldToUser: false }}>
-          <Probe onVisuals={(v) => (visuals = v)} />
-          <WebAgentsDevtools initialOpen eventClient={false} />
-        </WebAgentsProvider>
+        <WebAgentsDevtools initialOpen eventClient={false} />
       </StrictMode>,
     );
     await until(() => !!document.querySelector("[data-web-agents-ui]")?.shadowRoot?.querySelector('[role="dialog"]'), 3000, "panel");
@@ -34,7 +33,6 @@ describe("@webmcp-agents/devtools/react", () => {
     expect(document.querySelectorAll("[data-web-agents-ui]")).toHaveLength(1);
     expect(window.agent).toBeDefined();
 
-    const setSpotlight = vi.spyOn(visuals as unknown as WebAgentsVisuals, "setSpotlight");
     await userEvent.click(byText(devtoolsRoot(), '[role="tab"]', "Settings") as HTMLElement);
     const spotlight = devtoolsRoot().querySelector<HTMLButtonElement>('[role="switch"]') as HTMLButtonElement;
     expect(spotlight.disabled).toBe(false);
@@ -46,6 +44,14 @@ describe("@webmcp-agents/devtools/react", () => {
     await sleep(20);
     expect(document.querySelectorAll("[data-web-agents-ui]")).toHaveLength(0);
     expect(window.agent).toBeUndefined();
+  });
+
+  it("disables the cursor switches with nothing started", async () => {
+    const screen = await render(<WebAgentsDevtools initialOpen eventClient={false} />);
+    await until(() => !!document.querySelector("[data-web-agents-ui]")?.shadowRoot?.querySelector('[role="dialog"]'), 3000, "panel");
+    await userEvent.click(byText(devtoolsRoot(), '[role="tab"]', "Settings") as HTMLElement);
+    expect(devtoolsRoot().querySelector<HTMLButtonElement>('[role="switch"]')?.disabled).toBe(true);
+    await screen.unmount();
   });
 
   it("works as a TanStack Devtools plugin", async () => {

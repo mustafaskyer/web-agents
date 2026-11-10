@@ -58,7 +58,7 @@ A `WebAgents` handle:
 | `start()` | `() => void` | Start (again). Called for you unless `start: false` was passed. Does nothing on the server or when already started. |
 | `setPathname(pathname)` | `(pathname: string \| undefined) => void` | Match tools against this path instead of the browser's URL, for a router's own idea of the path; `undefined` to follow the URL again. |
 | `registry` | `ToolRegistry` | The [registry](./create-tool-registry.md) behind it: enable a catalog tool by hand while a part of the page is on screen (`registry.enable([id])`). |
-| `visuals` | `Pick<AgentVisuals, "setSpotlight" \| "setYieldToUser">` | Change the cursor's spotlight and yielding at runtime. No-ops while nothing is installed. |
+| `visuals` | `Pick<AgentVisuals, "setSpotlight" \| "setYieldToUser">` | Change the cursor's spotlight and yielding at runtime. Before the cursor installs (the polyfill still loading) a change becomes its starting option; with `visuals: false` it does nothing. [`currentAgentVisuals()`](./current-agent-visuals.md) returns this object to UI that has no handle on it. |
 
 ## Notes
 
@@ -70,10 +70,11 @@ A `WebAgents` handle:
 - **Without WebMCP, `start()` loads the polyfill and the tools wait for it.** The cursor installs and the catalog registers once `document.modelContext` exists, and a tool registered meanwhile (`registerWebTool`, `useWebTool`) registers then too, in the order it came; one released before then never registers. The page itself never waits. With native WebMCP nothing is loaded and everything registers at once.
 - Throws on a duplicate tool id. On the server, and until `start()`, it returns the same object and does nothing: no DOM access at import, safe in SSR.
 - `destroy()` is deferred a macrotask for the cursor, so a restart in the same tick (React StrictMode) changes nothing.
+- **It does not install the devtools**, unlike `<WebAgentsProvider>` in development: `@webmcp-agents/devtools` is built on this package, so this package cannot load it. A page built on `createWebAgents` adds one line after it in development, [`installWebAgentsDevtools()`](../devtools/install-web-agents-devtools.md), whose Settings then drive this cursor.
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the page that teaches it
+- [Tools across your app](../../build/tools-across-your-app.mdx), the page that teaches it
 - [Install without a framework](<../../(get-started)/installation/no-framework.mdx>)
 - [`defineWebTool`](./define-web-tool.md)
 - [`watchPathname`](./watch-pathname.md)

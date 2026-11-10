@@ -52,7 +52,7 @@ A `ToolRegistry`:
 
 ## See also
 
-- [Where a tool is on](../../build/where-a-tool-is-on.mdx), the page that teaches `match` and availability
+- [Tools across your app](../../build/tools-across-your-app.mdx), the page that teaches `match` and availability
 - [`createWebAgents`](./create-web-agents.md), which owns one for you
 - [`registerWebTool`](./register-web-tool.md)
 - [`deferRelease`](./defer-release.md) and [`createCallTracker`](./create-call-tracker.md)

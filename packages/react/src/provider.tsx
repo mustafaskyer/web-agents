@@ -9,7 +9,8 @@
  * followed by the library, so the same line works with any router. It installs the agent cursor itself, before
  * the first tool registers, so tools are animated without any ordering rule in the app. Where the browser has no
  * WebMCP it loads the polyfill (`polyfill`, default `"auto"`); the children render at once, on the server too, and
- * their tools register when it is there.
+ * their tools register when it is there. In development it also installs the devtools panel (`devtools`), wired to
+ * its cursor; a production build has no devtools code at all.
  *
  * Still supported, from before tools carried `match` and closed over their own state: an array catalog whose
  * tools are off until named in `global`, `routes` or by a mounted component (`useEnableTools`, `<EnableTools>`),
@@ -22,11 +23,13 @@ import {
   type AgentVisualsOptions,
   type AvailableTools,
   createWebAgents,
+  deferRelease,
   type PolyfillOption,
   matchPath,
   type RegisteredContext,
   type WebToolCatalog,
 } from "@webmcp-agents/core";
+import type { DevtoolsOptions } from "@webmcp-agents/devtools";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WebAgentsContext, type WebAgentsContextValue } from "./context";
 import { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect";
@@ -36,6 +39,21 @@ const NO_TOOLS: WebToolCatalog = {};
 const NO_NAMES: readonly string[] = [];
 const NO_ROUTES: Readonly<Record<string, readonly string[]>> = {};
 const SEP = "\u0000";
+
+/** Bundlers replace `process.env.NODE_ENV` with a string; there is no `process` in a browser otherwise. */
+declare const process: { env: { NODE_ENV?: string } };
+
+/** Panel options for `<WebAgentsProvider devtools={…}>`: the devtools' own, but the cursor is always the provider's. */
+export type ProviderDevtoolsOptions = Omit<DevtoolsOptions, "visuals">;
+
+/** The devtools panel the providers installed: one per page, however many want it; the last to unmount removes it. */
+interface Panel {
+  users: number;
+  dispose?: () => void;
+  release?: { cancel(): void };
+  gone?: boolean;
+}
+let panel: Panel | undefined;
 
 export interface WebAgentsProviderProps {
   /**
@@ -78,6 +96,16 @@ export interface WebAgentsProviderProps {
    * loads it: tools register only where the browser has WebMCP. Read once, on mount. Default `"auto"`.
    */
   polyfill?: PolyfillOption;
+  /**
+   * The devtools panel (launcher bottom-right, Alt+Shift+A, and `window.agent`), wired to this provider's cursor so
+   * its Settings switches work. Only in development (`process.env.NODE_ENV === "development"`, as `vite dev`, `next
+   * dev` and webpack's development mode set it): the provider loads `@webmcp-agents/devtools` with a dynamic
+   * `import()` that bundlers drop from a production build, and tests (NODE_ENV "test") get no panel either. `false`
+   * turns it off, e.g. to render `<WebAgentsDevtools />` yourself; an object turns it on with panel options
+   * (`initialOpen`, `hotkey`, `initialSettings` such as `dock`), still in development only. Read once, on mount.
+   * Default `true`.
+   */
+  devtools?: boolean | ProviderDevtoolsOptions;
   children?: ReactNode;
 }
 
@@ -90,6 +118,7 @@ export function WebAgentsProvider({
   visuals = {},
   context,
   polyfill = "auto",
+  devtools = true,
   children,
 }: WebAgentsProviderProps) {
   // ---------- 1. context: tools read the latest value when they run ----------
@@ -148,7 +177,48 @@ export function WebAgentsProvider({
     if (yieldToUser !== undefined) agents.visuals.setYieldToUser(yieldToUser);
   }, [yieldKey]);
 
-  // ---------- 4. the earlier form: global ∪ matching routes, by id ----------
+  // ---------- 4. the devtools, in development only ----------
+  const visualsOff = visuals === false;
+  const [devtoolsOptions] = useState(() => (typeof devtools === "object" ? devtools : {}));
+  const devtoolsOn = devtools !== false;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: options are read once, on mount, like the cursor's
+  useEffect(() => {
+    if (!devtoolsOn) return;
+    try {
+      // Literally `process.env.NODE_ENV`, in the condition around the import(): a bundler replaces it, sees a dead
+      // branch in production and emits no devtools chunk. Not under "test" either (Vitest, Jest): an app's tests
+      // would find the panel's launcher among their buttons. Without a bundler `process` throws: no devtools.
+      if (process.env.NODE_ENV === "development") {
+        if (!panel) {
+          const mine: Panel = { users: 0 };
+          panel = mine;
+          import("@webmcp-agents/devtools").then(
+            ({ installWebAgentsDevtools }) => {
+              if (!mine.gone) mine.dispose = installWebAgentsDevtools({ ...devtoolsOptions, visuals: visualsOff ? null : agents.visuals });
+            },
+            (err) => console.error("[web-agents] the devtools could not load:", err),
+          );
+        }
+        const mine = panel;
+        mine.release?.cancel();
+        mine.release = undefined;
+        mine.users++;
+        return () => {
+          if (--mine.users) return;
+          // Deferred like the tools: StrictMode's unmount → mount keeps the panel and its timeline.
+          mine.release = deferRelease(() => {
+            mine.gone = true;
+            mine.dispose?.();
+            if (panel === mine) panel = undefined;
+          });
+        };
+      }
+    } catch {
+      // no bundler and no `process`: not development, as far as anyone can tell
+    }
+  }, [agents, devtoolsOn]);
+
+  // ---------- 5. the earlier form: global ∪ matching routes, by id ----------
   const browserPathname = usePathname();
   const current = pathname ?? browserPathname;
   const scoped = new Set(global);
@@ -156,7 +226,6 @@ export function WebAgentsProvider({
   const scopedKey = [...scoped].join(SEP);
   useEffect(() => agents.registry.enable(scopedKey ? scopedKey.split(SEP) : NO_NAMES), [agents, scopedKey]);
 
-  const visualsOff = visuals === false;
   const value = useMemo<WebAgentsContextValue>(
     () => ({
       registry: agents.registry,

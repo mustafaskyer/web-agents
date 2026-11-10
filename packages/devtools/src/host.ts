@@ -1,10 +1,15 @@
 /** What every devtools host does the same way: create the store, bridge it to TanStack's bus, tear both down. */
+import { currentAgentVisuals } from "@webmcp-agents/core";
 import { bridgeStoreToEventClient } from "./event-client";
 import { createDevtoolsStore, type DevtoolsSettings, type DevtoolsStore, type DevtoolsVisuals } from "./store";
 
 /** Options for `installWebAgentsDevtools`, `<WebAgentsDevtools>` and the TanStack plugin. */
 export interface DevtoolsOptions {
-  /** The agent cursor to control from Settings (spotlight, yield to the user), e.g. the handle from installAgentVisuals(). */
+  /**
+   * The agent cursor to control from Settings (spotlight, yield to the user), e.g. the handle from installAgentVisuals().
+   * Default: the cursor of the started `<WebAgentsProvider>` or `createWebAgents` (core's `currentAgentVisuals()`),
+   * read when the panel starts; null for none (the switches are disabled).
+   */
   visuals?: DevtoolsVisuals | null;
   /** Open the panel on load (unless the user closed it last time). Default false. */
   initialOpen?: boolean;
@@ -17,7 +22,12 @@ export interface DevtoolsOptions {
 }
 
 /** A store wired up for a host, and its teardown. */
-export function startDevtools({ visuals = null, initialOpen = false, initialSettings, eventClient = true }: DevtoolsOptions): {
+export function startDevtools({
+  visuals = currentAgentVisuals(),
+  initialOpen = false,
+  initialSettings,
+  eventClient = true,
+}: DevtoolsOptions): {
   store: DevtoolsStore;
   dispose(): void;
 } {

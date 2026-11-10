@@ -11,10 +11,10 @@ your JSX for the cursor: no attribute, no ref, no id.
 
 :::note[shadcn/ui and React Hook Form are optional]
 The Build examples use [shadcn/ui](https://ui.shadcn.com) components and React Hook Form, because that is how most
-React apps are built today. To follow them as written, add the components they use:
+React apps are built today. Each page says which components its examples use; this one uses only the button:
 
 ```package-install
-npx shadcn@latest add button input form
+npx shadcn@latest add button
 ```
 
 Any component library, or plain elements, works the same: the cursor finds a control by its role and name.
@@ -22,38 +22,120 @@ Any component library, or plain elements, works the same: the cursor finds a con
 
 ## A complete example
 
-One component, one function, two callers.
+One function, two callers. Write the tool where its work lives, and pick the tab that fits:
+
+- **`useWebTool`**, in a component: the tool is on while the component is on the page, and `execute` reads the
+  component's own state.
+- **`defineWebTool`**, in a module of its own: the tool belongs to the whole app, reads a store, and imports no
+  React, so a server file can import it too. The provider registers it.
+
+Both take the same options.
 
 <View title="Vite">
 
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+**`src/components/clear-cart.tsx`**
+
 <include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</Tab>
+<Tab title="defineWebTool">
+
+**`src/tools/clear-cart.ts`**
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+**`src/components/clear-cart-button.tsx`**
+
+<include meta='title="src/components/clear-cart-button.tsx"'>/_examples/shared/components/clear-cart-button.tsx</include>
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="Next.js">
 
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+**`components/clear-cart.tsx`**
+
 <include meta='title="components/clear-cart.tsx"'>/_examples/nextjs/components/clear-cart.tsx</include>
+
+</Tab>
+<Tab title="defineWebTool">
+
+**`tools/clear-cart.ts`**
+
+<include meta='title="tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+**`components/clear-cart-button.tsx`**
+
+<include meta='title="components/clear-cart-button.tsx"'>/_examples/nextjs/components/clear-cart-button.tsx</include>
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="TanStack Start">
 
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+**`src/components/clear-cart.tsx`**
+
 <include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</Tab>
+<Tab title="defineWebTool">
+
+**`src/tools/clear-cart.ts`**
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+**`src/components/clear-cart-button.tsx`**
+
+<include meta='title="src/components/clear-cart-button.tsx"'>/_examples/shared/components/clear-cart-button.tsx</include>
+
+</Tab>
+</Tabs>
 
 </View>
 
 <View title="Astro">
 
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+**`src/components/clear-cart.tsx`**
+
 <include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.tsx</include>
+
+</Tab>
+<Tab title="defineWebTool">
+
+**`src/tools/clear-cart.ts`**
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+**`src/components/clear-cart-button.tsx`**
+
+<include meta='title="src/components/clear-cart-button.tsx"'>/_examples/shared/components/clear-cart-button.tsx</include>
+
+</Tab>
+</Tabs>
 
 </View>
 
-`useWebTool` registers the tool while the component is on the page. When an agent calls `clear_cart`, the cursor
-finds the button named "Clear cart", parks on it because of `requireConfirmation`, and `clear` runs after the
-person's own click. What `clear` returns is the agent's answer.
+Either way, when an agent calls `clear_cart`, the cursor finds the button named "Clear cart", parks on it because of
+`requireConfirmation`, and the work runs after the person's own click. What `execute` returns is the agent's answer.
 
-A tool that belongs to the whole app rather than to one component takes the same definition through `defineWebTool`:
-see [Where a tool is on](/build/where-a-tool-is-on).
+A `defineWebTool` tool is registered by handing it to the provider (`tools={{ clearCart }}`), which is the subject of
+[Tools across your app](/build/tools-across-your-app). A `useWebTool` tool registers itself.
 
 ## How the cursor finds the control
 
@@ -123,7 +205,7 @@ from the browser console, the way an agent would. `agent` is there in developmen
 await agent.invoke("clear_cart");
 ```
 
-Either way the cursor parks on **Clear cart** until you click it. Move the mouse while it travels: it gets out of the
+Either way the cursor parks on **Clear cart** until you click it. Scroll or click while it travels: it gets out of the
 way, and the tool still finishes.
 
 ## Options you'll use most
@@ -141,9 +223,3 @@ way, and the tool still finishes.
 
 Every option, with its type and default: [`useWebTool`](/reference/react/use-web-tool) and
 [`defineWebTool`](/reference/core/define-web-tool).
-
-## Next
-
-<Card title="Tools with input" href="/build/tools-with-input" icon="arrow-right">
-  Add an `inputSchema` and the cursor types the agent's values into the form you already have.
-</Card>

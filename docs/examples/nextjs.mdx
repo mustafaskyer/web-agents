@@ -94,7 +94,7 @@ The chat route is the example's guarded one, from the private `@webmcp-agents/ve
 - **The cursor stylesheet is a plain import** in `app/layout.tsx` (`import "@webmcp-agents/core/cursor.css"`), the
   same line as in a Vite app: it has no pseudo-class Turbopack's CSS parser would refuse.
 - **The same provider line as every other app,** `<WebAgentsProvider tools={tools}>`: the library follows the URL itself,
-  so there is no `usePathname` and no router hook ([Where a tool is on](/build/where-a-tool-is-on)).
+  so there is no `usePathname` and no router hook ([Tools across your app](/build/tools-across-your-app)).
 - **A shadcn `Select` is a custom widget.** The cursor visits it but has nothing to type into, so the forms with one pass
   `fill: (values) => form.reset(values)` ([Tools with input](/build/tools-with-input)). `components/ui/form.tsx` is shadcn's `Form`
   for React Hook Form in the base-nova style.
@@ -102,8 +102,8 @@ The chat route is the example's guarded one, from the private `@webmcp-agents/ve
   `agents.ts` lists them by reference, and the chat route imports `agents.ts` on the server. They navigate with the App
   Router's `router.push`, handed over by `<Providers>` (`lib/navigate.ts`).
 - **No "ready" gate.** `<Providers>` renders the provider, the header and the page on the server; in a browser without
-  WebMCP the provider loads the polyfill itself and the tools register once it is there. The devtools load in an effect,
-  in development only (they give `window.agent` to the e2e tests).
+  WebMCP the provider loads the polyfill itself and the tools register once it is there. In `next dev` the provider
+  installs the devtools too (they give `window.agent` to the e2e tests); `<Providers>` has no code for them.
 
 ## Learn more
 

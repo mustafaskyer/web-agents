@@ -3,7 +3,7 @@ title: Tool lifecycle
 description: Why a tool is never unregistered in the middle of a call, how StrictMode, route changes and calls in flight are handled, how tools wait for the polyfill, and when a tool that matches a path turns on.
 related:
   - /concepts/errors
-  - /build/where-a-tool-is-on
+  - /build/tools-across-your-app
   - /more/polyfill
 ---
 
@@ -83,7 +83,7 @@ rebuilt on every render registers again every render, so define catalog tools at
 
 ## Tools that come and go with the URL
 
-A tool with a [`match`](/build/where-a-tool-is-on) is registered while the path fits and released, the same deferred way,
+A tool with a [`match`](/build/tools-across-your-app) is registered while the path fits and released, the same deferred way,
 when it stops fitting. Two facts follow from how the URL is followed:
 
 - **The tool turns on as soon as the URL changes**, which can be before the new route has rendered. A `match` tool must

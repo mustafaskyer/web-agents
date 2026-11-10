@@ -30,7 +30,8 @@ describe("yield to the user", () => {
 
   beforeEach(async () => {
     modelContext();
-    visuals = installAgentVisuals({ linger: 50, yieldToUser: { resumeAfter: RESUME_AFTER } });
+    // the tests below move the pointer to yield: opt in to that (by default only a click, a scroll, a touch or a key yields)
+    visuals = installAgentVisuals({ linger: 50, yieldToUser: { resumeAfter: RESUME_AFTER, moveThreshold: 6 } });
     t = targets();
     await parkMouse(t.farA);
   });
@@ -64,6 +65,22 @@ describe("yield to the user", () => {
     expect((form.elements.namedItem("note") as HTMLInputElement).value).toBe(LONG);
     expect(rec.types()).toContain("yield");
     expect(rec.events.find((e) => e.type === "yield")).toEqual({ type: "yield", reason: "pointer" });
+    rec.stop();
+  });
+
+  it("by default keeps the cursor while the pointer only moves, and yields to a click", async () => {
+    visuals.setYieldToUser({ resumeAfter: RESUME_AFTER });
+    const rec = recordEvents();
+    const { run } = await startTyping();
+    await userEvent.hover(t.farB);
+    await sleep(60);
+    expect(cursorVisible()).toBe(true);
+    expect(rec.types()).not.toContain("yield");
+
+    await userEvent.click(t.farB);
+    await until(() => !cursorVisible(), 500, "cursor hidden");
+    expect(rec.events.find((e) => e.type === "yield")).toEqual({ type: "yield", reason: "pointer" });
+    await run;
     rec.stop();
   });
 

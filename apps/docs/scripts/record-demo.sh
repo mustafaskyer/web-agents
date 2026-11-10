@@ -8,7 +8,7 @@
 # Also needs agent-browser (npm i -g agent-browser) and ffmpeg. agent-browser's Chrome has native WebMCP; the apps'
 # tools are `useWebTool` / catalog tools, so a confirm-gated one (book_flight, checkout) parks the cursor on the control
 # it found by name (`[data-agent-active]`) and the final click there is a trusted one: the booking or the order goes
-# through only because a "person" clicked. `window.agent` comes from the devtools, which the apps load in development.
+# through only because a "person" clicked. `window.agent` comes from the devtools, which <WebAgentsProvider> installs in development.
 # The data is the same person in both clips (Mustafa Elsayed, Riyadh); everything is the apps' mock data, offline.
 set -e
 DEMO=${1:?usage: record-demo.sh skyline-booking|field-store-checkout}
