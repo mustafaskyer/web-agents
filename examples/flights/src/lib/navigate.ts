@@ -1,7 +1,7 @@
 /**
  * Same-document navigation for module-level tools: React Router's own `router.navigate`, handed over by main.tsx when
  * it creates the router. A tool that navigates this way keeps its call (no page load), and nothing here touches the
- * browser at import (src/agents.ts imports the tools server-side).
+ * browser at import (src/webmcp-agents/agents.ts imports the tools server-side).
  */
 let go: ((to: string) => void) | undefined;
 

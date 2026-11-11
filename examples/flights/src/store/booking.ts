@@ -1,5 +1,6 @@
 /**
- * Search, selection and bookings: one store for the page, outside React. Components read it with `useBooking()`;
+ * Search, selection and bookings: one store for the page, outside React (no React import: the tools import it, and
+ * the agents file that lists them is read on the server). Components read it with `useBooking()` (src/hooks/use-booking.ts);
  * module-level tools import `booking` and call it directly, so the provider passes them nothing. The search in
  * progress (query, chosen flight, typed details) lives in sessionStorage so a reload on the booking page keeps it;
  * confirmed bookings live in localStorage so get_booking works later. Actions return a sentence for the agent and
@@ -8,7 +9,6 @@
  * Actions read and write the latest state, not a render's: an agent's calls in quick succession must see each other's
  * changes. Nothing touches the browser until the store is first read.
  */
-import { useSyncExternalStore } from "react";
 import {
   airline,
   airlineCodes,
@@ -26,7 +26,7 @@ import {
   sortFlights,
 } from "../data/flights";
 import { todayIso } from "../lib/dates";
-import { toResultsPath } from "../lib/searchParams";
+import { toResultsPath } from "../lib/search-params";
 
 export interface Contact {
   firstName: string;
@@ -244,12 +244,14 @@ export const booking: Actions = {
   getBooking: (ref) => latest().bookings.find((b) => b.ref === ref.trim().toUpperCase()),
 };
 
-const subscribe = (listener: () => void): (() => void) => {
+/** Calls `listener` after every change; returns the unsubscribe. For `useBooking`. */
+export const subscribe = (listener: () => void): (() => void) => {
   listeners.add(listener);
   return () => listeners.delete(listener);
 };
 
-function snapshot(): BookingApi {
+/** The store as of the latest change: the same object until the next one. For `useBooking`. */
+export function snapshot(): BookingApi {
   if (api) return api;
   const s = latest();
   const results = resultsOf(s);
@@ -266,9 +268,4 @@ function snapshot(): BookingApi {
     bookings: s.bookings,
   };
   return api;
-}
-
-/** The search, the results as the page shows them, and the bookings, re-rendering on every change. */
-export function useBooking(): BookingApi {
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

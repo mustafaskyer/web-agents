@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, formatDate, isIsoDate } from "./dates";
-import { checkQuery, findAirport, fromResultsParams, toResultsPath } from "./searchParams";
+import { checkQuery, findAirport, fromResultsParams, toResultsPath } from "./search-params";
 
 const today = "2026-11-06";
 const base = { from: "LHR", to: "DXB", trip: "oneway", cabin: "economy", adults: 1, children: 0, infants: 0, date: "2026-11-08" };

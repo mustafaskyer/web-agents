@@ -1,4 +1,5 @@
 import {
+  airline,
   airport,
   arrivalDayOffset,
   CABIN_LABEL,
@@ -11,6 +12,12 @@ import {
 } from "../data/flights";
 import type { Booking } from "../store/booking";
 import { formatDate } from "./dates";
+
+/** "Meridian" for MR; the code itself for an airline we don't know. */
+export const airlineName = (code: string): string => airline(code)?.name ?? code;
+
+/** The airline's brand colour, for its badge. */
+export const airlineColor = (code: string): string | undefined => airline(code)?.color;
 
 /** "London (LHR) → Dubai (DXB)" */
 export const routeText = (q: Pick<FlightQuery, "from" | "to">): string =>
