@@ -27,6 +27,12 @@ const clearCart = useWebTool({ id: "clear_cart", /* … */ });
 <Button onClick={() => clearCart.invoke()}>Try it</Button>;
 ```
 
+A tool already made with [`defineWebTool`](../core/define-web-tool.md) in a file of its own is passed as it is, and is
+on while the component is mounted (and `enabled`). Its `execute` reads only its input and module state, never the
+component's:
+
+<include meta='title="components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
 ## Options
 
 `useWebTool(tool, options?)`. The first argument is the definition; the second holds the hook's own options.

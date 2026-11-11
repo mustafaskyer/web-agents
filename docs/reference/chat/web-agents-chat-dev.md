@@ -38,9 +38,11 @@ ANTHROPIC_API_KEY=…
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `path` | `string` | `"/api/chat"` | Where to mount the endpoint. Only that exact path (or with a trailing `/`) is served. |
-| `handler` | `(req: Request) => Promise<Response>` | `createChatHandler({ env, agents })` | The handler to serve. The default reads the provider keys and `WEB_AGENTS_*` from the project's `.env` files, falling back to `process.env`. Pass your own to serve the same handler as production. |
+| `handler` | `(req: Request) => Promise<Response>` | `createChatHandler({ env, agents, tools, session, requireAgent })` | The handler to serve. The default reads the provider keys and `WEB_AGENTS_*` from the project's `.env` files, falling back to `process.env`. Pass your own to serve the same handler as production. |
 | `secretGuard` | `boolean` | `true` | Refuse to start `vite dev` when a `VITE_*` variable is named like a secret (`*_API_KEY`, `*_SECRET`, `*_TOKEN`): Vite inlines every `VITE_` variable into the browser bundle. The error names the variable. |
-| `agents` | `readonly WebAgent[]` | not set | The page's agents ([`defineWebAgent`](./define-web-agent.md)) for the default handler: the same list the page passes to `<AgentChat>`. Without it, a request naming an agent is refused. |
+| `agents` | `readonly WebAgent[]` | not set | The page's agents ([`defineWebAgent`](./define-web-agent.md)) for the default handler: the same list the page passes to `<AgentChat>`. Without it, a request naming an agent is refused; with it, a request naming none is (`requireAgent`, as in production). |
+| `tools` | `readonly (string \| WebTool)[]` | not set (all) | The tools the page may offer the model, for the default handler: see [`createChatHandler`](./create-chat-handler.md)'s `tools`. Pass the list production uses. |
+| `session` | `false \| ChatSessionOptions` | `{}` (on) | Chat sessions for the default handler, so dev runs the production path. The secret is `WEB_AGENTS_SESSION_SECRET` from the `.env` files, else random per dev server. With `TURNSTILE_SECRET_KEY` in the `.env` files, a session needs a solved [Turnstile](./create-chat-handler.md#turnstile) challenge. See [Sessions](./create-chat-handler.md#sessions). |
 | `envKeys` | `(key: string) => boolean` | `*_API_KEY`, `AI_GATEWAY_*`, `VERCEL_OIDC_TOKEN`, `WEB_AGENTS_*` | Which variables from the `.env` files (and `process.env`) reach the default handler. |
 
 ## Returns

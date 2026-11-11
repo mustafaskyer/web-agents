@@ -62,4 +62,4 @@ Chrome cancels a running call when its tool's definition changes or the tool is 
 - [`@webmcp-agents/core`](../core/README.md)
 - [The polyfill](../polyfill/README.md)
 - [`@webmcp-agents/tools`](../tools/README.md) (common tools for the catalog)
-- Example apps: `apps/playground`, `apps/ecommerce`, `apps/flights`, `apps/nextjs`
+- Example apps: `examples/playground`, `examples/ecommerce`, `examples/flights`, `examples/nextjs`

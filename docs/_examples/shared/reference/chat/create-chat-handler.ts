@@ -12,6 +12,12 @@ const handler = createChatHandler({
   reasoning: "low",
   maxSteps: 8,
 
+  // The page's first GET starts a session (an httpOnly cookie signed
+  // with WEB_AGENTS_SESSION_SECRET); a POST without one gets 401.
+  session: true,
+  // Only these tools reach the model.
+  tools: ["search_products", "add_to_cart", "checkout"],
+
   // Runs first: a Response here ends the request.
   guard: (req) => {
     const who = req.headers.get("x-forwarded-for") ?? "local";

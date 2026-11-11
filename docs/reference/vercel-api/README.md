@@ -8,10 +8,10 @@ description: "The examples' /api/chat as Vercel web handlers."
 The examples' `/api/chat` as Vercel web handlers. It puts `@webmcp-agents/chat`'s server handler behind an origin
 check, per-IP rate limits and a global daily budget on model calls.
 
-The package is private (`"private": true`). It is not published to npm. The example apps (`apps/playground`,
-`apps/ecommerce`, `apps/flights`) use it as a workspace dependency.
+The package is private (`"private": true`). It is not published to npm. The example apps (`examples/playground`,
+`examples/ecommerce`, `examples/flights`) use it as a workspace dependency.
 
-```ts apps/playground/api/chat.ts
+```ts examples/playground/api/chat.ts
 import { createVercelChatRoute } from "@webmcp-agents/vercel-api";
 
 export const { GET, POST, OPTIONS } = createVercelChatRoute({ app: "playground" });
