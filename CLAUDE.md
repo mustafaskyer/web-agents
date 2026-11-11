@@ -42,7 +42,7 @@ pnpm changeset                             # describe a change to a published pa
 pnpm release [patch|minor|major]           # local release (scripts/release.mjs): bump + gate + npm publish + push; no CI job
                                            # publishes. --dry-run, release:version / :publish / :snapshot / :status
 pnpm e2e                                   # Playwright e2e of examples/ecommerce, examples/flights and examples/nextjs (not part of pnpm check)
-pnpm registry:build                        # shadcn build → apps/docs/public/r/*.json (part of pnpm check, with registry:typecheck + registry:test)
+pnpm registry:build                        # shadcn build → apps/docs/public/r/*.json (the docs build runs it; pnpm check adds registry:typecheck + registry:test)
 pnpm capture                               # docs/media/**: stills + clips of the four apps via Playwright's Chromium + ffmpeg (not in pnpm check)
 pnpm --filter @webmcp-agents/core test        # one package
 pnpm --filter @webmcp-agents/docs dev         # the website on :4321 (landing at /, docs under /docs; also started by pnpm dev);
@@ -96,7 +96,7 @@ apps/docs/              @webmcp-agents/docs (private, port 4321): the one websit
                         (agent-layer.tsx: the provider, which brings the devtools in dev; landing.tsx / demos.tsx pass it
                         the catalog, the one wiring point); *-data.ts there is plain data. Consumes the packages' dist (predev builds them). scripts/record-demo.sh <demo>
                         re-records public/demo (agent-browser); theme.css gives the docs the landing's dark palette;
-                        public/r/ is the built shadcn registry (gitignored)
+                        public/r/ is the built shadcn registry (gitignored; `build` runs `registry` first, so every host serves it)
 registry/               the @webmcp-agents shadcn registry: registry.json + default/<item>/<item>.tsx (agent-chat, agent-tool,
                         agent-subagent, agent-reasoning, agent-model-selector); copies live in examples/nextjs/components/web-agents
                         and must stay identical (registry/test checks it)

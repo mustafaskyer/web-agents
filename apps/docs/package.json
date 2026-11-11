@@ -6,7 +6,8 @@
   "scripts": {
     "predev": "turbo run build --filter=@webmcp-agents/docs^...",
     "dev": "blume dev",
-    "build": "blume build",
+    "registry": "shadcn build registry/registry.json --cwd ../.. --output apps/docs/public/r",
+    "build": "pnpm run registry && blume build",
     "preview": "blume preview",
     "test": "blume validate && node scripts/check-docs.mjs",
     "typecheck": "tsc -p tsconfig.json"
