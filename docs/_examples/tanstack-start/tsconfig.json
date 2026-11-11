@@ -6,7 +6,7 @@
     // "@/" alias): src and shared are one folder
     "rootDirs": ["./src", "../shared"],
     "paths": {
-      "@/components/ui/*": ["../../../apps/nextjs/components/ui/*"],
+      "@/components/ui/*": ["../../../examples/ui/src/components/*"],
       "@/*": ["./src/*", "../shared/*"]
     }
   },
