@@ -41,6 +41,8 @@ export interface NavbarFloatingProps {
   menuOpen?: boolean;
   navigationLabel?: string;
   onMenuOpenChange?: (open: boolean) => void;
+  /** Told when the links fold into the menu (true: only the menu button is in the bar) or unfold. */
+  onCollapsedChange?: (collapsed: boolean) => void;
   primaryAction: FloatingNavLink;
   /** Controls that stay in the bar at every width (a theme toggle), between the links and the actions. */
   extra?: ReactNode;
@@ -114,6 +116,7 @@ export const NavbarFloating = ({
   menuOpen,
   navigationLabel = `${brand.name} main navigation`,
   onMenuOpenChange,
+  onCollapsedChange,
   primaryAction,
   scrollContainer,
   secondaryAction,
@@ -157,6 +160,11 @@ export const NavbarFloating = ({
     close.current?.();
   }, []);
   const available = useMobileNavigationFit(frame, trigger, handleHidden);
+  const reportCollapsed = useRef(onCollapsedChange);
+  reportCollapsed.current = onCollapsedChange;
+  useLayoutEffect(() => {
+    if (available !== null) reportCollapsed.current?.(available);
+  }, [available]);
   const handleMenuRef = useCallback((next: HTMLDivElement | null) => {
     const previous = menu.current;
     menu.current = next;
