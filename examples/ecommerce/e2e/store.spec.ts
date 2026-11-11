@@ -210,7 +210,11 @@ test("leaving checkout while it waits for the click ends the call and the parked
   await parkedOn(page, page.getByRole("button", { name: /^Place order/ }));
 
   await page.getByRole("link", { name: "Field Store" }).click(); // the person navigates away instead
-  expect(await pending).toMatch(/^Error \[unavailable\]: "checkout" needs the user's confirmation, but there is nothing to confirm on/);
+  // The click is elsewhere (`cancelled`) and the page it leaves has no Place order (`unavailable`): whichever the gate
+  // sees first answers, depending on how fast the route renders. Either way the call ends.
+  expect(await pending).toMatch(
+    /^Error \[(cancelled|unavailable)\]: "checkout" (was waiting for the user's confirmation; the user clicked elsewhere|needs the user's confirmation, but there is nothing to confirm on)/,
+  );
   await expect(page.locator(".agent-cursor.is-waiting, .agent-ring.is-waiting")).toHaveCount(0);
 });
 
