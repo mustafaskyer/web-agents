@@ -5,11 +5,15 @@
  * by the person's own click. On only while the cart has items: with an empty cart there is nothing to order.
  */
 import { useWebTool } from "@webmcp-agents/react";
-import { cart, money, useCart } from "../store";
+import { useCart } from "../../hooks/use-cart";
+import { cart } from "../../store/cart";
 
-export function PlaceOrderButton() {
-  const { items, totals } = useCart();
-  const hasItems = items.length > 0;
+/**
+ * Registers place_order while the cart has items; returns `place` for the button, whether there is anything to
+ * order (`canPlace`: the button shows only then) and the `total` it would charge.
+ */
+export function usePlaceOrder(): { place: () => void; canPlace: boolean; total: number } {
+  const { isEmpty, totals } = useCart();
 
   const place = () => cart.placeOrder();
 
@@ -23,16 +27,8 @@ export function PlaceOrderButton() {
       requireConfirmation: true,
       execute: place,
     },
-    { enabled: hasItems },
+    { enabled: !isEmpty },
   );
 
-  if (!hasItems) return null;
-  // A person clicks this.
-  return (
-    <div className="checkout-form">
-      <button type="button" className="primary" onClick={place}>
-        Place order · {money(totals.total)}
-      </button>
-    </div>
-  );
+  return { place, canPlace: !isEmpty, total: totals.total };
 }

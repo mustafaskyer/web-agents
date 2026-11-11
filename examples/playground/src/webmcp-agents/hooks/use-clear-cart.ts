@@ -4,10 +4,12 @@
  * (`requireConfirmation`). On only while there is something to clear.
  */
 import { useWebTool } from "@webmcp-agents/react";
-import { cart, useCart } from "../store";
+import { useCart } from "../../hooks/use-cart";
+import { cart } from "../../store/cart";
 
-export function ClearCartButton() {
-  const { items } = useCart();
+/** Registers clear_cart while the cart has items; returns `clear` for the button and whether it can run. */
+export function useClearCart(): { clear: () => void; canClear: boolean } {
+  const { isEmpty } = useCart();
 
   const clear = () => cart.clear();
 
@@ -21,13 +23,8 @@ export function ClearCartButton() {
       requireConfirmation: true,
       execute: clear,
     },
-    { enabled: items.length > 0 },
+    { enabled: !isEmpty },
   );
 
-  // A person clicks this.
-  return (
-    <button type="button" onClick={clear} disabled={items.length === 0}>
-      Clear cart
-    </button>
-  );
+  return { clear, canClear: !isEmpty };
 }
