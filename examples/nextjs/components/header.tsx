@@ -1,10 +1,11 @@
 "use client";
+/** The header on every page: the store's name (home), the search box and the cart's count. */
 import Link from "next/link";
-import { useCart } from "@/lib/cart";
-import { SearchBox } from "@/tools/SearchBox";
+import { useCart } from "@/hooks/use-cart";
+import { SearchBox } from "./search-box";
 
 export function Header() {
-  const cart = useCart();
+  const { count } = useCart();
   return (
     <header className="border-b">
       <div className="mx-auto flex w-full max-w-5xl items-center gap-6 px-4 py-3">
@@ -13,7 +14,7 @@ export function Header() {
         </Link>
         <SearchBox />
         <Link href="/cart" className="ml-auto text-sm">
-          Cart ({cart.count})
+          Cart ({count})
         </Link>
       </div>
     </header>

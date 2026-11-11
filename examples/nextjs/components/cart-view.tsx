@@ -1,13 +1,11 @@
 "use client";
+/** The cart page: the lines with Remove, the total, and the order just placed when checkout lands here. */
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { lineLabel, useCart } from "@/lib/cart";
 import { money } from "@/lib/catalog";
+import { useCartPage } from "@/hooks/use-cart-page";
 
 export function CartView() {
-  const cart = useCart();
-  const placed = useSearchParams().get("placed");
-  const order = placed ? cart.orders.find((o) => o.id === placed) : undefined;
+  const { rows, total, order, remove } = useCartPage();
   return (
     <div className="flex flex-col gap-6">
       {order && (
@@ -19,7 +17,7 @@ export function CartView() {
         </section>
       )}
       {!order && <h1 className="text-2xl font-semibold">Your cart</h1>}
-      {cart.lines.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-muted-foreground">
           {order ? "The cart is empty again." : "The cart is empty."}{" "}
           <Link href="/" className="underline">
@@ -29,21 +27,21 @@ export function CartView() {
       ) : (
         <>
           <ul className="divide-y rounded-lg border">
-            {cart.lines.map((l) => (
-              <li key={`${l.slug}:${l.variant}`} className="flex items-center justify-between gap-4 p-3 text-sm">
+            {rows.map((row) => (
+              <li key={row.key} className="flex items-center justify-between gap-4 p-3 text-sm">
                 <span>
-                  {l.qty} × {lineLabel(l)}
+                  {row.qty} × {row.label}
                 </span>
                 <span className="flex items-center gap-3">
-                  {money(l.unitPrice * l.qty)}
-                  <button type="button" className="text-muted-foreground underline" onClick={() => cart.remove(l.slug)}>
+                  {money(row.total)}
+                  <button type="button" className="text-muted-foreground underline" onClick={() => remove(row.slug)}>
                     Remove
                   </button>
                 </span>
               </li>
             ))}
           </ul>
-          <p className="text-right font-medium">Total {money(cart.totals.total)}</p>
+          <p className="text-right font-medium">Total {money(total)}</p>
           <Link href="/checkout" className="self-end rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
             Check out
           </Link>

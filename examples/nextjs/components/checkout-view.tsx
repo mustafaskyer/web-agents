@@ -1,17 +1,14 @@
 "use client";
+/** The checkout page: the checkout form beside the order summary (with the promo form until the order is placed). */
 import Link from "next/link";
-import { useState } from "react";
-import { lineLabel, type Order, useCart } from "@/lib/cart";
 import { money } from "@/lib/catalog";
-import { ApplyPromoForm } from "@/tools/ApplyPromoForm";
-import { CheckoutForm } from "@/tools/CheckoutForm";
+import { ApplyPromoForm } from "./apply-promo-form";
+import { CheckoutForm } from "./checkout-form";
+import { useOrderSummary } from "@/hooks/use-order-summary";
 
 export function CheckoutView() {
-  const cart = useCart();
-  // the placed order: placing it empties the cart, but the page keeps showing it until the agent has its answer
-  const [placed, setPlaced] = useState<Order | null>(null);
-  const { lines, totals, promo } = placed ?? cart;
-  if (lines.length === 0) {
+  const { rows, totals, promo, empty, placed, onPlaced } = useOrderSummary();
+  if (empty) {
     return (
       <p className="text-muted-foreground">
         Your cart is empty.{" "}
@@ -25,17 +22,17 @@ export function CheckoutView() {
     <div className="grid gap-8 md:grid-cols-2">
       <section>
         <h1 className="mb-4 text-2xl font-semibold">Checkout</h1>
-        <CheckoutForm total={totals.total} onPlaced={setPlaced} />
+        <CheckoutForm total={totals.total} onPlaced={onPlaced} />
       </section>
       <aside className="flex flex-col gap-3 rounded-lg border p-4 text-sm">
         <h2 className="font-medium">Order summary</h2>
         <ul className="flex flex-col gap-1">
-          {lines.map((l) => (
-            <li key={`${l.slug}:${l.variant}`} className="flex justify-between">
+          {rows.map((row) => (
+            <li key={row.key} className="flex justify-between">
               <span>
-                {l.qty} × {lineLabel(l)}
+                {row.qty} × {row.label}
               </span>
-              <span>{money(l.unitPrice * l.qty)}</span>
+              <span>{money(row.total)}</span>
             </li>
           ))}
         </ul>
