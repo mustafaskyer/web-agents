@@ -3,6 +3,7 @@
  * No React, no DOM, so tools, pages and the node tests share them.
  * Prices are integer cents, so totals never drift.
  */
+import { money } from "../lib/format.ts";
 import categoriesJson from "./categories.json" with { type: "json" };
 import productsJson from "./products.json" with { type: "json" };
 
@@ -125,10 +126,6 @@ export function related(slug: string, n = 4): Product[] {
     .toSorted((a, b) => Number(b.category === self.category) - Number(a.category === self.category))
     .slice(0, n);
 }
-
-const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-/** `4800` → `$48.00`. */
-export const money = (cents: number): string => usd.format(cents / 100);
 
 /** "- Ocean Tee [ocean-tee]: $48.00" — one row of a product list for the agent. */
 export const productLine = (p: Product): string => `- ${p.name} [${p.slug}]: ${money(p.price)}${p.stock === 0 ? " (sold out)" : ""}`;

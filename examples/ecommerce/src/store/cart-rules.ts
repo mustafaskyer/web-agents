@@ -3,7 +3,8 @@
  * React. Each throws a readable error on bad input: the store passes it on to
  * the agent and the page as-is.
  */
-import { money, type Product } from "../data/catalog.ts";
+import type { Product } from "../data/catalog.ts";
+import { money } from "../lib/format.ts";
 
 export interface CartLine {
   slug: string;

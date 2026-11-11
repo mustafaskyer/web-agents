@@ -1,9 +1,7 @@
 /**
  * Page chrome state the agent can drive too: the cart drawer. One store for the page, outside React, so `open_cart`
- * (a module-level tool) opens it directly and `useUi()` re-renders whoever shows it.
+ * (a module-level tool) opens it directly and `useUi()` (src/hooks/use-ui.ts) re-renders whoever shows it.
  */
-import { useSyncExternalStore } from "react";
-
 export interface UiApi {
   cartOpen: boolean;
   openCart(): void;
@@ -30,13 +28,12 @@ export const ui: UiApi = {
 };
 
 let view: UiApi = { ...ui, cartOpen };
-const subscribe = (listener: () => void): (() => void) => {
+
+/** Calls `listener` when the drawer opens or closes; returns the unsubscribe. */
+export function subscribeUi(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
-};
-const snapshot = (): UiApi => view;
-
-/** The drawer's state and actions, re-rendering when it opens or closes. */
-export function useUi(): UiApi {
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
+
+/** The drawer's state as a render sees it: the same object until it changes. */
+export const uiSnapshot = (): UiApi => view;

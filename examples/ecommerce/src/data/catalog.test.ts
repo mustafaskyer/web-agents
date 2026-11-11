@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allProducts, describeProduct, getProduct, listByCategory, money, related, searchProducts, unmatchedWords } from "./catalog";
+import { allProducts, describeProduct, getProduct, listByCategory, related, searchProducts, unmatchedWords } from "./catalog";
+import { money } from "../lib/format";
 
 describe("catalog", () => {
   it("ranks name-prefix matches before description matches", () => {

@@ -1,15 +1,16 @@
 /**
- * The cart: lines, promo code and placed orders, one store for the page, outside React. Components read it with
- * `useCart()`; module-level tools import `cart` and call it directly, so the provider passes them nothing. Persisted to
+ * The cart: lines, promo code and placed orders, one store for the page, outside React. The page reads it through
+ * `useCart()` (src/hooks/use-cart.ts); module-level tools import `cart` and call it directly, so the provider passes
+ * them nothing. Persisted to
  * sessionStorage so a reload keeps a demo going. Every action returns a sentence for the agent and throws a readable
- * error on bad input (see cartRules.ts).
+ * error on bad input (see cart-rules.ts).
  *
  * Actions read and write the latest state, not a render's: two calls in the same tick (an agent, then the person) must
  * both see each other's changes. Nothing touches the browser until the cart is first read (the module is imported
- * server-side too, through src/agents.ts).
+ * server-side too, through src/webmcp-agents/agents.ts).
  */
-import { useSyncExternalStore } from "react";
-import { getProduct, money } from "../data/catalog.ts";
+import { getProduct } from "../data/catalog.ts";
+import { money } from "../lib/format.ts";
 import {
   addLine,
   type CartLine,
@@ -22,7 +23,7 @@ import {
   sameLine,
   type Totals,
   totalsFor,
-} from "./cartRules.ts";
+} from "./cart-rules.ts";
 
 export interface Contact {
   email: string;
@@ -61,6 +62,8 @@ export interface CartActions {
   placeOrder(contact: Contact): Order;
   /** Human summary for get_cart. */
   describe(): string;
+  /** How a line is named on screen ("Ocean Tee (M)"); throws when the cart has no such line. */
+  labelOf(slug: string, variant?: string | null): string;
 }
 
 /** The cart as a render sees it: its state, its totals, and the actions. */
@@ -155,21 +158,19 @@ export const cart: CartActions = {
     return order;
   },
   describe: () => describeLines(current().lines, current().promo),
+  labelOf: (slug, variant) => lineLabel(findLine(current().lines, slug, variant)),
 };
 
-const subscribe = (listener: () => void): (() => void) => {
+/** Calls `listener` after every change; returns the unsubscribe. */
+export function subscribeCart(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
-};
+}
 
-function snapshot(): CartApi {
+/** The cart as a render sees it: the same object until the next change (what `useSyncExternalStore` needs). */
+export function cartSnapshot(): CartApi {
   if (view) return view;
   const { lines, promo, orders } = current();
   view = { ...cart, lines, promo, orders, totals: totalsFor(lines, promo), count: lines.reduce((n, l) => n + l.qty, 0) };
   return view;
-}
-
-/** The cart, re-rendering on every change. */
-export function useCart(): CartApi {
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

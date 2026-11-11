@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getProduct } from "../data/catalog";
-import { addLine, type CartLine, checkQty, findLine, PROMO_CODE, resolveVariant, SHIPPING, totalsFor } from "./cartRules";
+import { addLine, type CartLine, checkQty, findLine, PROMO_CODE, resolveVariant, SHIPPING, totalsFor } from "./cart-rules";
 
 const line = (unitPrice: number, qty = 1): CartLine => ({ slug: "x", variant: null, qty, name: "X", unitPrice });
 
