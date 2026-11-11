@@ -1,10 +1,11 @@
 /** sort_results, on a results page (`match`). The cursor presses that sort's button in the sort bar ("Price: low to high"). */
-import { defineWebTool } from "@webmcp-agents/react";
+import { defineWebTool } from "@webmcp-agents/core";
 import { z } from "zod";
-import { SORT_LABEL, SORTS } from "../data/flights";
-import { RESULTS_PATTERN } from "../lib/searchParams";
-import { booking } from "../store/booking";
+import { SORT_LABEL, SORTS } from "../../data/flights";
+import { RESULTS_PATTERN } from "../../lib/search-params";
+import { booking } from "../../store/booking";
 
+// An agent calls this.
 export const sortResults = defineWebTool({
   id: "sort_results",
   title: "Sort flight results",

@@ -3,13 +3,14 @@
  * is released only after its call is answered, so leaving the results page doesn't cancel this call. The cursor
  * presses that flight's own Select button, the one a screen reader calls "Select Meridian MR 210".
  */
-import { defineWebTool } from "@webmcp-agents/react";
+import { defineWebTool } from "@webmcp-agents/core";
 import { z } from "zod";
-import { airline, describeFlight, fareFor, money } from "../data/flights";
-import { navigate } from "../lib/navigate";
-import { RESULTS_PATTERN } from "../lib/searchParams";
-import { booking } from "../store/booking";
+import { airline, describeFlight, fareFor, money } from "../../data/flights";
+import { navigate } from "../../lib/navigate";
+import { RESULTS_PATTERN } from "../../lib/search-params";
+import { booking } from "../../store/booking";
 
+// An agent calls this.
 export const selectFlight = defineWebTool({
   id: "select_flight",
   title: "Select a flight",

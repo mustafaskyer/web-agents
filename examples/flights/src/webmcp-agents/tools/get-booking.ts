@@ -1,9 +1,10 @@
 /** get_booking, on every page: reads a confirmed booking by its reference. */
-import { defineWebTool, WebToolError } from "@webmcp-agents/react";
+import { defineWebTool, WebToolError } from "@webmcp-agents/core";
 import { z } from "zod";
-import { itineraryText } from "../lib/itinerary";
-import { booking } from "../store/booking";
+import { itineraryText } from "../../lib/itinerary";
+import { booking } from "../../store/booking";
 
+// An agent calls this.
 export const getBooking = defineWebTool({
   id: "get_booking",
   title: "Look up a booking",

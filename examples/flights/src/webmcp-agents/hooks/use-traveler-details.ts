@@ -1,21 +1,27 @@
 /**
- * fill_traveler_details, on the booking page: a form built on TanStack Form, to show that any form library works. The
- * schema is the tool's input and the form's validator alike; the cursor types each value into the field named like its
- * parameter (`firstName`, `email`, `firstName_1`, `dob_2`, …: the fields are named per traveler), presses "Save
- * details", and `save` runs. TanStack Form hears the typing like a person's.
+ * fill_traveler_details, on the booking page: a form built on TanStack Form, to show that any form library works
+ * (Tools with input, "TanStack Form"). The schema is the tool's input and the form's validator alike; the cursor types
+ * each value into the field named like its parameter (`firstName`, `email`, `firstName_1`, `dob_2`, …: the fields are
+ * named per traveler), presses "Save details", and `save` runs. TanStack Form hears the typing like a person's.
  *
  * Saving details is reversible, so there is nothing to confirm. The number of travelers comes from the search, which
  * is fixed on this page, so the tool's schema never changes while a call is in flight.
  */
 import { useForm } from "@tanstack/react-form";
 import { useWebTool } from "@webmcp-agents/react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { z } from "zod";
-import { todayIso } from "../lib/dates";
-import { booking, type Contact, type Traveler, type TravelerKind, useBooking } from "../store/booking";
-import styles from "./bookingForms.module.css";
+import { useBooking } from "../../hooks/use-booking";
+import { todayIso } from "../../lib/dates";
+import { booking, type Contact, type Traveler, type TravelerKind } from "../../store/booking";
 
+export type { TravelerKind };
+
+/** Field values by field name (`firstName`, `dob_2`): the form's, or an agent's call. */
 type Details = Record<string, string | undefined>;
+
+/** The id of the traveler details <form>: book_flight saves what is typed there before it books. */
+export const TRAVELER_DETAILS_FORM = "traveler-details";
 
 /** The tool's input for these travelers: the contact, then each traveler's fields, suffixed _1, _2, … */
 function schemaFor(kinds: readonly TravelerKind[]) {
@@ -53,11 +59,16 @@ export function detailsFrom(values: Details, count: number): { contact: Contact;
   };
 }
 
-export function TravelerDetailsForm({ kinds }: { kinds: TravelerKind[] }) {
+/**
+ * The traveler details form (TanStack Form) and its tool, for travelers of these `kinds`, seeded from the store.
+ *
+ * Returns `form` (TanStack Form: `form.Field` per input), `today` (the latest date of birth), `saved` (the last save's
+ * sentence, for the status line), `clearSaved` (the person edits again) and `submit` for the form's `onSubmit`.
+ */
+export function useTravelerDetails(kinds: readonly TravelerKind[]) {
   const { contact, travelers } = useBooking();
   const [schema] = useState(() => schemaFor(kinds));
   const [saved, setSaved] = useState<string | null>(null);
-  const today = todayIso();
 
   const save = (values: Details) => {
     const details = detailsFrom(values, kinds.length);
@@ -97,74 +108,14 @@ export function TravelerDetailsForm({ kinds }: { kinds: TravelerKind[] }) {
     execute: save,
   });
 
-  /** One labelled field, wired to the form; its `name` is the tool parameter typed into it. */
-  const field = (label: string, name: string, type = "text", extra: { autoComplete?: string; max?: string } = {}) => (
-    <form.Field name={name}>
-      {(f) => (
-        <label className="field">
-          <span className="label">{label}</span>
-          <input
-            name={f.name}
-            type={type}
-            className="input"
-            required
-            value={f.state.value ?? ""}
-            onBlur={f.handleBlur}
-            onChange={(e) => f.handleChange(e.target.value)}
-            {...extra}
-          />
-        </label>
-      )}
-    </form.Field>
-  );
-
-  // A person submits this.
-  return (
-    <form
-      id="traveler-details"
-      className={styles.stack}
-      onSubmit={(e) => {
-        e.preventDefault();
-        void form.handleSubmit();
-      }}
-      onChange={() => setSaved(null)}
-    >
-      <section className={`card ${styles.section}`} aria-labelledby="contact-title">
-        <h2 id="contact-title">Contact information</h2>
-        <p className="muted">We send the e-ticket and any schedule changes here.</p>
-        <div className={styles.grid}>
-          {field("First name", "firstName", "text", { autoComplete: "given-name" })}
-          {field("Last name", "lastName", "text", { autoComplete: "family-name" })}
-          {field("Email", "email", "email", { autoComplete: "email" })}
-          {field("Phone", "phone", "tel", { autoComplete: "tel" })}
-        </div>
-      </section>
-
-      {kinds.map((kind, i) => {
-        const n = i + 1;
-        return (
-          <section key={n} className={`card ${styles.section}`} aria-labelledby={`traveler-${n}`}>
-            <h2 id={`traveler-${n}`}>
-              Traveler {n} <span className="muted">· {kind}</span>
-            </h2>
-            <div className={styles.grid}>
-              {field("First name", `firstName_${n}`)}
-              {field("Last name", `lastName_${n}`)}
-              {field("Date of birth", `dob_${n}`, "date", { max: today })}
-              {field("Passport or ID number", `document_${n}`)}
-            </div>
-          </section>
-        );
-      })}
-
-      <div className={styles.saveRow}>
-        <p className={styles.saved} role="status">
-          {saved}
-        </p>
-        <button type="submit" className="btn outline">
-          Save details
-        </button>
-      </div>
-    </form>
-  );
+  return {
+    form,
+    today: todayIso(),
+    saved,
+    clearSaved: () => setSaved(null),
+    submit: (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      void form.handleSubmit();
+    },
+  };
 }

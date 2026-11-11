@@ -8,10 +8,10 @@
  * that one lookup, and without it the answer still has them. Location not shared: a guess from the time zone. No
  * guess: ask the user. The answer is text for the model and `structuredContent.location` / `.airports` for code.
  */
-import { defineWebTool, WebToolError } from "@webmcp-agents/react";
+import { defineWebTool, WebToolError } from "@webmcp-agents/core";
 import { getLocation as browserLocation, type Place } from "@webmcp-agents/tools";
-import { AIRPORTS, type Airport } from "../data/flights";
-import { airportsInTimeZone, nearestAirports } from "../data/location";
+import { AIRPORTS, type Airport } from "../../data/flights";
+import { airportsInTimeZone, nearestAirports } from "../../data/location";
 
 /** Past this, the nearest airport is far enough that the agent should check with the user. */
 const FAR_KM = 300;
@@ -38,6 +38,7 @@ const whereabouts = browserLocation({ lookup: placeAt, prompt: "Allow location a
 const label = (a: Airport): string => `${a.name.includes(a.city) ? a.name : `${a.city} ${a.name}`} (${a.code})`;
 const placeName = (l: Place): string => [l.city, l.region, l.country].filter(Boolean).join(", ");
 
+// An agent calls this.
 export const getLocation = defineWebTool({
   id: "get_location",
   title: "Find where the user is",
