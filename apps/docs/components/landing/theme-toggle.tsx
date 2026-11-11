@@ -7,19 +7,11 @@
  */
 import { Moon02Icon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
-import { applyTheme, currentTheme, storedTheme } from "@/lib/theme";
+import { useThemeToggle } from "@/hooks/use-theme-toggle";
 
 export const ThemeToggle = () => {
-  useEffect(() => {
-    const system = matchMedia("(prefers-color-scheme: dark)");
-    const follow = (): void => {
-      if (!storedTheme()) applyTheme(system.matches ? "dark" : "light", { remember: false });
-    };
-    system.addEventListener("change", follow);
-    return () => system.removeEventListener("change", follow);
-  }, []);
+  const { toggle } = useThemeToggle();
 
   return (
     <button
@@ -27,7 +19,7 @@ export const ThemeToggle = () => {
       aria-label="Switch between light and dark"
       title="Switch between light and dark"
       className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
-      onClick={() => applyTheme(currentTheme() === "dark" ? "light" : "dark")}
+      onClick={toggle}
     >
       {/* both render; the theme on <html> picks one, so the server's markup is right in either theme */}
       <HugeiconsIcon icon={Moon02Icon} aria-hidden="true" className="dark:hidden" />

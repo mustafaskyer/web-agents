@@ -1,23 +1,22 @@
 /**
  * The site's home page, composed from OpenDesigns blocks (components/opendesigns, installed from the design hub's
  * shadcn registry) with this project's content. Sections, top to bottom: floating navbar, hero (the title over the
- * row of tools to try, the page's centerpiece), three steps, FAQ with a docs search, footer. The recorded demos live
+ * row of tools to try, over isobar contours that close in on it), three steps, FAQ, footer. The docs search is in the header. The recorded demos live
  * on their own page (demos.tsx).
  *
- * The page is also an example app: its own actions are WebMCP tools (site-tools.ts, docs-search.tsx), registered by
+ * The page is also an example app: its own actions are WebMCP tools (webmcp-agents/tools), registered by
  * <AgentLayer>. Rendered by pages/index.astro as one hydrated island.
  */
 import { MotionBoundary } from "@/components/opendesigns/_shared/motion-boundary";
+import { PressureFront } from "@/components/opendesigns/ns-hero-isobar-contours/component";
 import { FaqAccordion } from "@/components/opendesigns/velora-faq-accordion/component";
-import { GridHero } from "@/components/opendesigns/velora-hero-grid/component";
+import { useFaq } from "@/hooks/use-faq";
 import { REPO } from "@/lib/site";
-import { useEffect, useState } from "react";
+import { homeTools } from "@/webmcp-agents/tools";
 import { AgentLayer } from "./agent-layer";
-import { DocsSearch } from "./docs-search";
-import { FAQ, type FaqTopic, OPEN_FAQ_EVENT } from "./faq-data";
+import { FAQ } from "./faq-data";
 import { InstallCommand } from "./install-command";
 import { SiteFooter, SiteHeader } from "./site-chrome";
-import { homeTools } from "./site-tools";
 import { Steps } from "./steps";
 import { TryIt } from "./try-it";
 import { TypedWords } from "./typed-words";
@@ -33,42 +32,35 @@ export interface LandingProps {
 const TYPED = ["understand", "navigate", "operate", "control"] as const;
 
 export default function Landing({ year, steps }: LandingProps) {
-  // The FAQ's open question; `open_faq` asks for one through a window event (faq-data.ts).
-  const [faq, setFaq] = useState<string>(FAQ[0].id);
-  useEffect(() => {
-    const open = (e: Event): void => setFaq((e as CustomEvent<FaqTopic>).detail);
-    window.addEventListener(OPEN_FAQ_EVENT, open);
-    return () => window.removeEventListener(OPEN_FAQ_EVENT, open);
-  }, []);
+  // The FAQ's open question; `open_faq` can open one too.
+  const faq = useFaq();
 
   return (
     <MotionBoundary className="landing bg-background text-foreground">
       <SiteHeader page="home" />
 
       <div id="top" className="relative">
-        <GridHero
-          eyebrow=""
-          title={
+        {/* No buttons: the hero's one action is the row of tools to try, so the contours close in on it. */}
+        <PressureFront
+          headline={
             <>
-              Agents <TypedWords words={TYPED} /> <br className="title-break" />
-              your website
+              Make Agents <br className="title-break title-break--narrow" />
+              <TypedWords words={TYPED} /> <br className="title-break" />
+              your website <span className="hero-tail">the right way</span>
             </>
           }
-          accent=""
-          // description="A visible cursor for your WebMCP tools. It shows every call as it happens, waits for a real click on anything that matters, and steps aside the moment you move."
-          description="Built on WebMCP: one API for web agents, tools and workflows, with a visible cursor that shows how agents use your website, without guessing."
+          subcopy="Built on WebMCP: one API for web agents, tools and workflows, with a visible cursor that shows how agents use your website, without guessing."
           below={<TryIt />}
-          aside={null}
         />
       </div>
 
-      <section id="how" aria-labelledby="how-title" className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
-          <p className="mb-3 text-sm text-muted-foreground">How it works</p>
-          <h2 id="how-title" className="text-balance font-semibold text-3xl tracking-tight md:text-4xl">
+      <section id="how" aria-labelledby="how-title" className="landing-section mx-auto w-full max-w-6xl px-6">
+        <div className="section-heading">
+          <p className="type-eyebrow">How it works</p>
+          <h2 id="how-title" className="type-h2">
             Three steps from tool to agent
           </h2>
-          <p className="mt-4 text-pretty text-muted-foreground leading-relaxed">
+          <p className="type-description">
             A tool is one useWebTool call beside the button it belongs to. The cursor finds that button by its name; the chat and the agent
             come from the same packages.
           </p>
@@ -84,11 +76,11 @@ export default function Landing({ year, steps }: LandingProps) {
           description="Short answers here, long ones in the docs."
           guideTitle="In the docs"
           guideDescription="Concepts, step-by-step framework guides (Vite, Next.js, TanStack Start), and a reference page per public API. There is an llms.txt for your coding agent too."
-          guideExtra={<DocsSearch />}
           contactAction={{ href: `${REPO}/issues`, label: "Open an issue" }}
           questions={FAQ}
-          value={faq}
-          onValueChange={setFaq}
+          topics={[]}
+          value={faq.open}
+          onValueChange={faq.setOpen}
         />
       </div>
 
