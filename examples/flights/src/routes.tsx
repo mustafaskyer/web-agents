@@ -1,13 +1,13 @@
 import { errorText } from "@webmcp-agents/core";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { fromResultsParams, RESULTS_PATTERN } from "./lib/searchParams";
-import { Booking } from "./pages/Booking";
-import { Confirmation } from "./pages/Confirmation";
-import { Home } from "./pages/Home";
-import { MyBookings } from "./pages/MyBookings";
-import { NotFound, RouteError } from "./pages/NotFound";
-import { Results } from "./pages/Results";
-import { Root } from "./Root";
+import { fromResultsParams, RESULTS_PATTERN } from "./lib/search-params";
+import { Booking } from "./pages/booking";
+import { Confirmation } from "./pages/confirmation";
+import { Home } from "./pages/home";
+import { MyBookings } from "./pages/my-bookings";
+import { NotFound, RouteError } from "./pages/not-found";
+import { Results } from "./pages/results";
+import { Root } from "./root";
 
 /** A malformed or stale search URL becomes a readable 400, never a blank page. */
 function resultsLoader({ params, request }: LoaderFunctionArgs) {
@@ -31,7 +31,7 @@ export const routes: RouteObject[] = [
             loader: resultsLoader,
             element: <Results />,
             // first load straight onto a results URL: the loader runs before anything renders
-            hydrateFallbackElement: <div className="page" aria-busy="true" />,
+            hydrateFallbackElement: <div className="min-h-[60vh]" aria-busy="true" />,
           },
           { path: "flights/booking", element: <Booking /> },
           { path: "bookings", element: <MyBookings /> },

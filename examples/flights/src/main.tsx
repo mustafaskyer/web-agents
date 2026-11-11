@@ -1,11 +1,10 @@
+import "./styles/app.css";
 import "@webmcp-agents/core/cursor.css";
 import "@webmcp-agents/chat/chat.css";
-import "./styles/tokens.css";
 import "@fontsource/poppins/400.css";
 import "@fontsource/poppins/500.css";
 import "@fontsource/poppins/600.css";
 import "@fontsource/poppins/700.css";
-import "./styles/base.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
