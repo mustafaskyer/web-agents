@@ -1,4 +1,4 @@
-# Skyline (`apps/flights`)
+# Skyline (`examples/flights`)
 
 A flight-booking site on deterministic mock data (the same search always returns the same flights
 and ids). Search, filter and sort the results, pick a flight, fill in the travelers and book: every
@@ -35,12 +35,19 @@ await agent.invoke("select_flight", { flightId: "F-…" });
 
 ## Notes
 
+- Every agent and tool lives under `src/webmcp-agents/`: `agents.ts` (the `concierge` agent), `tools/` (the catalog,
+  one `defineWebTool` per file; `tools/index.ts` maps where every tool lives and when it is on) and `hooks/` (the
+  form tools that need a form's state: `useSearchFlights`, `useTravelerDetails`, `useBookFlight`, each owning its form
+  and its `useWebTool`). The UI is shadcn/ui from `@webmcp-agents/examples-ui`.
+- Business and UI are apart: components and pages (`src/components`, `src/pages`) only take props and call hooks;
+  the logic is in hooks (`src/webmcp-agents/hooks` for the tools, `src/hooks` for the rest: `useBooking`,
+  `useResults`, `useBookingPage`, `useMyBookings`, …).
 - The provider line is `<WebAgentsProvider tools={tools}>`. The results tools say where they are on themselves
   (`match: RESULTS_PATTERN`); the library follows the URL, so nothing comes from React Router.
 - Nothing in the markup is for the cursor: a tool finds its control by its `title` ("Search flights", "Book flight")
   or by a locator `target` built from the call (`{ role: "button", name: "Select Meridian MR 210" }`), and types each
   parameter into the field with that `name`. The devtools' Tools tab shows what each tool resolves to.
-- The booking store is outside React (`src/store/booking.ts`): components read it with `useBooking()`, catalog tools
+- The booking store is outside React (`src/store/booking.ts`): hooks read it with `useBooking()` (`src/hooks/use-booking.ts`), catalog tools
   import it, and tools navigate with the router's own `router.navigate` (`src/lib/navigate.ts`). `search_flights` puts
   the search in the store before it navigates: the results tools turn on with the URL, before the results page renders.
 - The search is the URL: `/flights/lhr/dxb/oneway/economy/1/0/0/2026-11-20?return=…`. A loader
