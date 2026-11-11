@@ -7,7 +7,7 @@ related:
   - /build/add-the-chat
 ---
 
-`apps/nextjs` is Field Store again, trimmed to home, product, cart and checkout, on **Next.js 16** (App Router,
+`examples/nextjs` is Field Store again, trimmed to home, product, cart and checkout, on **Next.js 16** (App Router,
 Turbopack) with **shadcn/ui** (Tailwind v4). It exists to show three things the Vite examples can't:
 
 - **Server Components render the pages**; only the tools that live in a component and the chat are client components (they need the DOM).
@@ -27,7 +27,7 @@ pnpm --filter @webmcp-agents/example-nextjs dev    # http://localhost:5176; buil
 pnpm --filter @webmcp-agents/example-nextjs e2e    # Playwright, desktop + Pixel 7
 ```
 
-Put a key in `apps/nextjs/.env.local` (see `.env.example`); never with a `NEXT_PUBLIC_` prefix. In development the
+Put a key in `examples/nextjs/.env.local` (see `.env.example`); never with a `NEXT_PUBLIC_` prefix. In development the
 devtools panel is on **Alt+Shift+A**, and `window.agent.invoke("open_product", { slug: "ocean-tee" })` works from the console.
 
 ## Where things are
@@ -40,12 +40,13 @@ devtools panel is on **Alt+Shift+A**, and `window.agent.invoke("open_product", {
     - product/[slug]/page.tsx (Server Component + the client `add_to_cart` form)
     - cart/, checkout/ (client views; checkout holds `apply_promo` and the confirm-gated `checkout`)
     - api/chat/route.ts (`createVercelChatRoute({ app, agents, model })`, the example's guarded route)
-  - agents.ts (`shopper` with the `checkout` sub-agent: shared by the client and the route)
+  - webmcp-agents/
+    - agents.ts (`shopper` with the `checkout` sub-agent: shared by the client and the route)
+    - tools/ (index.ts: the catalog, plain modules, one file per tool)
+    - hooks/ (the forms' tools: `useWebTool` with shadcn's `Form` and React Hook Form; the forms' UI is in components/)
   - lib/env.server.ts (`server-only` + taint)
-  - lib/catalog.ts, lib/cart-store.ts (the cart, no React), lib/cart.tsx (`useCart()`), lib/navigate.ts
-  - tools/ (index.ts: the catalog, plain modules; the forms are client components on shadcn's `Form` and React Hook Form)
+  - lib/catalog.ts, lib/cart-store.ts (the cart, no React), hooks/use-cart.ts (`useCart()`), lib/navigate.ts
   - components/web-agents/ (the installed registry blocks: agent-chat, agent-tool, agent-subagent, agent-reasoning, agent-model-selector)
-  - components/ui/ (shadcn primitives)
 </FileTree>
 
 ## Tools and agents
@@ -53,7 +54,7 @@ devtools panel is on **Alt+Shift+A**, and `window.agent.invoke("open_product", {
 | Tool | Where | On |
 |---|---|---|
 | `search_products` | `useWebTool` in the header, shadcn `Form` | everywhere |
-| `open_product`, `go_to_page`, `get_cart` | catalog (`tools/index.ts`, no React) | everywhere |
+| `open_product`, `go_to_page`, `get_cart` | catalog (`webmcp-agents/tools/index.ts`, no React) | everywhere |
 | `add_to_cart` | `useWebTool`, shadcn `Form` with a `Select` for the size and `fill` | a product page |
 | `apply_promo` | `useWebTool`, shadcn `Form` | checkout, no code applied |
 | `checkout` | `useWebTool`, shadcn `Form` with a `Select` for the country and `fill`, `requireConfirmation` | checkout; the cursor types the details, `fill` sets the country, and it parks on **Place order** until the person clicks |
@@ -89,6 +90,9 @@ The chat route is the example's guarded one, from the private `@webmcp-agents/ve
 - **`next.config.ts` turns the taint APIs on** (`experimental: { taint: true }`): React's taint APIs exist only behind that flag.
 - **`server-only` + taint** for the one secret (`lib/env.server.ts`); the route handler reads `process.env` itself
   ([Add the chat](/build/add-the-chat#the-key)).
+- **A locked-down route** (`app/api/chat/route.ts`): chat sessions, the tool allowlist (`allowedTools` in
+  `webmcp-agents/tools/index.ts`), an agent required, and Turnstile when `TURNSTILE_SECRET_KEY` and
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` are set ([Secure the chat](/security)).
 - **Consume the built packages** (`dist`), not the `@webmcp-agents/source` condition: Turbopack has no custom export
   conditions, and this is the published shape anyway. `predev` builds the dependencies.
 - **The cursor stylesheet is a plain import** in `app/layout.tsx` (`import "@webmcp-agents/core/cursor.css"`), the
@@ -96,7 +100,7 @@ The chat route is the example's guarded one, from the private `@webmcp-agents/ve
 - **The same provider line as every other app,** `<WebAgentsProvider tools={tools}>`: the library follows the URL itself,
   so there is no `usePathname` and no router hook ([Tools across your app](/build/tools-across-your-app)).
 - **A shadcn `Select` is a custom widget.** The cursor visits it but has nothing to type into, so the forms with one pass
-  `fill: (values) => form.reset(values)` ([Tools with input](/build/tools-with-input)). `components/ui/form.tsx` is shadcn's `Form`
+  `fill: (values) => form.reset(values)` ([Tools with input](/build/tools-with-input)). `form.tsx` in `examples/ui` (the examples' shared shadcn/ui components) is shadcn's `Form`
   for React Hook Form in the base-nova style.
 - **Catalog tools are plain modules with no React** (`defineWebTool` from core, the cart store in `lib/cart-store.ts`):
   `agents.ts` lists them by reference, and the chat route imports `agents.ts` on the server. They navigate with the App

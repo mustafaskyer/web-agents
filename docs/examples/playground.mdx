@@ -1,13 +1,13 @@
 ---
 title: Playground
-description: "A small storefront in apps/playground where every action is a WebMCP tool: buttons, forms on React Hook Form, an app-wide catalog, a path-scoped tool and one declarative form."
+description: "A small storefront in examples/playground where every action is a WebMCP tool: buttons, forms on React Hook Form, an app-wide catalog, a path-scoped tool and one declarative form."
 related:
   - /build/define-a-tool
   - /examples/field-store
   - /more/declarative-forms
 ---
 
-`apps/playground` is the smallest complete example: a storefront where every action is a tool, with one of each kind. Start
+`examples/playground` is the smallest complete example: a storefront where every action is a tool, with one of each kind. Start
 here to see the whole shape on one screen, then read [Field Store](/examples/field-store) for a realistic app.
 
 ![The playground: a storefront where every card is a tool on a React Hook Form form](../media/examples/playground.png)
@@ -16,27 +16,39 @@ here to see the whole shape on one screen, then read [Field Store](/examples/fie
 
 ```bash
 pnpm install
-pnpm --filter playground dev    # http://localhost:5173
+pnpm --filter @webmcp-agents/example-playground dev    # http://localhost:5173
 ```
 
-With `ANTHROPIC_API_KEY` in `apps/playground/.env.local`, the **Assistant** (bottom left in development) does everything
+With `ANTHROPIC_API_KEY` in `examples/playground/.env.local`, the **Assistant** (bottom left in development) does everything
 below from a sentence: "add three mugs and check out with code 123".
 
 ## The layers
 
 <FileTree>
 
-- apps/playground/src/
-  - tools/ (the tools; nothing in the markup is for the cursor)
-    - index.ts (the catalog: get_cart everywhere, list_orders on /orders)
-    - AddToCartForm.tsx (add_to_cart_SKU: a tool with input, on React Hook Form)
-    - ClearCartButton.tsx (clear_cart: a button, `requireConfirmation`)
-    - PlaceOrderButton.tsx (place_order: a button, `requireConfirmation`)
-    - ApplyPromoForm.tsx (apply_promo: the one declarative form, the alternative)
-  - App.tsx (`<WebAgentsProvider tools={tools}>`, chat; remove_promo; `?tanstack` swaps the provider's devtools panel
-    for a TanStack Devtools tab, Devtools.tsx)
-  - Orders.tsx (the /orders page)
-  - store.tsx (the cart, a store outside React)
+- examples/playground/src/
+  - webmcp-agents/ (the tools; nothing in the markup is for the cursor)
+    - tools/
+      - index.ts (the catalog: get_cart everywhere, list_orders on /orders)
+      - get-cart.ts
+      - list-orders.ts
+    - hooks/
+      - use-add-to-cart.ts (add_to_cart_SKU: a tool with input, on React Hook Form)
+      - use-clear-cart.ts (clear_cart: a button, `requireConfirmation`)
+      - use-place-order.ts (place_order: a button, `requireConfirmation`)
+      - use-remove-promo.ts (remove_promo)
+      - use-apply-promo.ts (apply_promo: the one declarative form, the alternative)
+  - components/
+    - add-to-cart-form.tsx
+    - clear-cart-button.tsx
+    - place-order-button.tsx
+    - remove-promo-button.tsx
+    - apply-promo-form.tsx
+  - hooks/use-cart.ts
+  - app.tsx (`<WebAgentsProvider tools={tools}>`, chat; `?tanstack` swaps the provider's devtools panel
+    for a TanStack Devtools tab, devtools.tsx)
+  - pages/orders.tsx (the /orders page)
+  - store/cart.ts (the cart, a store outside React)
   - main.tsx (render; the provider loads the polyfill where it is needed)
 
 </FileTree>

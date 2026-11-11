@@ -1,13 +1,13 @@
 ---
 title: Skyline
-description: A flight-booking site in apps/flights where the search lives in the URL, results tools are on only on the results route, a TanStack Form fills the travelers, and booking waits for the person's click.
+description: A flight-booking site in examples/flights where the search lives in the URL, results tools are on only on the results route, a TanStack Form fills the travelers, and booking waits for the person's click.
 related:
   - /build/tools-across-your-app
   - /build/common-tools
   - /examples/field-store
 ---
 
-`apps/flights` (**Skyline**) books flights on deterministic mock data, on Vite and React Router 7: the same search always
+`examples/flights` (**Skyline**) books flights on deterministic mock data, on Vite and React Router 7: the same search always
 returns the same flights and ids. Search, filter and sort the results, pick a flight, fill in the travelers and book. Every
 step is a tool, and booking waits for the person.
 
@@ -38,7 +38,7 @@ await agent.invoke("list_results", { limit: 3 });                 // ids for sel
 await agent.invoke("select_flight", { flightId: "F-…" });
 ```
 
-With `ANTHROPIC_API_KEY` in `apps/flights/.env.local` the **Assistant** (bottom left in development) runs the `concierge`
+With `ANTHROPIC_API_KEY` in `examples/flights/.env.local` the **Assistant** (bottom left in development) runs the `concierge`
 agent, which knows the booking flow in a few plain lines.
 
 ## Tools
@@ -77,5 +77,5 @@ agent, which knows the booking flow in a few plain lines.
 - **Real fields.** Travelers are inline counters rather than a popover, so the agent fills visible fields.
 - **Wait for the person.** `book_flight` parks on "Book flight" until a real click
   ([Confirm before it runs](/build/confirm-before-it-runs)).
-- **The agent** (`concierge`) lives in `src/agents.ts` and is shared by the chat, the Vite dev plugin and `api/chat.ts`
+- **The agent** (`concierge`) lives in `src/webmcp-agents/agents.ts` and is shared by the chat, the Vite dev plugin and `api/chat.ts`
   ([Define an agent](/build/define-an-agent)).

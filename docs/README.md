@@ -60,7 +60,7 @@ the ones it can.
   `astro/`, `no-framework/`), or under `docs/_examples/shared/` when it is the same in every framework. Each folder
   has a `tsconfig.json` with that framework's `@/` alias (`src/` in Vite, TanStack Start and Astro; the root in
   Next.js) that falls back to `../shared`, and `@/components/ui/*` resolves to the shadcn/ui copies in
-  `apps/nextjs/components/ui`. `pnpm --filter @webmcp-agents/docs-examples typecheck` runs them all against the
+  `examples/ui/src/components` (the examples' shared `@webmcp-agents/examples-ui`). `pnpm --filter @webmcp-agents/docs-examples typecheck` runs them all against the
   packages' source. Biome formats the folder at 72 columns, the widest line a docs code block shows without a
   sideways scroll; comments are yours to keep short (the check measures every line).
 - A component that is the same everywhere lives once in `shared/components/`, and Next.js gets a copy in
@@ -166,6 +166,15 @@ that is clearer than prose. Setup lives in Installation and Build: link there. E
 writing tool descriptions (the "write a good description" guide: what it does and answers, when to use it, what it needs
 first, what comes next; parameters say where a value comes from, with an example).
 
+### Security
+
+How to lock `/api/chat` to the page: an overview with the threat model, the complete locked-down route in four views
+(`_examples/<framework>/…/chat.secure.ts`, `route.secure.ts` in Next.js, and `shared/allowed-tools.ts`) and a go-live
+checklist, then one page per layer (sessions, tool allowlist, Turnstile, limits and budgets). Shared prose; a `<View>`
+block only where the code differs by framework. Each page says what its layer stops and what it doesn't. A change to
+`createChatHandler`'s `session` / `tools` / `requireAgent`, the cloud adapter's `sessionHeaders` or
+`@webmcp-agents/vercel-api`'s guards updates these pages with the reference.
+
 ### More
 
 Guides that sit beside the path. Add the four `<View>` blocks (Vite, Next.js, TanStack Start, Astro) only where the page
@@ -178,7 +187,7 @@ sees every deploy story at once and the code comments that point at `docs/more/d
 
 ### Examples
 
-One page per example app (`apps/playground`, `apps/ecommerce`, `apps/flights`, `apps/nextjs`), written from the app's
+One page per example app (`examples/playground`, `examples/ecommerce`, `examples/flights`, `examples/nextjs`), written from the app's
 README and source, which are the truth: what it shows, a screenshot or clip from `docs/media/examples/`, how to run it,
 its tools in a `Tool | Where | On | Confirm` table, and "Patterns worth copying", each bullet linking the Build or Concepts
 page that teaches it. When an app's README changes, change its page.
