@@ -6,6 +6,19 @@ confirmation" state) without the tools knowing it exists, plus the tooling aroun
 function (and a schema): the cursor finds the control it belongs to by role and name, so nothing is added to your
 markup.
 
+## Install
+
+The packages are on npm (`@webmcp-agents/*`, one shared version):
+
+```
+npm install @webmcp-agents/core @webmcp-agents/react
+```
+
+Then follow [Installation](https://webmcp-agents.dev/docs/installation) for your framework (Vite, Next.js, TanStack
+Start, Astro, or no framework). The docs and live demos are at [webmcp-agents.dev](https://webmcp-agents.dev).
+
+## Develop
+
 ```
 pnpm install
 pnpm dev         # every app: playground :5173, ecommerce :5174, flights :5175. Open the devtools (bottom right, Alt+Shift+A) and run a tool

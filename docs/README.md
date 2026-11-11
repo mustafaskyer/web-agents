@@ -12,7 +12,7 @@ The source of the docs site (`apps/docs`, built with [Blume](https://github.com/
 | [`examples/`](examples) | The playground, Field Store, Skyline and Field Store on Next.js apps |
 | [`reference/`](reference/README.md) | One page per public API, per package (the "Reference" tab) |
 | `_examples/` | The code the pages show, as real files that type-check (`@webmcp-agents/docs-examples`, part of `pnpm check`) |
-| `_partials/` | Prose shared by several pages (the framework cards, the "not on npm yet" note) |
+| `_partials/` | Prose shared by several pages (the framework cards) |
 
 This README is left out of the site (`content.exclude` in `apps/docs/blume.config.ts`). Folders starting with `_` are
 never routed.
