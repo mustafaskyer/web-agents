@@ -1,7 +1,7 @@
 import "@webmcp-agents/core/cursor.css";
 import "@webmcp-agents/chat/chat.css";
-import "./styles/tokens.css";
-import "./styles/base.css";
+// after cursor.css: the store's --agent tokens win
+import "./styles/app.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";

@@ -1,12 +1,12 @@
 import type { RouteObject } from "react-router";
-import { Category } from "./pages/Category";
-import { Checkout } from "./pages/Checkout";
-import { Home } from "./pages/Home";
-import { NotFound } from "./pages/NotFound";
-import { OrderConfirmed } from "./pages/OrderConfirmed";
-import { Product } from "./pages/Product";
-import { Products } from "./pages/Products";
-import { Root } from "./Root";
+import { Category } from "./pages/category";
+import { Checkout } from "./pages/checkout";
+import { Home } from "./pages/home";
+import { NotFound } from "./pages/not-found";
+import { OrderConfirmed } from "./pages/order-confirmed";
+import { Product } from "./pages/product";
+import { Products } from "./pages/products";
+import { Root } from "./root";
 
 export const routes: RouteObject[] = [
   {
