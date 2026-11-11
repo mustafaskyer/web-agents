@@ -1,0 +1,50 @@
+{
+  "name": "@webmcp-agents/polyfill",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deprecated: the document.modelContext (WebMCP) polyfill now ships in @webmcp-agents/core (@webmcp-agents/core/polyfill), and the provider loads it itself. This package re-exports it.",
+  "license": "MIT",
+  "sideEffects": [
+    "./src/auto.ts",
+    "./dist/auto.js"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "@webmcp-agents/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auto": {
+      "@webmcp-agents/source": "./src/auto.ts",
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@webmcp-agents/core": "workspace:^"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "check-exports": "publint && attw --pack . --profile esm-only"
+  },
+  "devDependencies": {
+    "tsdown": "^0.23.7",
+    "vite": "^8.3.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaskyer/web-agents.git",
+    "directory": "packages/polyfill"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

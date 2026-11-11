@@ -1,0 +1,73 @@
+---
+title: WebMCP Agents
+description: Let AI agents use your web page, and let the person on it see every step.
+sidebar:
+  # The "Get started" heading opens this page, so it needs no row of its own under it.
+  label: Get started
+  hidden: true
+---
+
+With [WebMCP](https://developer.chrome.com/docs/ai/webmcp), a page hands an AI agent **tools** it can call: "add to
+cart", "place order". WebMCP Agents makes every call visible to the person on the page: a ghost cursor flies to the
+control, types the agent's values into the real fields, and stops for a real click on anything that matters.
+
+<video autoPlay loop muted playsInline data-no-zoom width="960">
+  <source src="../media/hero.webm" type="video/webm" />
+  <source src="../media/hero.mp4" type="video/mp4" />
+</video>
+
+*An agent adds a tee to the cart: the cursor flies to the form, types the values and clicks, and the cart opens.*
+
+## A tool is one function with two callers
+
+You already have the function. A person clicks the button; an agent calls the tool.
+
+```tsx
+// An agent calls this.
+useWebTool({
+  id: "clear_cart",
+  title: "Clear cart",
+  description: "Empty the cart. The user confirms on the page.",
+  requireConfirmation: true,
+  execute: clear,
+});
+
+// A person clicks this.
+<Button onClick={clear}>Clear cart</Button>
+```
+
+Nothing is added to the button for the cursor: it finds the control by its name, like a screen reader would. With
+`requireConfirmation` it parks there, and `clear` runs only after the person's own click.
+
+## Choose your framework
+
+Pick one. The docs remember it, and every page after shows that framework's code.
+
+<include>/_partials/frameworks.mdx</include>
+
+## Already set up?
+
+Go straight to what you want to do. Each page shows your framework's code.
+
+| I want to… | Read |
+|---|---|
+| Let an agent press a button on my page | [Define a tool](/build/define-a-tool) |
+| Let it fill in a form | [Tools with input](/build/tools-with-input) |
+| Make it wait for the person's click | [Confirm before it runs](/build/confirm-before-it-runs) |
+| Have tools for the whole app, on the right pages | [Tools across your app](/build/tools-across-your-app) |
+| Give it the time, the location, the current page | [Common tools](/build/common-tools) |
+| Run a tool from my own button | [Call a tool](/build/call-a-tool) |
+| Tell the assistant how my site works | [Define an agent](/build/define-an-agent) |
+| Put a chat on the page | [Add the chat](/build/add-the-chat) |
+| Run the assistant without a chat | [Call an agent](/build/call-an-agent) |
+| See what the agent sees, and run tools myself | [Devtools](/build/devtools) |
+| Run the model in the browser, with no server | [On-device agent](/more/on-device-agent) |
+| Ship it | [Deploy](/more/deploy) |
+
+Looking for one API? Open the [reference](/reference).
+
+:::note[WebMCP is still a preview]
+WebMCP ships in Chrome behind an origin trial, and its shapes still move between versions. WebMCP Agents absorbs
+those differences, so your code does not have to. In any other browser, the provider loads a
+[polyfill](/more/polyfill) of the same API by itself.
+:::

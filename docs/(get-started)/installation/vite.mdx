@@ -1,0 +1,84 @@
+---
+title: Install in a Vite app
+description: Six steps, from an empty folder to a tool the agent cursor runs, in a Vite single-page app with React.
+# The page ends with its own "Next" card; the sidebar neighbours would say something else.
+pagination: false
+sidebar:
+  label: Vite
+---
+
+<RememberFramework name="Vite" />
+
+Six steps, from an empty folder to a tool the agent cursor runs. This is how the repository's Vite apps
+([Playground](/examples/playground), [Field Store](/examples/field-store), [Skyline](/examples/skyline)) are set up.
+
+<include>/_partials/not-on-npm.mdx</include>
+
+<div class="install-steps">
+
+## Create a project
+
+Skip this if you already have a Vite app with React. In the prompts, choose **React** and **TypeScript**.
+
+```package-install
+npm create vite@latest
+```
+
+## Install the packages
+
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
+
+```package-install
+npm install @webmcp-agents/core @webmcp-agents/react
+```
+
+## Add the styles
+
+Import the cursor's stylesheet in your entry file, next to your own.
+
+```tsx src/main.tsx
+import "./index.css";
+import "@webmcp-agents/core/cursor.css"; // [!code highlight]
+```
+
+## Add the provider
+
+`<WebAgentsProvider>` installs the cursor and registers your tools. In a browser without WebMCP it loads a polyfill
+first, by itself; your app renders meanwhile. In development it also installs the devtools panel. The highlighted
+lines are the ones you add.
+
+<include meta='title="src/main.tsx" {1,6,11,13}'>/_examples/vite/src/main.tsx</include>
+
+## Add your first tool
+
+The action is one function with two callers: a person clicks the button, an agent calls the tool. `useWebTool`
+registers the tool while the component is on the page. A plain `<button>` is enough: the cursor finds it by its role
+and name.
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.install.tsx</include>
+
+Render it in your app.
+
+<include meta='title="src/App.tsx"'>/_examples/vite/src/App.tsx</include>
+
+## Run it
+
+Start the app and open it.
+
+```package-install
+npm run dev
+```
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `clear_cart` and press **Run**. The cursor flies
+to **Clear cart** and waits there. Click the button yourself: the cart empties, and the tool answers "The cart is
+empty."
+
+</div>
+
+## Next
+
+<Card title="Define a tool" href="/build/define-a-tool?view=Vite" arrow>
+  What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
+  not enough.
+</Card>

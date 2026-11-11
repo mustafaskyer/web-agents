@@ -1,0 +1,95 @@
+/*
+ * The docs wear the landing page's dark palette (landing.css, shadcn's neutral), so the two halves of the site read
+ * as one when a reader crosses between them. Light mode already matches. Blume appends this file to its stylesheet.
+ */
+:root[data-theme="dark"] {
+  --blume-background: oklch(0.145 0 0);
+  --blume-foreground: oklch(0.985 0 0);
+  --blume-muted: oklch(0.215 0 0);
+  --blume-muted-foreground: oklch(0.708 0 0);
+  --blume-border: oklch(1 0 0 / 10%);
+  --blume-code-background: oklch(0.18 0 0);
+}
+
+/*
+ * The framework picker (Blume's view picker, on every page written in <View> blocks). Blume renders a bare select;
+ * here it gets a label, so it reads "Framework: Next.js", and a rule under it, so it is not mistaken for part of
+ * the page's first paragraph.
+ */
+blume-view-switcher {
+  border-bottom: 1px solid var(--blume-border);
+  padding-bottom: 1rem;
+}
+blume-view-switcher::before {
+  color: var(--blume-muted-foreground);
+  content: "Framework";
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/*
+ * The six steps of an installation page: `<div class="install-steps">` around plain `##` headings, numbered 01 to 06.
+ * Not Blume's <Steps>: its body is `not-prose`, where a code block loses its header, and with it the file name.
+ */
+.install-steps {
+  counter-reset: install-step;
+}
+.install-steps > h2 {
+  counter-increment: install-step;
+}
+.install-steps > h2::before {
+  color: var(--blume-muted-foreground);
+  content: counter(install-step, decimal-leading-zero);
+  font-family: var(--blume-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-inline-end: 0.75rem;
+}
+
+/*
+ * Complete example files are the point of a Build page: show them whole. Blume caps a code block at 24rem and
+ * scrolls inside it, which hides half of a 40-line component behind a nested scrollbar. A block that is long for its
+ * page says `expandable` in its fence meta and starts folded instead.
+ */
+.prose :where(pre:not(.twoslash, .twoslash pre, blume-panel-tabs *) > code) {
+  max-height: none;
+}
+
+/*
+ * A page's "Next" card (`## Next`, then `<Card … arrow>`): the arrow sits at the card's right edge, centred, like
+ * Blume's own Previous / Next pager at the foot of the page, not after the title.
+ */
+.prose h2#next + a[data-blume-card] {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+.prose h2#next + a[data-blume-card] > div {
+  flex: 1;
+  min-width: 0;
+}
+.prose h2#next + a[data-blume-card] p > svg {
+  display: none;
+}
+.prose h2#next + a[data-blume-card]::after {
+  background: currentColor;
+  color: var(--blume-muted-foreground);
+  content: "";
+  flex: none;
+  height: 1rem;
+  margin-inline-end: 1.25rem;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  transition:
+    color 150ms,
+    transform 150ms;
+  width: 1rem;
+}
+.prose h2#next + a[data-blume-card]:hover::after {
+  color: var(--blume-foreground);
+  transform: translateX(2px);
+}
+.prose h2#next + a[data-blume-card]:dir(rtl)::after {
+  transform: scaleX(-1);
+}

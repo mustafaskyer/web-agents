@@ -1,0 +1,163 @@
+.velora-wordmark-footer {
+  box-sizing: border-box;
+  isolation: isolate;
+  padding: calc(var(--spacing, 0.25rem) * 20) calc(var(--spacing, 0.25rem) * 6)
+    calc(var(--spacing, 0.25rem) * 6);
+  border-top: 1px solid var(--border);
+  background:
+    radial-gradient(
+      ellipse at 50% 100%,
+      color-mix(in oklch, var(--primary) 6%, transparent),
+      transparent 65%
+    ),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-wrap: anywhere;
+}
+.velora-wordmark-inner {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing, 0.25rem) * 12);
+  max-width: 76rem;
+  margin-inline: auto;
+}
+.velora-wordmark-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--spacing, 0.25rem) * 10);
+}
+.velora-wordmark-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--spacing, 0.25rem) * 4);
+  min-width: 0;
+  max-width: 32rem;
+}
+.velora-wordmark-statement {
+  margin: 0;
+  max-width: 22ch;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.velora-wordmark-blurb {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.velora-wordmark-reading-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--spacing, 0.25rem) * 2) calc(var(--spacing, 0.25rem) * 4);
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.velora-wordmark-reading-links li {
+  min-width: 0;
+}
+.velora-wordmark-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 6);
+  min-width: 0;
+}
+.velora-wordmark-notices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 3);
+  min-width: 0;
+}
+.velora-wordmark-notices p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.velora-wordmark-bottom .velora-wordmark-reading-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing, 0.25rem) * 2);
+}
+.velora-wordmark-artwork {
+  min-width: 0;
+  width: 100%;
+}
+.velora-wordmark-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  pointer-events: auto;
+}
+.velora-wordmark-base {
+  stroke: var(--muted-foreground);
+  stroke-opacity: 0.45;
+}
+.velora-wordmark-mask {
+  mask-type: alpha;
+}
+.velora-wordmark-trace {
+  stroke: var(--foreground);
+  stroke-opacity: 0.45;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: calc((1 - var(--velora-wordmark-draw, 0)) * 1000);
+}
+.velora-wordmark-reveal {
+  opacity: var(--velora-wordmark-reveal, 0);
+}
+.velora-wordmark-lit {
+  stroke: var(--primary);
+  fill-opacity: 0.12;
+}
+@media (min-width: 48rem) {
+  .velora-wordmark-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+    gap: calc(var(--spacing, 0.25rem) * 16);
+  }
+  .velora-wordmark-main .velora-wordmark-reading-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 64rem) {
+  .velora-wordmark-main .velora-wordmark-reading-links {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 24rem) {
+  .velora-wordmark-footer {
+    padding-inline: calc(var(--spacing, 0.25rem) * 4);
+  }
+  .velora-wordmark-reading-links {
+    column-gap: calc(var(--spacing, 0.25rem) * 2);
+  }
+}
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .velora-wordmark-reveal {
+    opacity: 0;
+  }
+}
+@media (forced-colors: active) {
+  .velora-wordmark-base,
+  .velora-wordmark-trace {
+    stroke: CanvasText;
+    stroke-opacity: 1;
+  }
+  .velora-wordmark-reveal {
+    display: none;
+  }
+}

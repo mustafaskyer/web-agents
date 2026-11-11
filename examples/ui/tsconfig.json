@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // shadcn's generated code: keep the shared strictness, drop the unused-symbol checks
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    // For `shadcn add` only (components.json aliases): it writes "@/components/x" imports, which must be rewritten to
+    // relative ones ("./x", "../lib/utils"), since apps, the registry and docs/_examples import these files by path.
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

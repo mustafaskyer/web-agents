@@ -1,0 +1,97 @@
+---
+title: Secure the chat
+description: Your /api/chat route spends model tokens on your key. Lock it to your page with chat sessions, a tool allowlist, a bot check and limits, so it can't be used as a free model from anywhere else.
+sidebar:
+  label: Overview
+related:
+  - /security/sessions
+  - /security/tool-allowlist
+  - /more/deploy
+---
+
+The API key never leaves your server: the page sends messages to `/api/chat`, and the route calls the model. But the
+route is a public URL. Anyone can call it with `curl`, set any `Origin` header, send any messages, and get answers paid
+for with your key. Out of the box it only refuses requests from other sites' pages (CSRF).
+
+This section is how you close that: what to turn on, what each piece stops, and what no piece can stop.
+
+## What is exposed
+
+| Who can… | Without these pages | With them |
+|---|---|---|
+| Read your API key | Nobody: it stays on the server | Nobody |
+| Call `/api/chat` from another site's page | Nobody: refused (`403`) | Nobody |
+| Call `/api/chat` from a script (`curl`) | Anyone | Only with a session cookie, which needs a solved [Turnstile](/security/turnstile) challenge |
+| Chat without an agent's instructions | Anyone | Nobody: a request [must name an agent](/security/tool-allowlist#require-an-agent) |
+| Describe their own "tools" to the model | Anyone: tools come from the request | Nobody: only [allowed tools](/security/tool-allowlist) reach the model |
+| Spend without limit | Bounded only by your provider | Bounded per IP, per session, per day, and by a [spend limit](/security/limits) |
+
+## The layers
+
+Each one is a few lines in your route; together they make the endpoint useless as a free model.
+
+1. **[Chat sessions](/security/sessions).** The page's first request gets a random, signed, httpOnly cookie. A POST
+   without it is refused before its body is read, and every request belongs to a session you can count.
+2. **[A tool allowlist](/security/tool-allowlist).** The server decides which tools the model sees and, for your own
+   tools, what it is told about them. A request must name one of your agents.
+3. **[Turnstile](/security/turnstile).** Starting a session needs a solved Cloudflare Turnstile challenge, invisible for
+   nearly everyone. A script can't mint sessions in a loop any more.
+4. **[Limits and budgets](/security/limits).** Per IP, per session and per day in your code; a monthly spend limit at
+   your provider as the last guard.
+
+## A complete example
+
+The route with sessions, the allowlist and an agent required. Turnstile turns on as soon as its secret is set.
+
+<View title="Vite">
+
+<include meta='title="api/chat.ts" {4,11-12,14-15,17-22}'>/_examples/vite/api/chat.secure.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="app/api/chat/route.ts" {4,11-12,14-15,17-22}'>/_examples/nextjs/app/api/chat/route.secure.ts</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/routes/api/chat.ts" {5,12-13,15-16,18-23}'>/_examples/tanstack-start/src/routes/api/chat.secure.ts</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/pages/api/chat.ts" {6,12-13,15-16,18-23,30-31}'>/_examples/astro/src/pages/api/chat.secure.ts</include>
+
+</View>
+
+The allowed tools are one list the route imports: your catalog (pinned) and the ids of the tools your components
+define inline.
+
+<include meta='title="allowed-tools.ts"'>/_examples/shared/allowed-tools.ts</include>
+
+The page needs no change for sessions: the chat's first request starts one. For Turnstile it needs the widget's site
+key: see [Turnstile](/security/turnstile#the-page).
+
+## What no setting can do
+
+Nothing can prove a request came from your page. The page runs on the visitor's machine, so whatever it can do, a
+script can do too: load the page, keep the cookie, solve the challenge in a real browser. What these layers do is make
+that expensive (a real browser per session), bounded (limits per session, per IP, per day) and pointless (no
+instructions of its own, no tools of its own, a model told to stay on your site). The spend limit at your provider
+bounds the worst case.
+
+Requiring sign-in is the other lever, and it is a business decision: a signed-in user is someone you can rate-limit and
+ban by account. None of these pages need it.
+
+## Before you go live
+
+- [ ] `WEB_AGENTS_SESSION_SECRET` set on the server, the same value on every instance (`openssl rand -base64 32`).
+- [ ] `tools` lists every tool the agents need, and nothing else.
+- [ ] `requireAgent: true` when the page has agents.
+- [ ] Turnstile: the secret on the server, the site key on the page (both, or neither).
+- [ ] Per-IP and per-session limits, and a daily budget, in a shared store (Redis), not in memory.
+- [ ] A monthly spend limit on the key's workspace at your provider, with an alert below it.
+- [ ] The smoke test in [Deploy](/more/deploy#4-create-the-projects-on-vercel): a POST without the cookie gets `401`.

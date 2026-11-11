@@ -1,0 +1,38 @@
+---
+// The social card and app icons for the site's custom pages (home, Demos), which own their <head> instead of using
+// Blume's PageLayout. The image and icons come from metadata-gen (metadata.config.json → public/metadata/); docs pages
+// get Blume's per-page cards instead (blume.config.ts `seo.og`). Scrapers need an absolute og:image, so the image tags
+// appear only once the deployment site is known.
+interface Props {
+  title: string;
+  description: string;
+  /** The deployment origin (Blume's resolved `site`), or null in dev and in builds without one. */
+  site: string | null | undefined;
+  /** This page's path, e.g. "/demos". */
+  path: string;
+}
+
+const { title, description, site, path } = Astro.props;
+const origin = site ? site.replace(/\/$/, "") : null;
+const image = origin ? `${origin}/metadata/og.png` : null;
+const imageAlt = "WebMCP Agents: Agents understand your website";
+---
+
+{origin && <link rel="canonical" href={`${origin}${path}`} />}
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="WebMCP Agents" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+{origin && <meta property="og:url" content={`${origin}${path}`} />}
+{image && <meta property="og:image" content={image} />}
+{image && <meta property="og:image:type" content="image/png" />}
+{image && <meta property="og:image:width" content="1200" />}
+{image && <meta property="og:image:height" content="630" />}
+{image && <meta property="og:image:alt" content={imageAlt} />}
+<meta name="twitter:card" content={image ? "summary_large_image" : "summary"} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+{image && <meta name="twitter:image" content={image} />}
+{image && <meta name="twitter:image:alt" content={imageAlt} />}
+<link rel="manifest" href="/metadata/site.webmanifest" />
+<meta name="theme-color" content="#0a0a0a" />

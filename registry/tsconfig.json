@@ -1,0 +1,27 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["node"],
+    "paths": {
+      "@/components/ui/*": ["../examples/ui/src/components/*"],
+      "@/components/web-agents/agent-tool": ["./default/agent-tool/agent-tool.tsx"],
+      "@/components/web-agents/agent-reasoning": ["./default/agent-reasoning/agent-reasoning.tsx"],
+      "@/components/web-agents/agent-subagent": ["./default/agent-subagent/agent-subagent.tsx"],
+      "@/components/web-agents/agent-model-selector": ["./default/agent-model-selector/agent-model-selector.tsx"],
+      "@/components/web-agents/agent-chat": ["./default/agent-chat/agent-chat.tsx"],
+      "@webmcp-agents/chat": ["../packages/chat/src/index.ts"],
+      "@webmcp-agents/react": ["../packages/react/src/index.ts"],
+      "@webmcp-agents/core": ["../packages/core/src/index.ts"],
+      "react": ["../examples/nextjs/node_modules/@types/react"],
+      "react/jsx-runtime": ["../examples/nextjs/node_modules/@types/react/jsx-runtime"],
+      "react-dom": ["../examples/nextjs/node_modules/@types/react-dom"],
+      "*": ["../examples/nextjs/node_modules/*", "../examples/nextjs/node_modules/@types/*"],
+      "node:*": ["../examples/nextjs/node_modules/@types/node/*"]
+    },
+    "typeRoots": ["../examples/nextjs/node_modules/@types"]
+  },
+  "include": ["default/**/*.tsx", "test/**/*.ts"]
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "mustafaskyer/web-agents"
+    }
+  ],
+  "commit": false,
+  "fixed": [
+    [
+      "@webmcp-agents/core",
+      "@webmcp-agents/polyfill",
+      "@webmcp-agents/react",
+      "@webmcp-agents/devtools",
+      "@webmcp-agents/chat",
+      "@webmcp-agents/local-agent",
+      "@webmcp-agents/tools"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "snapshot": {
+    "useCalculatedVersion": true,
+    "prereleaseTemplate": "{tag}-{datetime}"
+  },
+  "ignore": [
+    "@webmcp-agents/example-playground",
+    "@webmcp-agents/example-ecommerce",
+    "@webmcp-agents/example-flights",
+    "@webmcp-agents/vercel-api",
+    "@webmcp-agents/docs",
+    "@webmcp-agents/docs-examples",
+    "@webmcp-agents/example-nextjs",
+    "@webmcp-agents/examples-ui"
+  ]
+}

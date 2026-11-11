@@ -1,0 +1,32 @@
+packages:
+  - "apps/*"
+  - "examples/*"
+  - "packages/*"
+  # the code the docs show, type-checked (docs/README.md "How these docs are written")
+  - "docs/_examples"
+allowBuilds:
+  esbuild: true
+  # transformers.js' Node-only deps: the browser (Web Worker) build never uses them
+  onnxruntime-node: false
+  protobufjs: false
+# blume 2.2.7 pins satteri 0.10 but its Astro uses 0.11: two copies break every page (drop once blume aligns them)
+overrides:
+  "blume>satteri": 0.11.7
+minimumReleaseAgeExclude:
+  - "@biomejs/biome@2.6.6"
+  - "@biomejs/cli-android-arm64@2.6.6"
+  - "@biomejs/cli-android-x64@2.6.6"
+  - "@biomejs/cli-darwin-arm64@2.6.6"
+  - "@biomejs/cli-darwin-x64@2.6.6"
+  - "@biomejs/cli-linux-arm64-musl@2.6.6"
+  - "@biomejs/cli-linux-arm64@2.6.6"
+  - "@biomejs/cli-linux-x64-musl@2.6.6"
+  - "@biomejs/cli-linux-x64@2.6.6"
+  - "@biomejs/cli-win32-arm64@2.6.6"
+  - "@biomejs/cli-win32-x64@2.6.6"
+  - playwright-core@1.65.0
+  - playwright@1.65.0
+  - rolldown-plugin-dts@0.30.0
+  - tsdown@0.23.7
+  - "@playwright/test@1.65.0"
+  - blume@2.2.7

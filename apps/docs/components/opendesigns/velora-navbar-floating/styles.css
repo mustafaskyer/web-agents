@@ -1,0 +1,119 @@
+.velora-floating-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: 100%;
+  padding: calc(var(--spacing, 0.25rem) * 3);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+.velora-floating-frame {
+  position: relative;
+  container: velora-floating / inline-size;
+  width: min(100%, var(--velora-floating-max, 1152px));
+  margin-inline: auto;
+  transition: width 220ms ease;
+}
+.velora-floating-header[data-compact="true"] .velora-floating-frame {
+  width: min(100%, var(--velora-floating-compact, 760px));
+}
+.velora-floating-bar {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 2);
+  min-width: 0;
+  min-height: 3.5rem;
+  padding: calc(var(--spacing, 0.25rem) * 1.5) calc(var(--spacing, 0.25rem) * 2);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-xl) * 4);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+}
+.velora-floating-header[data-compact="true"] .velora-floating-bar {
+  border-color: var(--border);
+  background: color-mix(in oklch, var(--background) 90%, transparent);
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--foreground) 7%, transparent);
+  backdrop-filter: blur(12px);
+}
+.velora-floating-home {
+  flex: none;
+  min-width: 0;
+  max-width: 100%;
+}
+.velora-floating-desktop-links,
+.velora-floating-desktop-actions {
+  display: none;
+  min-width: 0;
+}
+.velora-floating-desktop-links ul {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 0.5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.velora-floating-desktop-links li {
+  min-width: 0;
+}
+.velora-floating-mobile-control {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+/* the search and the theme toggle: pushed to the end, the search shrinks first on a narrow bar */
+.velora-floating-extra {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--spacing, 0.25rem) * 1);
+  min-width: 0;
+  margin-left: auto;
+}
+.velora-floating-extra ~ .velora-floating-mobile-control {
+  margin-left: 0;
+}
+@container velora-floating (min-width: 64rem) {
+  /* brand and links on the left, search, theme and the two actions on the right */
+  .velora-floating-desktop-links {
+    display: block;
+    flex: none;
+    margin-left: calc(var(--spacing, 0.25rem) * 2);
+  }
+  .velora-floating-desktop-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: calc(var(--spacing, 0.25rem) * 1.5);
+    padding-left: calc(var(--spacing, 0.25rem) * 3);
+    border-left: 1px solid var(--border);
+  }
+  .velora-floating-mobile-control {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .velora-floating-frame {
+    transition: none;
+  }
+}
+
+/* The native popover lives in this positioned frame; these layout constraints supersede its body-coordinate placement. */
+.velora-floating-frame [data-slot="dropdown-menu-content"] {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  bottom: auto !important;
+  left: auto !important;
+  max-width: 100%;
+  max-height: min(
+    40rem,
+    max(
+      0px,
+      calc(
+        var(--velora-floating-menu-available, 70dvh) - var(--spacing, 0.25rem) *
+          4
+      )
+    )
+  ) !important;
+}

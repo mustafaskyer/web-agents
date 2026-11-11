@@ -1,0 +1,142 @@
+---
+title: Declarative forms
+description: "The browser's own way to write a tool: a form with toolname and tooldescription, answered through respondWith. The Build path is the recommended way; this is the alternative, and when it is still the right pick."
+sidebar:
+  label: Declarative forms
+related:
+  - /build/tools-with-input
+  - /concepts/tool-lifecycle
+  - /reference/react/use-tool-answer
+---
+
+This is the **declarative alternative** to the way the [Build path](/build/define-a-tool) writes a tool. WebMCP has a second
+way, built into the browser: put two attributes on a `<form>`, and the browser derives the input schema from its
+controls, fills them in for the agent and fires `submit` with `agentInvoked` set. Your handler answers with `respondWith`.
+WebMCP Agents animates these too: the cursor types the agent's values into the real fields and clicks submit.
+
+**The Build path is the recommended way.** A tool with an [`inputSchema`](/build/tools-with-input) returns its answer from
+`execute`, keeps its form library's own validation, and has nothing to keep rendered until the agent has been answered.
+Reach for a declarative form when:
+
+- **the markup already is the whole feature**, and a tool around it would repeat what the form says;
+- **you want the browser to build the schema** from the controls and their labels;
+- **you are not in React**, or the page has no JavaScript framework at all.
+
+| | Declarative form | A tool with an `inputSchema` |
+|---|---|---|
+| Written as | `<form toolname …>` | `useWebTool({ id, inputSchema, execute })` |
+| Schema from | the form's controls | a Standard Schema (zod, valibot, arktype) or JSON Schema |
+| Answers by | `event.respondWith(…)`, synchronously in the submit handler | returning from `execute` |
+| On while | the form is in the DOM | the component is mounted (`enabled` to switch it) |
+| Confirmation | leave out `toolautosubmit` | `requireConfirmation: true` |
+
+## A complete example
+
+A promo form with the attributes, answered through `useToolAnswer`, and hiding itself once a code is applied. It uses
+shadcn/ui's button and input (any elements work the same):
+
+```package-install
+npx shadcn@latest add button input
+```
+
+<View title="Vite">
+
+<include meta='title="src/components/apply-promo.tsx"'>/_examples/shared/components/apply-promo.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/apply-promo.tsx"'>/_examples/nextjs/components/apply-promo.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/apply-promo.tsx"'>/_examples/shared/components/apply-promo.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/apply-promo.tsx"'>/_examples/shared/components/apply-promo.tsx</include>
+
+</View>
+
+Nothing is registered: a declarative form is a tool as soon as it is in the DOM, and in a browser without WebMCP the
+[polyfill](/more/polyfill) the provider loads finds it. `@webmcp-agents/react` types the attributes for JSX ([JSX attributes](/reference/react/jsx-attributes)):
+any import from the package brings them in.
+
+## The attributes
+
+| Attribute | On | What it does |
+|---|---|---|
+| `toolname` | `<form>` | The tool's name, unique on the page: `[a-zA-Z0-9_.-]`, up to 128 characters. |
+| `tooldescription` | `<form>` | What the agent reads to decide when to call it. See [Writing tool descriptions](/concepts/tool-descriptions). |
+| `toolautosubmit` | `<form>` | Submit without waiting for the person. Leave it out to make them confirm. |
+| `toolparamdescription` | a control | Describes that parameter. Without it, the control's `<label>` is used. |
+
+Outside React it is plain HTML, and nothing else is needed:
+
+```html contact.html
+<form
+  toolname="contact_us"
+  tooldescription="Send the support team a message."
+  toolautosubmit
+>
+  <input name="email" type="email" required toolparamdescription="The reply address" />
+  <textarea name="message" required toolparamdescription="What the user needs"></textarea>
+  <button type="submit">Send</button>
+</form>
+```
+
+## Confirmation
+
+Leave out `toolautosubmit` and the browser fills the form, then **pauses on the submit button** until the person clicks.
+The cursor parks there with "Click … to confirm". Use it for orders, payments and deletions; add `toolautosubmit` for cheap,
+reversible actions. A tool written with `useWebTool` gets the same pause from
+[`requireConfirmation`](/build/confirm-before-it-runs).
+
+## A form that hides itself: `useToolAnswer`
+
+A declarative form answers the agent by calling `event.respondWith(…)` synchronously in its submit handler, and it must
+stay rendered until the answer is delivered: Chrome cancels a call whose tool disappears. If submitting removes the form (a
+promo form that vanishes once a code is applied), keep it until then with
+[`useToolAnswer`](/reference/react/use-tool-answer). It gives you `answering`, true from an agent's submit until shortly
+after the response settles, and `answer(event, result)`, which wraps `respondWith` and does nothing for a person's submit.
+
+A form that **navigates away** should answer first and navigate after the grace period; a page whose own tool empties it
+(checkout clearing the cart) keeps rendering until then. A tool written with `useWebTool` needs none of this, because
+`execute` returns the answer and the registration outlives it ([Tool lifecycle](/concepts/tool-lifecycle)).
+
+## Errors
+
+A form answers with text. Start it with the code and the agent and the chat read it the same way; a plain `"Error: …"` is
+read as `failed` ([Errors](/concepts/errors)).
+
+```ts
+submit.respondWith(Promise.resolve("Error [needs_user]: Pick a size first: S, M or L."));
+```
+
+## The earlier marker on a control
+
+Before a tool could find its control by name, the attribute `toolname="<id>"` on an element told the cursor which element a
+tool acts on. That still works, and is the fallback when a tool's `target` matches nothing:
+
+```tsx
+<button toolname="open_cart" onClick={openCart}>
+  Cart
+</button>
+```
+
+New code does not need it: a tool's `title` or a [`target`](/build/define-a-tool#how-the-cursor-finds-the-control) names
+the control, and nothing is added to the markup. The same goes for a CSS-selector `target` and the raw `annotations`
+option, which keep working beside the plainly named [flags](/reference/core/define-web-tool#flags-and-annotations).
+
+## Styling hooks
+
+`form:tool-form-active` and `button:tool-submit-active` are native pseudo-classes, so CSS alone can show that an agent is
+working in a form. The polyfill mirrors them as `[data-tool-form-active]` and `[data-tool-submit-active]`;
+[`cursor.css`](/reference/core/cursor-css) styles the attributes, and the optional
+[`cursor-native.css`](/reference/core/cursor-css#cursor-nativecss) the pseudo-classes. Keep the native and the attribute
+rules in separate rules: a browser drops a whole rule it cannot parse.

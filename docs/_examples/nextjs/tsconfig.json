@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // app/layout.tsx imports "./globals.css", which only exists in the reader's project
+    "noUncheckedSideEffectImports": false,
+    "paths": {
+      "@/components/ui/*": ["../../../examples/ui/src/components/*"],
+      // "@/" is the project root in a Next.js app
+      "@/*": ["./*", "../shared/*"]
+    }
+  },
+  "include": ["app", "components", "../shared"]
+}

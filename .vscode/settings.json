@@ -1,0 +1,15 @@
+{
+  // Biome is this repo's formatter and linter (biome.json; `pnpm check` runs `biome ci`). Format on save with it,
+  // so a personal Prettier default (single quotes, no semicolons) never rewrites a file into a failing check.
+  "editor.formatOnSave": true,
+  "[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[javascriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[typescriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[json]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[css]": { "editor.defaultFormatter": "biomejs.biome" },
+  // The repo's biome.json turns import sorting off; keep the editor from doing it either.
+  "editor.codeActionsOnSave": { "source.organizeImports": "never" },
+  "prettier.enable": false
+}

@@ -1,0 +1,206 @@
+---
+title: Tools across your app
+description: "Put app-wide tools in one catalog the provider registers, then choose the pages each one is on with match, and which ones an agent may use with availableTools. No router setup."
+sidebar:
+  label: 4. Tools across your app
+---
+
+A tool in a component is on while that component is on the page. A tool for the **whole app** (read the cart, list
+orders, go to a page) lives in one object, the **catalog**, written with `defineWebTool`. You hand it to the provider
+once, and each tool's **`match`** chooses the pages it is on.
+
+## A complete example
+
+The catalog, then one prop on the provider you added at installation. The highlighted lines are the ones you add.
+
+<View title="Vite">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/main.tsx" {7,12}'>/_examples/vite/src/main.catalog.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="app/providers.tsx" {6,10}'>/_examples/nextjs/app/providers.catalog.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/components/providers.tsx" {4,8}'>/_examples/tanstack-start/src/components/providers.catalog.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/index.ts"'>/_examples/shared/tools/index.ts</include>
+
+<include meta='title="src/components/providers.tsx" {4,8}'>/_examples/astro/src/components/providers.catalog.tsx</include>
+
+</View>
+
+The common tools at the top come ready-made ([Common tools](/build/common-tools), next). `getCart`, `listOrders` and
+`trackOrder` are yours, one file each. An object means a tool cannot be listed twice, two tools with one id fail at
+startup naming both keys, and everything else refers to a tool by reference: `tools.getCart.invoke()`,
+`availableTools={[tools.getCart]}`, `defineWebAgent({ tools: [tools.getCart] })`.
+
+## `match`: on while the path fits
+
+A catalog tool with no `match` is on everywhere. With `match`, it is on while the URL's path fits: one pattern, several,
+or a regular expression.
+
+<View title="Vite">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/track-order.ts" {16-17}'>/_examples/shared/tools/track-order.ts</include>
+
+</View>
+
+```ts
+match: "/orders" // one path
+match: ["/orders", "/orders/:id"] // any of these
+match: /^\/orders\/\d+(\/tracking)?$/ // a RegExp, tested against the path
+```
+
+A pattern is literal segments, `:param` for exactly one segment, and a trailing `*` for the rest: `/orders`,
+`/product/:slug`, `/flights/*`. It is the URL the visitor sees, in every framework: Next.js's
+`app/product/[slug]/page.tsx` is `"/product/:slug"`. With a hash router, `#/orders` counts as the path `/orders`.
+
+**No router wiring.** The library follows the browser's URL itself, so the provider needs nothing from React Router,
+TanStack Router, Next.js or Astro. A tool turns on and off as the visitor navigates, client-side or by a full page
+load. A tool that turns off in the middle of a call finishes that call first.
+
+:::warning[A `match` tool turns on as soon as the URL changes]
+That is before the new page has rendered. Do not write a `match` tool that reads state the page sets when it mounts:
+read the URL, or a store that is set before the navigation. Skyline's results tools read the search, so its
+`search_flights` stores the search first and navigates second. URL changes are also seen just after the navigation
+call returns (Next.js changes the URL inside a React effect), so a tool turns on a moment after `router.push`, not
+during it.
+:::
+
+## The three scopes
+
+| Scope | How | Example |
+|---|---|---|
+| **Everywhere** | A catalog tool with no `match` | `get_cart`, `get_time` |
+| **Per path** | A catalog tool with `match` | `list_orders` on `/orders` |
+| **Per component** | `useWebTool`, on while the component is mounted (`{ enabled }` to switch it by state): a config written in the component, or a tool you defined in a file | `add_to_cart` on a product's page, `clear_cart` while the cart is open |
+
+A tool in a component rarely needs `match`: it is on while the component is. `useWebTool` ignores `match`.
+
+## A defined tool, on with a component
+
+A tool written with `defineWebTool` does not have to go in the catalog. Hand it to `useWebTool` instead, and it is on
+while that component is mounted, like a tool written in the component. Here `clear_cart`, the definition from
+[Define a tool](/build/define-a-tool), is on only while the cart panel is open.
+
+<View title="Vite">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="components/cart-panel.tsx" {12}'>/_examples/nextjs/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+The tool keeps the best of both: it lives in a file of its own, so an agent lists it by reference
+(`defineWebAgent({ tools: [clearCart] })`) and a server file can import it, and it is on only where its control is.
+`enabled` switches it by state, as for any component tool. What to know:
+
+- **`execute` cannot see the component.** A defined tool is made once, outside any component, so it reads only its
+  input and module state: a store, the router's `navigate`. A tool that needs the component's props, state or form is
+  written in the component ([Define a tool](/build/define-a-tool)).
+- **One place per tool.** Put a tool in the catalog or hand it to `useWebTool`, not both: they would register the same
+  id twice, and the newest registration wins.
+- **One component at a time.** Every mounted component that calls `useWebTool(clearCart)` registers `clear_cart`. For a
+  list (a card per product), call it once in the component that owns the list, or write the tool in the card with
+  its own id per item (`add_to_cart_mug-01`).
+
+## Only some of them: `availableTools`
+
+`tools` is everything the app has. `availableTools` is what an agent may use right now, decided by your own state;
+left out, it is all of them. It filters the catalog, not the tools components own.
+
+```tsx
+<WebAgentsProvider
+  tools={tools}
+  availableTools={
+    user
+      ? [tools.getCart, tools.listOrders, tools.trackOrder]
+      : [tools.getCart]
+  }
+>
+```
+
+Catalog files use `defineWebTool` from `@webmcp-agents/core`, the same function `@webmcp-agents/react` re-exports: an
+agent lists catalog tools by reference, and your `/api/chat` route imports the agent on the server
+([Add the chat](/build/add-the-chat)), so a file it reaches imports no React.
+
+## Try it
+
+Open `/orders` and, in the browser console:
+
+```js
+await agent.invoke("list_orders", { limit: 1 });
+```
+
+It answers with the newest order. Go back to `/`: in the devtools panel, `list_orders` and `track_order` are listed
+**off here**, and the same call rejects because the tool is not on.
+
+## Options you'll use most
+
+| Where | Option | What it is for |
+|---|---|---|
+| `defineWebTool` | `match` | The paths a catalog tool is on: a pattern, several, or a RegExp. Default: everywhere. |
+| `<WebAgentsProvider>` | `tools` | The catalog: every app-wide tool, by name. |
+| `<WebAgentsProvider>` | `availableTools` | The tools an agent may use now, by reference. Default: all of them. |
+| `useWebTool` | `enabled` (second argument) | Switch a component's tool by state. |
+
+Every option: [`defineWebTool`](/reference/core/define-web-tool), [`<WebAgentsProvider>`](/reference/react/web-agents-provider)
+and [`matchPath`](/reference/core/match-path) for the pattern syntax.

@@ -1,0 +1,47 @@
+import { Separator } from "@webmcp-agents/examples-ui/components/separator";
+
+const COLUMNS = [
+  { title: "Shop", links: ["New in", "Best sellers", "Gift cards"] },
+  { title: "Support", links: ["Shipping", "Returns", "Contact"] },
+  { title: "Legal", links: ["Privacy", "Terms", "Cookies"] },
+];
+
+export function Footer() {
+  return (
+    <footer className="mt-24 border-t bg-muted/40">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[2fr_1fr_1fr_1fr]">
+        <div className="flex max-w-xs flex-col gap-3">
+          <p className="font-serif text-xl tracking-tight">Field Store</p>
+          <p className="text-sm text-muted-foreground">
+            Everyday goods, built to stay. Every action on this site is a tool an agent can call.
+          </p>
+        </div>
+
+        {COLUMNS.map((c) => (
+          <nav key={c.title} aria-label={c.title} className="flex flex-col gap-3">
+            <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">{c.title}</p>
+            <ul className="flex flex-col gap-2 text-sm">
+              {c.links.map((l) => (
+                <li key={l}>
+                  <a href="#main" className="hover:underline hover:underline-offset-4">
+                    {l}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+      </div>
+
+      <Separator />
+
+      <p className="mx-auto max-w-7xl px-4 py-6 text-xs text-muted-foreground sm:px-6">
+        Demo store. Nothing here ships. Product photos from{" "}
+        <a href="https://unsplash.com/?utm_source=web-agents&utm_medium=referral" className="underline underline-offset-4">
+          Unsplash
+        </a>
+        .
+      </p>
+    </footer>
+  );
+}

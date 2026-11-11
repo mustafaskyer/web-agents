@@ -1,0 +1,184 @@
+---
+title: Add the chat
+description: Put an assistant on the page that does things, not just answers. The model runs on your server with the key; every tool call runs in the browser, under the agent cursor.
+sidebar:
+  label: 8. Add the chat
+---
+
+`<AgentChat>` is a chat widget whose agent works the **live page** through its tools. The model runs on your server,
+behind a route at `/api/chat`, with the API key there: Claude by default, or any model the Vercel AI SDK reaches. Every
+tool call runs **in the browser**, so the cursor plays exactly as it does for any agent, and anything gated on a click
+waits for the person.
+
+## A complete example
+
+Install the chat, and the AI SDK package of your model's provider (server side only):
+
+```package-install
+npm install @webmcp-agents/chat
+```
+
+```package-install
+npm install @ai-sdk/anthropic
+```
+
+Then two pieces: the widget inside your provider, and the `/api/chat` route. The highlighted lines are the ones you
+add.
+
+<View title="Vite">
+
+<include meta='title="src/main.tsx" {1,8-9,17-22}'>/_examples/vite/src/main.chat.tsx</include>
+
+In development, the Vite plugin serves `/api/chat` from the dev server. Add it to the config you have:
+
+```ts vite.config.ts
+import { webAgentsChatDev } from "@webmcp-agents/chat/vite"; // [!code highlight]
+import { agents } from "./src/agents"; // [!code highlight]
+
+// In defineConfig({ … }):
+plugins: [react(), tailwindcss(), webAgentsChatDev({ agents })], // [!code highlight]
+```
+
+It reads the key from `.env.local` on the server side, and refuses to start when a `VITE_` variable is named like a
+secret. In production, `/api/chat` is a function of your host's. On Vercel, a file in `api/` is one:
+
+<include meta='title="api/chat.ts"'>/_examples/vite/api/chat.ts</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="app/providers.tsx" {3,7-8,11,17-22}'>/_examples/nextjs/app/providers.chat.tsx</include>
+
+`/api/chat` is a route handler, in development and in production:
+
+<include meta='title="app/api/chat/route.ts"'>/_examples/nextjs/app/api/chat/route.ts</include>
+
+To make sure the key can never reach a client component, read it in a module that starts with
+`import "server-only"` and taint it with React's `experimental_taintUniqueValue`, as `examples/nextjs/lib/env.server.ts`
+does ([Field Store on Next.js](/examples/nextjs)). The taint APIs are behind a flag: set `experimental: { taint: true }` in
+`next.config.ts`.
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/providers.tsx" {1,5-6,9,15-20}'>/_examples/tanstack-start/src/components/providers.chat.tsx</include>
+
+`/api/chat` is a server route, in development and in production:
+
+<include meta='title="src/routes/api/chat.ts"'>/_examples/tanstack-start/src/routes/api/chat.ts</include>
+
+No example app runs TanStack Start: this route is type-checked against `@tanstack/react-start` 1.169, not run. The
+server-route API has moved between Start releases, so check it against the version you install.
+
+Start's dev server serves the route, so no Vite plugin is needed for it. You can still add `webAgentsChatDev()` for its
+secret guard (it refuses to start when a `VITE_` variable is named like a secret); give its `path` option something
+unused, so it never shadows the real route.
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/providers.tsx" {1,5-6,9,15-20}'>/_examples/astro/src/components/providers.chat.tsx</include>
+
+`/api/chat` is an endpoint rendered on demand, so the site needs a server adapter (Node, Vercel, Netlify…):
+
+<include meta='title="src/pages/api/chat.ts"'>/_examples/astro/src/pages/api/chat.ts</include>
+
+This site is built with Astro but has no chat, so this endpoint is type-checked, not run in a real app.
+
+</View>
+
+`<AgentChat agent={shopper}>` needs no adapter: it talks to `/api/chat`. The route serves the same `agents` the page
+uses, because the browser sends only the agent's id and the server reads the instructions from its own copy.
+
+## The key
+
+Put the key in `.env.local`, at the root of the project:
+
+```bash .env.local
+ANTHROPIC_API_KEY=sk-ant-…
+```
+
+It is read on the server only. **Never give it a public prefix**: `VITE_` (Vite, TanStack Start), `NEXT_PUBLIC_`
+(Next.js) or `PUBLIC_` (Astro). Those variables are copied into the JavaScript the browser downloads.
+
+Without a key the widget says "Chat isn't configured on this site", and the rest of the page works as before.
+
+:::warning[Before you put it online]
+The key stays on your server, but `/api/chat` is a public URL: a script can call it and chat on your key. The route above
+is the simplest one, fine for development. Before you deploy, lock it to your page with sessions, a tool allowlist,
+Turnstile and limits: [Secure the chat](/security).
+:::
+
+## Pick a model
+
+One variable on the server picks the model, as `"<provider>/<model>"`, and the provider's own SDK is used when its
+key is set (install it beside `@webmcp-agents/chat`). Without the SDK, the AI Gateway built into the AI SDK serves any
+id with one key.
+
+```bash .env.local
+WEB_AGENTS_MODEL=openai/gpt-5.5
+OPENAI_API_KEY=sk-…
+```
+
+| Prefix | Package | Key |
+|---|---|---|
+| `anthropic/` (the default: `anthropic/claude-opus-5-5`) | `@ai-sdk/anthropic` | `ANTHROPIC_API_KEY` |
+| `openai/` | `@ai-sdk/openai` | `OPENAI_API_KEY` |
+| `google/` | `@ai-sdk/google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `deepseek/` | `@ai-sdk/deepseek` | `DEEPSEEK_API_KEY` |
+| `xai/` | `@ai-sdk/xai` | `XAI_API_KEY` |
+| `mistral/` | `@ai-sdk/mistral` | `MISTRAL_API_KEY` |
+| `openrouter/<vendor>/<model>` | `@openrouter/ai-sdk-provider` | `OPENROUTER_API_KEY` |
+| any other `a/b` id | none (the AI Gateway) | `AI_GATEWAY_API_KEY` |
+
+An agent's own `model` ([Define an agent](/build/define-an-agent#a-model-per-agent)) beats this default.
+
+## How a turn runs
+
+The server runs **one model step per request**; tools run in the browser between steps.
+
+1. The widget sends the conversation and the page's current tools (names, descriptions, schemas) to `/api/chat`.
+2. The model answers with text or with tool calls.
+3. The widget runs each tool call on the page, under the cursor, and shows it in the conversation.
+4. It waits for the page's tools to settle (a navigation brings new ones), then sends the results back for the next
+   step.
+
+A failed tool never ends the run: the result goes back to the model with its [error code](/concepts/errors). The
+person's **Stop** cancels the call in progress. If the run itself fails (the model, the network), **Try again** resumes
+from the last tool call that finished, so nothing is done twice.
+
+The route refuses browser requests from other sites, but anyone can still call it directly. A public deployment needs
+a `guard` with rate limits and a daily budget: [Deploy](/more/deploy) has one.
+
+## Try it
+
+Start the app with the key in `.env.local`, open the chat (bottom left in development) and ask:
+
+> What's in my cart?
+
+The model calls `get_cart`, the call shows in the conversation, and the answer names the Ocean Tee. On the page with
+your `<AddToCart />` form, ask "Add two more in size L": the cursor types into the form, and the chat shows the call.
+
+## Options you'll use most
+
+| `<AgentChat>` prop | What it is for |
+|---|---|
+| `agent` | The [agent](/build/define-an-agent): its instructions, its tools and its helpers. Default: every tool on the page. |
+| `layout` | `"docked"` (default), a full-height panel the page makes room for, or `"floating"`. A bottom sheet on phones. |
+| `position` | `"bottom-right"` (default) or `"bottom-left"`. |
+| `suggestions` | Starter prompts. Default: made from the page's tools. |
+| `adapters` | Several models with a switcher, such as Claude and an [on-device model](/more/on-device-agent). |
+
+| `createChatHandler` option | What it is for |
+|---|---|
+| `agents` | The top-level agents it serves. |
+| `model` | The default model. Default: `WEB_AGENTS_MODEL`, else `anthropic/claude-opus-5-5`. |
+| `maxSteps` | Tool steps per message. Default 8. |
+| `guard`, `beforeModel` | Rate limits, origin checks, budgets. |
+
+Every option: [`<AgentChat>`](/reference/chat/agent-chat), [`createChatHandler`](/reference/chat/create-chat-handler)
+and [`webAgentsChatDev`](/reference/chat/web-agents-chat-dev). To render the chat with your own shadcn/ui components
+instead of the built-in widget, see [shadcn chat blocks](/more/shadcn-chat-blocks).

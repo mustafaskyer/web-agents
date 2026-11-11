@@ -1,0 +1,1317 @@
+/*
+ * The landing page's stylesheet (pages/index.astro): shadcn's tokens and the OpenDesigns blocks' utilities. It is a
+ * second Tailwind entry beside the one Blume generates for the docs, on purpose: both name their tokens --background,
+ * --muted, --accent…, with different meanings.
+ */
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@source "./components";
+@source "./pages";
+
+/* The theme is Blume's: data-theme on <html>, shared with the docs. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-code);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  /* IBM Plex Sans and IBM Plex Mono, self-hosted by Blume (blume.config.ts `theme.fonts`) and declared in the page's head. */
+  --font-sans: var(--blume-ff-ibm-plex-sans, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-code: var(--blume-ff-ibm-plex-mono, ui-monospace), ui-monospace, "SF Mono", Menlo, monospace;
+  /* The agent cursor in the page's blue (cursor.css reads these). */
+  --agent: #2563eb;
+  --agent-strong: #2563eb;
+  --agent-soft: rgb(37 99 235 / 0.16);
+  --agent-wait: #2563eb;
+  --agent-wait-soft: rgb(37 99 235 / 0.2);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ---------- landing: a clip in a browser frame on a well ---------- */
+.demo-well {
+  margin: 0;
+  padding: clamp(0.75rem, 3vw, 2.5rem);
+  border-radius: calc(var(--radius) * 2.5);
+  background:
+    radial-gradient(120% 90% at 20% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 60%),
+    var(--muted);
+  border: 1px solid var(--border);
+}
+.demo-frame {
+  overflow: hidden;
+  border-radius: calc(var(--radius) * 1.5);
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 24px 60px -24px rgb(0 0 0 / 0.35);
+}
+.demo-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 80%, var(--muted));
+}
+.demo-frame__dots {
+  display: inline-flex;
+  gap: 0.375rem;
+}
+.demo-frame__dots i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+.demo-frame__address {
+  flex: 1;
+  margin-inline: auto;
+  max-width: 28rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font: 0.75rem/1.4 var(--font-code, ui-monospace, monospace);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-frame__video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  background: var(--background);
+}
+.demo-well__caption {
+  margin-top: 1rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* ---------- landing: three steps ---------- */
+.steps {
+  display: grid;
+  gap: 2.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+/* The number sits on the title's line; the text runs under both. */
+.step__copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.step__text {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .step {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 3rem;
+    align-items: start;
+  }
+}
+.step__number {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font: 600 0.8125rem/1 var(--font-code, ui-monospace, monospace);
+  color: var(--muted-foreground);
+}
+.step__title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+.step__text {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+.step__code-wrap {
+  position: relative;
+  min-width: 0;
+}
+.step__copy-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .step__copy-button:hover {
+    background: var(--muted);
+  }
+}
+.step__copy-button:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: 2px;
+}
+.step__code {
+  margin: 0.25rem 0 0;
+  min-width: 0;
+  border-radius: calc(var(--radius) * 1.5);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.step__code pre {
+  margin: 0;
+  padding: 1rem 1.125rem;
+  overflow-x: auto;
+  background: transparent;
+  font: 0.8125rem/1.65 var(--font-code, ui-monospace, monospace);
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.step__code code {
+  font: inherit;
+}
+@media (max-width: 767px) {
+  /* Wrapped code is unreadable at phone width and tripled the section's height: keep lines whole, scroll sideways. */
+  .steps {
+    gap: 2rem;
+  }
+  .step {
+    padding-top: 2rem;
+  }
+  .step__code {
+    overflow: hidden;
+  }
+  .step__code pre {
+    padding: 0.875rem 1rem;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-wrap: normal;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  .step__copy-button {
+    top: 0.625rem;
+    right: 0.625rem;
+  }
+}
+@media (pointer: coarse) {
+  .step__copy-button {
+    height: 2.25rem;
+    padding: 0 0.75rem;
+  }
+}
+/* Shiki writes both themes on every token as --shiki-light / --shiki-dark (the docs' github pair): pick one. */
+.step__code .shiki,
+.step__code .shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style, normal);
+}
+:root[data-theme="dark"] .step__code .shiki,
+:root[data-theme="dark"] .step__code .shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style, normal);
+}
+
+/* ---------- landing: the word an agent keeps retyping in the title ---------- */
+.typed-words {
+  /* A field the agent types into. Its width is set from the text inside it (typed-words.tsx) and eased, so the
+     centred title glides as a word grows or shrinks; the text is clipped while the field catches up. */
+  display: inline-flex;
+  box-sizing: content-box;
+  min-width: 0.3em;
+  vertical-align: baseline;
+  padding: 0 0.16em 0.04em;
+  border-radius: 0.2em;
+  background: color-mix(in oklab, var(--agent) 9%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--agent) 32%, transparent);
+  color: var(--agent);
+  white-space: nowrap;
+  overflow: clip;
+  transition: width 120ms cubic-bezier(0.3, 0, 0.3, 1);
+}
+:root[data-theme="dark"] .typed-words {
+  color: oklch(0.74 0.14 262);
+}
+.typed-words__text {
+  flex: none;
+  padding-inline-end: 0.04em; /* the caret keeps clear of the field's edge */
+}
+/* Where the title cannot stay on one line with its longest word, it breaks right after the field: the lines below never
+   depend on the word, so the title keeps its shape as the words change. */
+.title-break {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .title-break {
+    display: inline;
+  }
+}
+/* A phone cannot fit the longest word beside "Make Agents" but fits the shortest: the field gets its own line, or the
+   title would jump between three lines and four as the words change. */
+@media (min-width: 601px) {
+  .title-break--narrow {
+    display: none;
+  }
+}
+.typed-words__caret {
+  display: inline-block;
+  width: 0.055em;
+  height: 0.82em;
+  margin-inline-start: 0.05em;
+  border-radius: 1px;
+  background: currentColor;
+  vertical-align: -0.06em;
+  animation: typed-words-blink 1.05s steps(1, end) infinite;
+}
+@keyframes typed-words-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typed-words {
+    transition: none;
+  }
+  .typed-words__caret {
+    display: none;
+  }
+}
+
+/* ---------- landing: one type scale ----------
+   Seven levels, every title and description on the page mapped to one of them. Hierarchy comes from size between the
+   levels and from colour within a heading (title in foreground, description muted), not from mixing weights: titles
+   are 600, text 400, labels 500. Sizes are fluid between a 375px phone and a 1440px desktop. */
+.landing {
+  /* 38 → 54: at 54 the title's longest line ("…understand your website") fits the 956px column */
+  --type-display: clamp(2.375rem, 1.55rem + 3.1vw, 3.375rem);
+  --type-h2: clamp(1.875rem, 1.5rem + 1.3vw, 2.5rem); /* 30 → 40 */
+  --type-h3: 1.125rem; /* 18 */
+  --type-lede: clamp(1.0625rem, 0.98rem + 0.35vw, 1.25rem); /* 17 → 20 */
+  --type-description: clamp(1rem, 0.96rem + 0.2vw, 1.125rem); /* 16 → 18 */
+  --type-body: 0.9375rem; /* 15 */
+  --type-label: 0.75rem; /* 12 */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* the hero's title: the only display size, a little lighter than the section titles because weight reads heavier
+   as size grows */
+#top .ns-hero__title {
+  max-inline-size: 100%;
+  margin: 0;
+  text-wrap: balance;
+  font-size: var(--type-display);
+  font-weight: 560;
+  line-height: 1.06;
+  letter-spacing: -0.022em; /* IBM Plex is drawn for gentle tracking; tighter than this and its counters close up */
+}
+/* the hero's lede: one step above a section description. Its width follows the title's widest line (measured in the
+   title's own em), so the two read as one block at every width instead of a narrow title over a wide paragraph:
+   4-line title ("Make Agents" 5.7em in IBM Plex Sans) → 6.2em, 3-line title ("Make Agents understand" 11em) →
+   10.5em, 2-line title (17em) → a two-line lede. */
+#top .ns-hero__lede {
+  max-inline-size: calc(var(--type-display) * 10.5);
+  font-size: var(--type-lede);
+  line-height: 1.55;
+}
+@media (max-width: 600px) {
+  .landing {
+    /* the title's four short lines fill ~3/4 of the column */
+    --type-display: clamp(2.5rem, 12vw, 3.5rem);
+  }
+  #top .ns-hero__lede {
+    max-inline-size: calc(var(--type-display) * 6.2);
+    font-size: 1rem;
+  }
+}
+@media (min-width: 1101px) {
+  #top .ns-hero__lede {
+    max-inline-size: 36em;
+  }
+}
+
+/* a section's heading: label → 12 → title → 16 → description */
+.section-heading,
+.landing .velora-faq-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 40rem;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+.type-eyebrow,
+.landing .velora-faq-eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: var(--type-label);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.type-h2,
+.landing .velora-faq-title {
+  margin: 0;
+  font-size: var(--type-h2);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.type-description,
+.landing .velora-faq-description {
+  max-width: 54ch;
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  font-size: var(--type-description);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* card and step titles: one size, the h3 */
+.landing .try-it__title,
+.landing .step__title,
+.landing .velora-faq-guide-copy h3 {
+  font-size: var(--type-h3);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+/* body text under those titles, and the FAQ's questions and answers */
+.landing .step__text,
+.landing .velora-faq-answer p,
+.landing .velora-faq-guide-copy p {
+  font-size: var(--type-body);
+  line-height: 1.6;
+}
+.landing .velora-faq-section [data-slot="accordion-trigger"],
+.landing .velora-faq-section h3 button {
+  font-size: var(--type-body);
+  font-weight: 500;
+  line-height: 1.45;
+}
+/* the card's labels share the section label's voice */
+.landing .try-it__eyebrow,
+.landing .try-it__label {
+  font-size: var(--type-label);
+  letter-spacing: 0.08em;
+}
+
+/* ---------- landing: one vertical rhythm ----------
+   Every section pads its top and bottom by the same amount, so any two sections sit 2 × --section-space apart
+   (80px on a phone, 128px on desktop). The blocks' own paddings stacked to 140–250px gaps. */
+.landing {
+  --section-space: 2.5rem;
+}
+@media (min-width: 768px) {
+  .landing {
+    --section-space: 4rem;
+  }
+}
+.landing-section,
+.landing .velora-faq-section {
+  padding-block: var(--section-space);
+}
+.landing .velora-wordmark-footer {
+  padding-top: var(--section-space);
+}
+
+/* ---------- landing: the hero (isobar contours; title, lede, the tools to try) ----------
+   title → 16 → lede → 40 → the tools card (phone: 16 / 32). The card is the hero's one action: the contours close in
+   on it (its dense centre sits behind the card, the outer rings radiate round it). */
+/* The contours are texture, not content: faded as one layer (their light-to-dark steps stay), a little more in dark
+   mode, where light lines on black read louder. */
+#top .ns-hero > svg {
+  opacity: 0.5;
+}
+:root[data-theme="dark"] #top .ns-hero > svg {
+  opacity: 0.4;
+}
+#top .ns-hero__content {
+  gap: 0;
+  max-inline-size: 64rem; /* 976px of text: the title's longest line fits at desktop widths */
+  padding-top: clamp(3rem, 10vh, 7rem);
+  padding-bottom: var(--section-space);
+}
+#top .ns-hero__lede {
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  text-wrap: pretty;
+}
+#top .ns-hero__below {
+  margin-top: 2.5rem;
+}
+#top .ns-hero__below > .try-it {
+  margin-top: 0; /* the gap above is the hero's to set */
+}
+/* The title's last line: the same size, one step back in colour, so it reads as the end of one sentence. */
+.hero-tail {
+  display: block;
+  color: var(--muted-foreground);
+}
+@media (max-width: 600px) {
+  /* four stacked lines read as one block: a beat before the tail makes it the sentence's second half */
+  .hero-tail {
+    margin-top: 0.4em;
+  }
+}
+@media (max-width: 767px) {
+  #top .ns-hero__content {
+    padding-top: 2.5rem;
+  }
+  #top .ns-hero__below {
+    margin-top: 2rem;
+  }
+}
+
+/* ---------- the outline a tool draws round what it points at (outline.ts) ---------- */
+.agent-outline {
+  position: absolute;
+  z-index: 40;
+  overflow: visible;
+  pointer-events: none;
+}
+.agent-outline rect {
+  fill: none;
+  stroke: var(--agent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0; /* visible only while the animation runs */
+}
+
+/* ---------- landing: try it as an agent would ---------- */
+.try-it {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  /* as wide as the floating header, wider than the copy column it sits in (which centres it) */
+  width: min(60rem, calc(100vw - 3rem));
+  min-width: 0;
+  margin-top: clamp(0.5rem, 2vh, 1.5rem);
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 2.5);
+  background:
+    radial-gradient(120% 120% at 50% 0%, color-mix(in oklab, var(--agent) 7%, transparent), transparent 65%),
+    color-mix(in oklab, var(--muted) 55%, var(--background));
+}
+.try-it__head {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  padding-bottom: 0.25rem;
+  text-align: center;
+}
+.try-it__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  color: var(--agent);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="dark"] .try-it__eyebrow {
+  color: color-mix(in oklab, var(--agent) 55%, white);
+}
+.try-it__eyebrow .try-it__dot {
+  background: currentColor;
+  animation: try-it-pulse 2s ease-in-out infinite;
+}
+.try-it__title {
+  margin: 0;
+  font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.try-it__groups {
+  display: grid;
+  gap: 0.625rem;
+  width: 100%;
+  min-width: 0;
+}
+.try-it__group {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: start; /* a label stays beside its first row when the chips wrap */
+  gap: 0.75rem;
+  min-width: 0;
+}
+.try-it__label {
+  justify-self: end;
+  line-height: 2rem; /* a chip's height: centred on the first row */
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.try-it__status {
+  margin: 0;
+  min-height: 1.25rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+.try-it__status code,
+.try-it__chip code {
+  font-family: var(--font-code);
+}
+.try-it__status code {
+  color: var(--foreground);
+}
+/* a call, coloured like code: the tool's name, its punctuation, its keys and strings */
+.try-it__chip .tok-fn {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.try-it__chip .tok-p {
+  color: var(--muted-foreground);
+}
+.try-it__chip .tok-key {
+  color: oklch(0.5 0.16 262);
+}
+.try-it__chip .tok-str {
+  color: oklch(0.5 0.13 150);
+}
+:root[data-theme="dark"] .try-it__chip .tok-key {
+  color: oklch(0.76 0.12 262);
+}
+:root[data-theme="dark"] .try-it__chip .tok-str {
+  color: oklch(0.78 0.14 150);
+}
+.try-it__status[data-state="error"] {
+  color: var(--destructive);
+}
+.try-it__cancel {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--foreground);
+}
+/* Every chip in view at every width: a group wraps onto more rows, never scrolls sideways. */
+.try-it__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.try-it__chips li {
+  max-width: 100%;
+  min-width: 0;
+}
+.try-it__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.75rem 0 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--background) 86%, transparent);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+@media (hover: hover) {
+  .try-it__chip:hover {
+    border-color: color-mix(in oklab, var(--agent) 55%, var(--border));
+    background: color-mix(in oklab, var(--agent) 6%, var(--background));
+  }
+}
+.try-it__chip:active {
+  transform: translateY(1px);
+}
+.try-it__chip:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: 2px;
+}
+.try-it__dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+.try-it__chip[data-state="running"],
+.try-it__chip[data-state="parked"] {
+  border-color: var(--agent);
+  background: color-mix(in oklab, var(--agent) 9%, var(--background));
+}
+.try-it__chip[data-state="running"] .try-it__dot,
+.try-it__chip[data-state="parked"] .try-it__dot {
+  background: var(--agent);
+  animation: try-it-pulse 1s ease-in-out infinite;
+}
+.try-it__chip[data-state="done"] .try-it__dot {
+  background: oklch(0.65 0.17 150);
+}
+.try-it__chip[data-state="error"] .try-it__dot {
+  background: var(--destructive);
+}
+@keyframes try-it-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .try-it__chip,
+  .try-it__dot {
+    animation: none !important;
+    transition: none;
+  }
+}
+@media (max-width: 767px) {
+  /* A phone stacks each group's label over its chips. */
+  .try-it {
+    justify-items: stretch;
+    gap: 1rem;
+    width: calc(100vw - 2rem);
+    padding: 1.25rem 1rem 1.125rem;
+    border-radius: calc(var(--radius) * 2);
+  }
+  .try-it__group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .try-it__groups {
+    gap: 0.875rem;
+  }
+  .try-it__label {
+    justify-self: start;
+    line-height: 1.4;
+  }
+  /* a call longer than the card breaks at its spaces and the chip grows a line, rather than overflow */
+  .try-it__chip {
+    height: auto;
+    min-height: 2.5rem;
+    max-width: 100%;
+    padding-block: 0.5rem;
+    white-space: normal;
+    text-align: start;
+    line-height: 1.35;
+  }
+  .try-it__chip .try-it__dot {
+    flex: none;
+  }
+  .try-it__call-part {
+    white-space: nowrap;
+  }
+  .try-it .try-it__chip {
+    font-size: 0.75rem;
+  }
+  .try-it__status {
+    white-space: normal;
+    text-align: center;
+    min-height: 2.5rem;
+    text-wrap: pretty;
+  }
+}
+@media (pointer: coarse) and (min-width: 768px) {
+  .try-it__label {
+    line-height: 2.5rem;
+  }
+}
+@media (pointer: coarse) {
+  /* thumb-sized, without changing the row's look */
+  .try-it__chip {
+    min-height: 2.5rem;
+    padding-inline: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .try-it__chip:active {
+    transform: scale(0.97);
+  }
+}
+
+/* ---------- landing: the install command and its copy button ---------- */
+/* One field: the command on one line (scrolling sideways when it is longer than the field), the copy button pinned. */
+.install-command {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: min(48rem, 100%);
+  margin: 2.5rem auto 0;
+  padding: 0.375rem 0.375rem 0.375rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+.install-command code {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  padding-inline-end: 1rem; /* the fade covers this, not the command, when it fits */
+  font-family: var(--font-code);
+  mask-image: linear-gradient(to right, #000 calc(100% - 1rem), transparent);
+}
+.install-command code::-webkit-scrollbar {
+  display: none;
+}
+.install-command code::before {
+  content: "$ ";
+  color: var(--muted-foreground);
+}
+.install-command__copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+@media (hover: hover) {
+  .install-command__copy:hover {
+    background: var(--muted);
+  }
+}
+.install-command__copy:active {
+  transform: scale(0.97);
+}
+.install-command__copy:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .install-command__copy {
+    height: 2.25rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .install-command__copy {
+    transition: none;
+  }
+}
+
+/* ---------- the footer on a phone: links in two even columns, the notices under them ---------- */
+@media (max-width: 767px) {
+  .landing .velora-wordmark-bottom {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+  .landing .velora-wordmark-bottom > nav .velora-wordmark-reading-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+  .landing .velora-wordmark-bottom .velora-wordmark-reading-links a {
+    padding-inline: 0;
+  }
+  .landing .velora-wordmark-notices {
+    justify-content: space-between;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* ---------- the site's brand: the agent cursor beside the wordmark ---------- */
+.brand-mark {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: var(--agent);
+  stroke: var(--background);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 1px 2px color-mix(in oklab, var(--agent) 45%, transparent));
+  transition: transform 0.2s ease;
+}
+a:hover .brand-mark {
+  transform: translate(1px, 1px) rotate(-6deg);
+}
+.brand-name {
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark {
+    transition: none;
+  }
+}
+/* a very narrow bar keeps the mark and gives the search the room */
+@container velora-floating (max-width: 26rem) {
+  .brand-name {
+    display: none;
+  }
+}
+
+/* ---------- the docs search in the header: a field, and the results in a panel under it ---------- */
+.docs-search {
+  position: relative;
+  flex: 0 1 15rem;
+  min-width: 7.5rem;
+}
+.docs-search__form {
+  display: flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 0.125rem 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted) 60%, var(--background));
+  color: var(--muted-foreground);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.docs-search__form:focus-within {
+  border-color: var(--ring);
+  background: var(--background);
+}
+.docs-search__form input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+@media (max-width: 767px) {
+  /* 16px or a phone zooms the page on focus */
+  .docs-search__form input {
+    font-size: 1rem;
+  }
+}
+.docs-search__form input::placeholder {
+  color: var(--muted-foreground);
+}
+.docs-search__form input::-webkit-search-cancel-button {
+  display: none;
+}
+.docs-search__form button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.docs-search__form button:hover,
+.docs-search__form button:focus-visible {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.docs-search[data-busy] .docs-search__form button {
+  animation: try-it-pulse 1s ease-in-out infinite;
+}
+/* Under the field, right-aligned with it, while the bar is wide; scrolls inside itself, never past the window. */
+.docs-search__panel {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  z-index: 50;
+  width: 26rem;
+  max-height: min(32rem, calc(100dvh - 7rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--popover, var(--background));
+  color: var(--popover-foreground, var(--foreground));
+  box-shadow: 0 12px 32px color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+.docs-search__panel:empty {
+  display: none;
+}
+/* A narrow bar (phone, small tablet) has no room beside the field: the panel drops from the whole bar instead, edge to
+   edge with it, so nothing is cut off at the window's side. The frame is the positioned box. */
+@container velora-floating (max-width: 47.99rem) {
+  .docs-search {
+    position: static;
+  }
+  .docs-search__panel {
+    top: calc(100% + 0.5rem);
+    right: 0;
+    left: auto;
+    width: min(100%, 28rem); /* the whole bar on a phone; on a small tablet, a readable column under the field */
+  }
+}
+.docs-search__results {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.docs-search__results a {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: calc(var(--radius) * 1.2);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.docs-search__results strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.docs-search__results span {
+  line-height: 1.5;
+}
+.docs-search__results a:focus-visible {
+  outline: 2px solid var(--agent);
+  outline-offset: -2px;
+}
+.docs-search__results a:hover,
+.docs-search__results a:focus-visible {
+  background: var(--muted);
+}
+.docs-search__results strong {
+  font-weight: 500;
+}
+.docs-search__results span,
+.docs-search__empty {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+.docs-search__results span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.docs-search__empty {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .docs-search[data-busy] .docs-search__form button {
+    animation: none;
+  }
+}
+
+/* ---------- the Demos page (/demos) ---------- */
+.demos {
+  width: 100%;
+  max-width: 72rem; /* the floating header's width */
+  margin: 0 auto;
+  padding: clamp(5.5rem, 12vh, 8rem) 1.5rem 5rem;
+}
+.demos__intro {
+  max-width: 44rem;
+  margin: 0 auto 1rem;
+  text-align: center;
+}
+.demos__title {
+  font-weight: 600;
+  font-size: clamp(2.25rem, 4.6vw, 3.25rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.demos__lede {
+  margin-top: 1rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.demos__lede a,
+.demo__links a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--foreground) 30%, transparent);
+  text-underline-offset: 3px;
+}
+.demos__jump {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.demos__jump a {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+@media (hover: hover) {
+  .demos__jump a:hover {
+    background: var(--muted);
+  }
+}
+.demo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* the frame's one-line address must not widen the page */
+  gap: 1.5rem;
+  padding-top: clamp(3rem, 8vh, 5rem);
+  scroll-margin-top: 4.5rem; /* under the floating header */
+}
+.demo__head {
+  max-width: 44rem;
+}
+.demo__app {
+  color: var(--muted-foreground);
+  font: 500 0.75rem/1 var(--font-code, ui-monospace, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.demo__title {
+  margin-top: 0.625rem;
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.demo__text {
+  margin-top: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.demo .demo-well {
+  min-width: 0;
+  /* header-wide, unless the window is too short to show the whole frame (2:1 clip, its bar and the well's padding) */
+  width: 100%;
+  max-width: min(100%, calc(200vh - 13rem));
+  margin-inline: auto;
+  padding: clamp(0.5rem, 1.8vw, 1.5rem);
+}
+.demo__detail {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .demo__detail {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+}
+.demo__label {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+.demo__calls {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.demo__aside {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.75rem;
+}
+.demo__note {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.demo__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+.demos__next {
+  max-width: 44rem;
+  margin: clamp(4rem, 10vh, 6rem) auto 0;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.demos__next-title {
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+}
+@media (max-width: 899px) {
+  .demo__aside {
+    padding-top: 0;
+  }
+}

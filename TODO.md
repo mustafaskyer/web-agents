@@ -1,4 +1,4 @@
-1. Switch to a turbo repo and make this work under webmc-helpers as a package to demonstrate it via different examples
+1. [x] Switch to a turbo repo and make this work under webmc-helpers as a package to demonstrate it via different examples (`@webmcp-agents/*`, Phase 1)
 2. add examples for ecommerce and booking flights web sites (designs from opendesign mcp)
 3. add dev tools package (inspired from tanstack dev tools) that visualize and make runs with visual json schema to simplify how to run
 4. add chat widget to enable and chat with the mcp leveraging agents
@@ -7,13 +7,12 @@
 7. make an api for new WebTool, and make it align and works with ServerTool (mastra already supports something like that!)
 8. deploy to vercel!
 
-
 issues:
-1. when a user interact (make cursor move or willing to take an action), an agent cursor should be hidden directly
+
+1. [x] when a user interact (make cursor move or willing to take an action), an agent cursor should be hidden directly (`yieldToUser`, Phase 1)
 
 priorites:
 1.need to intensively invest in performance, animations, UI/UX perspective, and developer experience perspective
-
 
 ecommerce store example -> https://demo.yournextstore.com/
 booking flights example -> https://react-flights-ui.vercel.app/

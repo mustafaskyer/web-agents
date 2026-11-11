@@ -1,0 +1,66 @@
+{
+  "name": "@webmcp-agents/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Show users what a WebMCP agent is doing: ghost cursor, field replay, confirmation parking.",
+  "license": "MIT",
+  "sideEffects": [
+    "**/*.css",
+    "./src/polyfill/auto.ts",
+    "./dist/polyfill/auto.js"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "@webmcp-agents/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./polyfill": {
+      "@webmcp-agents/source": "./src/polyfill/index.ts",
+      "types": "./dist/polyfill/index.d.ts",
+      "import": "./dist/polyfill/index.js"
+    },
+    "./polyfill/auto": {
+      "@webmcp-agents/source": "./src/polyfill/auto.ts",
+      "types": "./dist/polyfill/auto.d.ts",
+      "import": "./dist/polyfill/auto.js"
+    },
+    "./cursor.css": {
+      "@webmcp-agents/source": "./src/cursor.css",
+      "default": "./dist/cursor.css"
+    },
+    "./cursor-native.css": {
+      "@webmcp-agents/source": "./src/cursor-native.css",
+      "default": "./dist/cursor-native.css"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "size": "node scripts/size.mjs",
+    "check-exports": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./cursor.css ./cursor-native.css"
+  },
+  "devDependencies": {
+    "tsdown": "^0.23.7",
+    "zod": "^4.6.7",
+    "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafaskyer/web-agents.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

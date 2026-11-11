@@ -1,0 +1,451 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "turbo run build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../docs ../../packages ../../pnpm-lock.yaml",
+  "redirects": [
+    {
+      "destination": "/docs/installation",
+      "source": "/docs/getting-started",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.md",
+      "source": "/docs/getting-started.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.mdx",
+      "source": "/docs/getting-started.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation",
+      "source": "/docs/getting-started/quickstart",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.md",
+      "source": "/docs/getting-started/quickstart.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.mdx",
+      "source": "/docs/getting-started/quickstart.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/no-framework",
+      "source": "/docs/getting-started/without-react",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/no-framework.md",
+      "source": "/docs/getting-started/without-react.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/no-framework.mdx",
+      "source": "/docs/getting-started/without-react.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation",
+      "source": "/docs/frameworks",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.md",
+      "source": "/docs/frameworks.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation.mdx",
+      "source": "/docs/frameworks.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/vite",
+      "source": "/docs/frameworks/vite",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/vite.md",
+      "source": "/docs/frameworks/vite.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/vite.mdx",
+      "source": "/docs/frameworks/vite.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/nextjs",
+      "source": "/docs/frameworks/nextjs",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/nextjs.md",
+      "source": "/docs/frameworks/nextjs.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/nextjs.mdx",
+      "source": "/docs/frameworks/nextjs.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/tanstack-start",
+      "source": "/docs/frameworks/tanstack-start",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/tanstack-start.md",
+      "source": "/docs/frameworks/tanstack-start.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/tanstack-start.mdx",
+      "source": "/docs/frameworks/tanstack-start.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/astro",
+      "source": "/docs/frameworks/astro",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/astro.md",
+      "source": "/docs/frameworks/astro.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/installation/astro.mdx",
+      "source": "/docs/frameworks/astro.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool",
+      "source": "/docs/concepts/tools",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool.md",
+      "source": "/docs/concepts/tools.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool.mdx",
+      "source": "/docs/concepts/tools.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool",
+      "source": "/docs/guides",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool.md",
+      "source": "/docs/guides.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-a-tool.mdx",
+      "source": "/docs/guides.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-with-input",
+      "source": "/docs/guides/forms",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-with-input.md",
+      "source": "/docs/guides/forms.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-with-input.mdx",
+      "source": "/docs/guides/forms.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/common-tools",
+      "source": "/docs/guides/common-tools",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/common-tools.md",
+      "source": "/docs/guides/common-tools.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/common-tools.mdx",
+      "source": "/docs/guides/common-tools.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-across-your-app",
+      "source": "/docs/build/where-a-tool-is-on",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-across-your-app.md",
+      "source": "/docs/build/where-a-tool-is-on.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/tools-across-your-app.mdx",
+      "source": "/docs/build/where-a-tool-is-on.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/call-a-tool",
+      "source": "/docs/guides/invoke",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/call-a-tool.md",
+      "source": "/docs/guides/invoke.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/call-a-tool.mdx",
+      "source": "/docs/guides/invoke.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-an-agent",
+      "source": "/docs/guides/agents",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-an-agent.md",
+      "source": "/docs/guides/agents.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/define-an-agent.mdx",
+      "source": "/docs/guides/agents.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/add-the-chat",
+      "source": "/docs/guides/chat",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/add-the-chat.md",
+      "source": "/docs/guides/chat.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/add-the-chat.mdx",
+      "source": "/docs/guides/chat.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/devtools",
+      "source": "/docs/guides/devtools",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/devtools.md",
+      "source": "/docs/guides/devtools.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/build/devtools.mdx",
+      "source": "/docs/guides/devtools.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/concepts/tool-descriptions",
+      "source": "/docs/guides/tool-descriptions",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/concepts/tool-descriptions.md",
+      "source": "/docs/guides/tool-descriptions.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/concepts/tool-descriptions.mdx",
+      "source": "/docs/guides/tool-descriptions.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/on-device-agent",
+      "source": "/docs/guides/on-device-agent",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/on-device-agent.md",
+      "source": "/docs/guides/on-device-agent.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/on-device-agent.mdx",
+      "source": "/docs/guides/on-device-agent.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/shadcn-chat-blocks",
+      "source": "/docs/guides/ai-elements",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/shadcn-chat-blocks.md",
+      "source": "/docs/guides/ai-elements.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/shadcn-chat-blocks.mdx",
+      "source": "/docs/guides/ai-elements.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/declarative-forms",
+      "source": "/docs/guides/declarative-forms",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/declarative-forms.md",
+      "source": "/docs/guides/declarative-forms.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/declarative-forms.mdx",
+      "source": "/docs/guides/declarative-forms.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/polyfill",
+      "source": "/docs/guides/polyfill",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/polyfill.md",
+      "source": "/docs/guides/polyfill.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/polyfill.mdx",
+      "source": "/docs/guides/polyfill.mdx",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/deploy",
+      "source": "/docs/guides/deploy",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/deploy.md",
+      "source": "/docs/guides/deploy.md",
+      "statusCode": 301
+    },
+    {
+      "destination": "/docs/more/deploy.mdx",
+      "source": "/docs/guides/deploy.mdx",
+      "statusCode": 301
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*).md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).mdx",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "</.well-known/api-catalog>; rel=\"api-catalog\"; type=\"application/linkset+json; profile=\\\"https://www.rfc-editor.org/info/rfc9727\\\"\", </openapi.json>; rel=\"service-desc\"; type=\"application/json\", </agent-readability.json>; rel=\"describedby\"; type=\"application/json\", </llms.txt>; rel=\"describedby\"; type=\"text/plain\", </index.md>; rel=\"alternate\"; type=\"text/markdown\""
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/api-catalog",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/api-catalog",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/blume-assets/(.*).svg",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "sandbox"
+        }
+      ]
+    },
+    {
+      "source": "/blume-assets/(.*).svg",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/_astro/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

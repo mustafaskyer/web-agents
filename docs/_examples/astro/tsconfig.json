@@ -1,0 +1,15 @@
+{
+  // The .tsx files only: `.astro` files are not type-checked here (they are short excerpts in the pages).
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["astro/client", "node"],
+    // The installation pages import relatively (a starter may set no
+    // "@/" alias): src and shared are one folder
+    "rootDirs": ["./src", "../shared"],
+    "paths": {
+      "@/components/ui/*": ["../../../examples/ui/src/components/*"],
+      "@/*": ["./src/*", "../shared/*"]
+    }
+  },
+  "include": ["src", "../shared"]
+}

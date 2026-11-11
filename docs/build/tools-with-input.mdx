@@ -1,0 +1,189 @@
+---
+title: Tools with input
+description: A form is a tool with an inputSchema. The cursor types the agent's values into your form's fields, your form library hears it, and fill shows what it cannot type.
+sidebar:
+  label: 2. Tools with input
+---
+
+A form is not a special kind of tool. It is **a tool with an `inputSchema`**: the agent sends values, the cursor types
+each one into the field it belongs to, and your form library hears the typing like a person's. `execute` is the
+function the form already submits to. There is no `form` option, no adapter and no second hook.
+
+## A complete example
+
+shadcn/ui's `Form` on React Hook Form, with one zod schema for the agent's call and the person's submit. To follow
+along, add the components this page uses (`form` brings React Hook Form, its zod resolver and zod with it):
+
+```package-install
+npx shadcn@latest add form input select label
+```
+
+<View title="Vite">
+
+<include meta='title="src/components/add-to-cart.tsx"'>/_examples/shared/components/add-to-cart.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/add-to-cart.tsx"'>/_examples/nextjs/components/add-to-cart.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/add-to-cart.tsx"'>/_examples/shared/components/add-to-cart.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/add-to-cart.tsx"'>/_examples/shared/components/add-to-cart.tsx</include>
+
+</View>
+
+An agent calls `add_to_cart({ size: "L", quantity: 2 })`:
+
+1. **The schema checks the input.** Input that fails it never reaches the page: the agent gets the schema's messages
+   back, and the cursor does not move.
+2. **The cursor types what it can.** It goes to the button named "Add to cart" (the tool's `title`), then types 2 into
+   the field named `quantity`. React Hook Form's `onChange` hears it.
+3. **`fill` puts the rest on screen.** The Size is a shadcn `Select`, a custom widget with nothing to type into, so
+   `form.reset(values)` shows L.
+4. **The cursor presses the button, and `add` runs.** Its return value is the agent's answer.
+
+A person's submit goes through `form.handleSubmit`, which validates and calls `add`. An agent's call reaches `add`
+directly, after the tool's own schema: the action is written once and runs once.
+
+## How the cursor fills a form
+
+The cursor finds a parameter's field by the field's `name`, then by a label that matches the schema's `title` for it
+or the parameter read as words (`firstName` is "first name"). It looks outward from the tool's button, so the closest
+field wins. Then it writes the value the way the control expects:
+
+| Control | What happens |
+|---|---|
+| Text, email, tel, search, textarea | Typed a character at a time |
+| `number`, `date`, `range`, a native `<select>` | Written once |
+| Checkbox, radio | Clicked to match the value (in a radio group, the one whose `value` is the parameter's) |
+| A custom widget: shadcn `Select`, `Combobox`, a date picker | Visited and highlighted, never written: use `fill` |
+
+`fill` runs after the cursor typed what it could and before it presses or parks. It may return a promise, which is
+awaited. With the cursor off, with reduced motion, or after the person moved the mouse, the values the cursor did not
+type are written in one step, and `fill` still runs.
+
+A number input hands React Hook Form a string, and a `z.number()` schema rejects it: pass
+`e.target.valueAsNumber` to `field.onChange`, as the example does.
+
+## When the fields are not named like the parameters
+
+A parameter with no field is skipped: nothing is typed, and `execute` still gets the value. When the field has another
+name, say where it is with `fields`, by parameter:
+
+```tsx
+useWebTool({
+  id: "search_flights",
+  description: "Search one-way flights between two airports.",
+  inputSchema: searchSchema,
+  fields: {
+    from: "Leaving from", // the field labelled "Leaving from"
+    to: { role: "combobox", name: "Going to" }, // a locator
+    cabin: false, // never type this one
+  },
+  execute: search,
+});
+```
+
+A field elsewhere on the page is typed there. A tool with no control at all types nothing unless `fields` names a
+field.
+
+## Validation errors are the answer
+
+Two layers, and both reach the agent as readable text with an [error code](/concepts/errors):
+
+- **The schema.** Input that fails it is `invalid_input`, with each bad field named, before anything is typed. The
+  agent fixes its call and retries.
+- **Your own rules**, inside the action: throw a `WebToolError` with a code, and put the same words on the page, so the
+  person sees what the agent read.
+
+```tsx
+const add = ({ size, quantity }: AddToCartInput) => {
+  if (!inStock(size, quantity)) {
+    const message = `Only ${stockOf(size)} left in size ${size}.`;
+    form.setError("root", { message });
+    throw new WebToolError("invalid_input", message);
+  }
+  // …
+};
+```
+
+Show `form.formState.errors.root?.message` under the form. A person's submit runs the same function, so a throw there
+is a rejected `handleSubmit`; catch it in the submit handler if you would rather not see it in the console. A tool that
+has to ask the person something ("which size?") calls [`waitingForUser`](/reference/core/waiting-for-user) and answers
+with `needs_user`.
+
+:::note[A form that leaves its page]
+Navigate inside the action, with your router's own `navigate`, after the work is done. `useWebTool` keeps the tool
+registered until the agent has its answer, so nothing else is needed.
+:::
+
+## TanStack Form
+
+The same hook works with any form library: the cursor writes a field the way a person does (the native setter, then
+`input` and `change` events), so any controlled input hears it. Here it is with TanStack Form:
+
+```package-install
+npm install @tanstack/react-form
+```
+
+<View title="Vite">
+
+<include meta='title="src/components/subscribe.tsx"'>/_examples/shared/components/subscribe.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="components/subscribe.tsx"'>/_examples/nextjs/components/subscribe.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/components/subscribe.tsx"'>/_examples/shared/components/subscribe.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/components/subscribe.tsx"'>/_examples/shared/components/subscribe.tsx</include>
+
+</View>
+
+Give each input the field's name (`name={field.name}`): TanStack Form does not set it, and it is how the cursor finds
+the field. For a custom widget, `fill` calls `form.setFieldValue(…)`. Skyline's traveler form
+(`examples/flights/src/webmcp-agents/hooks/use-traveler-details.ts`) is a larger one, with a field per traveler.
+
+## Try it
+
+Render `<AddToCart />` on a page, then in the browser console:
+
+```js
+await agent.invoke("add_to_cart", { size: "L", quantity: 2 });
+```
+
+The cursor types 2 into Quantity, the Size shows L, the cursor presses **Add to cart**, and the call answers "Added 2 ×
+Ocean Tee, size L." Try `quantity: 0`: the cursor stays put, and the call rejects with `invalid_input`, naming the bad
+field.
+
+## Options you'll use most
+
+| Option | What it is for |
+|---|---|
+| `inputSchema` | The parameters, as a zod (or any Standard Schema) object or JSON Schema. Validated before anything moves. |
+| `fill` | Put values on screen yourself, for widgets the cursor cannot type into. |
+| `fields` | Where each parameter is typed, when the field is not named like it: a label, a locator, or `false`. |
+| `target` | Which button the cursor presses, when the `title` does not name it. |
+| `execute` | The action, shared with the form's submit. Its return value is the answer. |
+
+Every option: [`useWebTool`](/reference/react/use-web-tool) and [`defineWebTool`](/reference/core/define-web-tool).

@@ -1,0 +1,104 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.turbo",
+      "!.agents",
+      "!.claude",
+      "!pnpm-lock.yaml",
+      "!**/*.md",
+      "!examples/ui/src/components",
+      "!examples/ui/src/hooks",
+      "!examples/ui/src/lib",
+      "!examples/ui/src/styles.css",
+      "!examples/nextjs/.next",
+      "!examples/nextjs/next-env.d.ts",
+      "!apps/docs/public",
+      "!examples/nextjs/app/globals.css",
+      "!apps/docs/components/opendesigns",
+      "!apps/docs/components/ui",
+      "!apps/docs/lib/utils.ts",
+      "!apps/docs/landing.css",
+      "!apps/docs/pages"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "off"
+      }
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["examples/*/src/styles/app.css"],
+      "css": { "parser": { "tailwindDirectives": true } }
+    },
+    {
+      "includes": ["docs/_examples/**"],
+      "formatter": { "lineWidth": 72 }
+    },
+    {
+      "includes": [
+        "packages/chat/src/components/**",
+        "packages/chat/src/adapter/**",
+        "packages/chat/src/session/**",
+        "packages/chat/src/index.ts",
+        "packages/chat/src/agent.ts",
+        "packages/chat/src/shared.ts",
+        "packages/chat/src/tools.ts",
+        "packages/chat/src/types.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ai-sdk/*", "@openrouter/*"],
+                    "message": "Provider SDKs are server-only: import them from src/server/** only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "Client code runs in the browser: no Node built-ins."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

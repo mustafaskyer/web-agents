@@ -1,0 +1,86 @@
+---
+title: Writing tool descriptions
+description: A model picks a tool, and the order of calls, from its description alone. The four things to say, how to describe parameters, and how answers and errors guide the next step.
+related:
+  - /concepts/errors
+  - /build/define-a-tool
+  - /build/define-an-agent
+---
+
+An agent never sees your page the way the person does. It sees a list of tool names, descriptions and parameter schemas,
+and decides from those alone which tool to call, with what, and in what order. A vague description is the most common
+reason an agent calls the wrong tool or gives up.
+
+## Say four things, in this order
+
+One or two sentences each:
+
+1. **What it does, and what it answers.** "Open one product's page and answer its price, sizes and stock."
+2. **When to use it.** "Use after search_products or browse_category, when the user picks a product."
+3. **What it needs first**, when another tool has to run before it or it only exists on some page. "Only on the checkout
+   page (go_to_page checkout first)." "Needs the cart open (open_cart)."
+4. **What comes next.** "Next: add_to_cart, which only exists on that page."
+
+```ts
+defineWebTool({
+  id: "open_product",
+  title: "Open a product page",
+  description:
+    "Open one product's page and answer its price, sizes and stock. " +
+    "Use after search_products or browse_category, when the user picks a product. " +
+    "Next: add_to_cart, which only exists on that page.",
+  readOnly: true,
+  // …
+});
+```
+
+The same applies to `useWebTool`, and to `tooldescription` on a [declarative form](/more/declarative-forms).
+
+## The title is what the cursor looks for
+
+A tool's `title` is a human name, and it is the name the cursor searches the page for when the tool has no `target`: a
+tool titled "Add to cart" goes to the button named "Add to cart". Write it the way the button reads. A tool with no
+`title` is found by its `id` read as words (`clear_cart` is "clear cart"). When two buttons share a name, give each its
+own accessible name and the tool the same one
+([Confirm before it runs](/build/confirm-before-it-runs#it-needs-exactly-one-control)).
+
+## Parameters say where a value comes from
+
+Describe each parameter's source and format, with an example:
+
+| Weak | Strong |
+|---|---|
+| `slug: the product` | `slug: the slug as search_products lists it, e.g. "ocean-tee"` |
+| `date: date` | `date: the departure date, YYYY-MM-DD, e.g. 2026-11-20. For "next Friday", call get_time first.` |
+| `qty: quantity` | `qty: how many to add, 1–20, e.g. 2` |
+
+In a schema, that is `.describe(…)` on the field (zod, valibot and arktype all have it).
+
+## Answers point to the next step
+
+A tool's answer is the agent's next prompt. Repeat the next step where it helps:
+
+> Ocean Tee: $28, sizes S, M, L, in stock. Use add_to_cart to buy it.
+
+## Errors say how to fix them
+
+Give every failure a [code](/concepts/errors) and a message the agent can act on:
+
+```ts
+throw new WebToolError("invalid_input", 'No product matches "x". Try search_products with one key word.');
+```
+
+## Ask, don't invent
+
+Tell the agent to ask for what the person did not give, rather than guess. A description like "Ask for the travel date if
+the user did not give one" prevents a booking for an invented date. Anything that applies to the whole site (the order of
+steps, what to ask) belongs in the agent's instructions: [Define an agent](/build/define-an-agent).
+
+## For small on-device models
+
+Models of a billion parameters or less cannot infer a site's flow from tool names. Give the
+[on-device agent](/more/on-device-agent#site-instructions) a few plain lines of site instructions on top of good
+descriptions.
+
+The example apps follow these rules throughout (`examples/ecommerce/src/webmcp-agents/tools`, `examples/flights/src/webmcp-agents/tools`); they are worth
+reading next to this page. The [common tools](/build/common-tools) already describe themselves well.

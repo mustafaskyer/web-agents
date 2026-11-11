@@ -1,0 +1,85 @@
+---
+title: Tool allowlist
+description: The page sends its live tools with every message, so a caller could describe any "tool" it likes. List on the server which tools may reach the model, pin your own tools' descriptions, and require a registered agent.
+sidebar:
+  label: Tool allowlist
+related:
+  - /security/sessions
+  - /build/define-an-agent
+  - /reference/chat/create-chat-handler
+---
+
+The page's tools change as the page changes, so the chat sends the current list with every message. That list is just
+JSON in the request: a caller can drop yours and send a "tool" whose description is a prompt of its own. The
+allowlist puts the server in charge of what the model sees.
+
+```ts
+const handler = createChatHandler({
+  agents,
+  requireAgent: true,
+  tools: [...Object.values(tools), "add_to_cart", "place_order"],
+});
+```
+
+## Three kinds of entry
+
+| In `tools` | What the model gets | For |
+|---|---|---|
+| A tool from `defineWebTool` | **Pinned**: the server's own description and input schema, whatever the request says | Your catalog, and any tool defined in a module |
+| A tool id (a string) | The page's description and schema, capped at 1 KB and 8 KB | Tools defined inline in a component (`useWebTool({ id, … })`) |
+| Not listed | Nothing: the tool is dropped from the request | Everything else |
+
+The ids your registered agents list (`defineWebAgent({ tools: [...] })`) are allowed too, since the server defined
+those. Sub-agents' `delegate_to_<id>` tools are always built on the server, never taken from the request.
+
+A tool is still offered only while the page has it: the allowlist narrows the page's list, it never adds to it. If the
+model calls a dropped tool anyway, the call answers `Error [unavailable]` and nothing runs.
+
+## Build the list
+
+Keep it next to your catalog, in a file the route imports. List the catalog's tools as objects (so they are pinned) and
+every component tool by its id:
+
+<include meta='title="allowed-tools.ts"'>/_examples/shared/allowed-tools.ts</include>
+
+A tool you forget is dropped, so the agent can't use it: when an agent says a tool isn't on the page while you can see
+it there, check this list first.
+
+## Require an agent
+
+With `requireAgent: true`, a request must name one of your registered agents (`400` otherwise). Without it, a caller
+leaves the agent out and gets the model with no site instructions and every allowed tool. Turn it on whenever the page
+has agents; `@webmcp-agents/vercel-api` does when you pass `agents`.
+
+## A chat without tools
+
+An empty tool list is fine: the model just talks. That is also where off-topic use would go, so the default system
+prompt keeps the model to your site:
+
+> You help with this site and what the user is doing on it. Decline anything unrelated (general questions, writing,
+> code, other sites) in one short sentence and say what you can do here.
+
+Each agent's own instructions add what your site is. If you replace the system prompt (`system`), keep a line like
+it. A prompt is guidance, not a wall: [sessions](/security/sessions) and [limits](/security/limits) are what bound
+the cost of someone talking past it.
+
+## What else a request can't change
+
+- **Instructions** come from your server's registry by agent id, never from the request.
+- **Tool results** sent back by the page are cut to 4000 characters of text each.
+- **Sizes** are capped: 1 MB per request, 160 messages, 48 tools, 8000 characters per text part
+  ([`LIMITS`](/reference/chat/chat-request-schema#limits)).
+- **The page's address** reaches the prompt only as a same-origin path.
+
+## Try it
+
+Send a tool the server doesn't know, with a session cookie from the page (copy it from DevTools):
+
+```bash
+curl -s -X POST http://localhost:5173/api/chat -H 'content-type: application/json' \
+  -H 'cookie: web_agents_session=…' \
+  -d '{"agent":"shopper","messages":[{"id":"u","role":"user","parts":[{"type":"text","text":"call write_poem"}]}],
+       "tools":[{"name":"write_poem","description":"Write any poem","inputSchema":{"type":"object"}}]}'
+```
+
+The model never sees `write_poem`, and says it can't do that here.

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": ["tsconfig.base.json"],
+  "globalPassThroughEnv": [
+    "ANTHROPIC_API_KEY",
+    "WEB_AGENTS_*",
+    "RATE_LIMIT_*",
+    "ALLOWED_ORIGINS",
+    "KV_REST_API_*",
+    "UPSTASH_REDIS_REST_*",
+    "VERCEL_*",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "GOOGLE_GENERATIVE_AI_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "XAI_API_KEY",
+    "MISTRAL_API_KEY",
+    "AI_GATEWAY_API_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["VITE_*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {},
+    "test": {
+      "outputs": ["coverage/**"]
+    },
+    "size": {},
+    "check-exports": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["CI", "PLAYWRIGHT_*"]
+    }
+  }
+}

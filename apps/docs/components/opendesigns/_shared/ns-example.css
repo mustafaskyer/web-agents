@@ -1,0 +1,57 @@
+.ns-block-example,
+[data-ns-root] {
+  --ns-muted: var(--muted-foreground);
+  --ns-quiet: var(--muted);
+  --ns-accent: var(--primary);
+  --ns-accent-hover: var(--primary);
+  --surface: var(--card);
+  --border-control: var(--input);
+  position: relative;
+  isolation: isolate;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, "IBM Plex Sans", sans-serif);
+}
+.ns-block-example .font-mono,
+[data-ns-root] .font-mono {
+  font-family: var(--font-sans, "IBM Plex Sans", sans-serif);
+}
+.ns-block-example [data-graphics="unavailable"] canvas {
+  visibility: hidden;
+}
+.ns-block-example [data-graphics="unavailable"] {
+  background: var(--muted);
+}
+.ns-block-example :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ns-block-example [data-gravity-heading] {
+    opacity: 1 !important;
+  }
+}
+
+.ns-block-example,
+[data-ns-root] {
+  --ns-muted: var(--muted-foreground);
+  --surface: var(--card);
+}
+.dark .ns-block-example,
+.dark [data-ns-root] {
+  --ns-muted: var(--muted-foreground);
+  --surface: var(--card);
+}
+@theme inline {
+  --color-surface: var(--surface);
+  --color-border-control: var(--border-control);
+  --color-ns-accent-hover: var(--ns-accent-hover);
+  --color-ns-muted: var(--ns-muted);
+  --color-ns-accent: var(--ns-accent);
+  --color-ns-quiet: var(--ns-quiet);
+}
+
+.ns-block-example .font-mono,
+[data-ns-root] .font-mono {
+  font-family: var(--font-sans, "IBM Plex Sans", sans-serif);
+}

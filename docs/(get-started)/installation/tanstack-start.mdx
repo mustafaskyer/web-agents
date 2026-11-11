@@ -1,0 +1,94 @@
+---
+title: Install in a TanStack Start app
+description: Six steps, from an empty folder to a tool the agent cursor runs, in a TanStack Start app.
+# The page ends with its own "Next" card; the sidebar neighbours would say something else.
+pagination: false
+sidebar:
+  label: TanStack Start
+---
+
+<RememberFramework name="TanStack Start" />
+
+Six steps, from an empty folder to a tool the agent cursor runs. No example app in the repository runs TanStack
+Start: the code on this page is type-checked against the packages, not run.
+
+<include>/_partials/not-on-npm.mdx</include>
+
+<div class="install-steps">
+
+## Create a project
+
+Skip this if you already have a TanStack Start app. The TanStack CLI creates one; its defaults are fine.
+
+```package-install
+npx @tanstack/cli@latest create
+```
+
+## Install the packages
+
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
+
+```package-install
+npm install @webmcp-agents/core @webmcp-agents/react
+```
+
+## Add the styles
+
+Import the cursor's stylesheet as a URL in the root route and add it to the document's links, next to your own.
+
+```tsx src/routes/__root.tsx
+import cursorCss from "@webmcp-agents/core/cursor.css?url"; // [!code highlight]
+import appCss from "../styles.css?url";
+
+// In head():
+links: [
+  { rel: "stylesheet", href: appCss },
+  { rel: "stylesheet", href: cursorCss }, // [!code highlight]
+],
+```
+
+## Add the provider
+
+`<WebAgentsProvider>` installs the cursor and registers your tools; in a browser without WebMCP it loads a polyfill
+first, by itself, and in development it installs the devtools panel. Your page renders inside it right away, on the
+server too.
+
+<include meta='title="src/components/providers.tsx"'>/_examples/tanstack-start/src/components/providers.tsx</include>
+
+Wrap the page in it in the root route. The highlighted lines are the ones you add.
+
+<include meta='title="src/routes/__root.tsx" {6,9,23,36}'>/_examples/tanstack-start/src/routes/__root.tsx</include>
+
+## Add your first tool
+
+The action is one function with two callers: a person clicks the button, an agent calls the tool. `useWebTool`
+registers the tool while the component is on the page. A plain `<button>` is enough: the cursor finds it by its role
+and name.
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.install.tsx</include>
+
+Render it in a route.
+
+<include meta='title="src/routes/index.tsx"'>/_examples/tanstack-start/src/routes/index.tsx</include>
+
+## Run it
+
+Start the app and open it.
+
+```package-install
+npm run dev
+```
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `clear_cart` and press **Run**. The cursor flies
+to **Clear cart** and waits there. Click the button yourself: the cart empties, and the tool answers "The cart is
+empty."
+
+</div>
+
+## Next
+
+<Card title="Define a tool" href="/build/define-a-tool?view=TanStack+Start" arrow>
+  What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
+  not enough.
+</Card>

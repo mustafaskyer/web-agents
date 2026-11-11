@@ -1,0 +1,35 @@
+/* Tailwind v4 + the examples' shared shadcn theme (@webmcp-agents/examples-ui), and this app's own files as a source */
+@import "@webmcp-agents/examples-ui/styles.css";
+
+@source "../";
+
+/* Skyline's brand on top of the shared theme: a sky blue primary, Poppins, and the agent cursor in the same blue. */
+:root {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --primary: oklch(0.53 0.17 254);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.53 0.17 254 / 60%);
+  --background: oklch(0.985 0.002 250);
+
+  --agent: #1c6bd2;
+  --agent-ink: #ffffff;
+  --agent-strong: #1c6bd2;
+  --agent-soft: rgb(28 107 210 / 0.16);
+  --agent-wait: #1c6bd2;
+  --agent-wait-soft: rgb(28 107 210 / 0.2);
+}
+
+@layer base {
+  html {
+    scroll-padding-top: 5rem; /* the sticky header */
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply text-balance;
+  }
+}

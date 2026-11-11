@@ -1,0 +1,209 @@
+---
+title: Call a tool
+description: tool.invoke calls a tool the way an agent would, with the cursor and confirmation. Use it for a "Try it" button, a keyboard shortcut, an onboarding tour or a test.
+sidebar:
+  label: 6. Call a tool
+---
+
+Every tool has one verb, **`invoke`**. It calls the tool the way an agent would, through the page's WebMCP: the cursor
+moves, fields are typed, confirmation applies, and you get the answer the agent would get. Use it for a "Try it"
+button, a keyboard shortcut, a guided tour or an end-to-end test.
+
+## A complete example
+
+A tool called from a button. Where `invoke` comes from depends on how the tool was written:
+
+<View title="Vite">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="Next.js">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`components/cart-summary.tsx`**
+
+<include meta='title="components/cart-summary.tsx"'>/_examples/nextjs/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="TanStack Start">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+<View title="Astro">
+
+<Tabs syncKey="tool-api" hash={false}>
+<Tab title="useWebTool">
+
+The hook returns `invoke` for the tool it registers, the same function on every render.
+
+```tsx
+const addToCart = useWebTool({
+  id: "add_to_cart",
+  // …
+});
+
+<Button
+  variant="outline"
+  onClick={() => addToCart.invoke({ size: "M", quantity: 2 })}
+>
+  Show me
+</Button>
+```
+
+</Tab>
+<Tab title="defineWebTool">
+
+A defined tool has `invoke` on it: import the tool and call it.
+
+**`src/components/cart-summary.tsx`**
+
+<include meta='title="src/components/cart-summary.tsx"'>/_examples/shared/components/cart-summary.tsx</include>
+
+</Tab>
+</Tabs>
+
+</View>
+
+`invoke` resolves to what `execute` returned, typed: for `get_cart`, `{ lines, total }`.
+
+It works only while the tool is on: a component's tool while the component is mounted, a defined tool while its
+`match` fits.
+
+## What it resolves and rejects with
+
+- **It resolves to what `execute` returned**, or `undefined` when the call navigated the page away. The common tools'
+  readers return MCP results, `{ content, structuredContent }`.
+- **It rejects with a [`WebToolError`](/reference/core/web-tool-error)** carrying the code an agent would have read:
+  `invalid_input` for input that fails the schema, `unavailable` for a confirmation with nothing to click, `failed`
+  when `execute` throws, and the others in [Errors](/concepts/errors). It also rejects when the tool is not on the page
+  right now.
+- **A confirm-gated tool waits** for the person's click, like an agent's call. Pass a `signal` to stop waiting:
+  `invoke(input, { signal })` rejects with an `AbortError` when it aborts.
+
+For a unit test, use `run` instead: it validates and executes with no page, no cursor and no confirmation.
+
+```ts
+const orders = await listOrders.run(
+  { limit: 1 },
+  { signal: new AbortController().signal, source: "test" },
+);
+```
+
+## From the console
+
+In development, the devtools put the same call on `window.agent`, by name:
+
+```js
+await agent.invoke("get_cart");
+await agent.list();
+```
+
+End-to-end tests drive tools the same way: the example apps' Playwright tests call `window.agent.invoke`.
+
+## Try it
+
+Render `<CartSummary />` and click **Check the cart**: it shows "Lines: 1, total $28.00". Then, in the console, call the tool
+by name:
+
+```js
+await agent.invoke("get_cart");
+```
+
+## Options you'll use most
+
+| `invoke(input, options)` | What it is for |
+|---|---|
+| `input` | The tool's parameters, typed by its schema. Optional when it takes none. |
+| `options.signal` | Abort the call, including a wait for the person's click. |
+
+Reference: [`defineWebTool`](/reference/core/define-web-tool) (the `WebTool` it returns, with `invoke` and `run`) and
+[`useWebTool`](/reference/react/use-web-tool) (what the hook returns).

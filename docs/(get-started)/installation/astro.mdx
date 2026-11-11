@@ -1,0 +1,102 @@
+---
+title: Install in an Astro site
+description: Six steps, from an empty folder to a tool the agent cursor runs, in an Astro site with a React island.
+# The page ends with its own "Next" card; the sidebar neighbours would say something else.
+pagination: false
+sidebar:
+  label: Astro
+---
+
+<RememberFramework name="Astro" />
+
+Six steps, from an empty folder to a tool the agent cursor runs. In Astro, React runs in islands, so the provider and
+the components that have tools share one island. This site's own landing page is built that way.
+No React on the page? [Install without a framework](/installation/no-framework) shows `createWebAgents`, which a plain
+Astro `<script>` can call.
+
+<include>/_partials/not-on-npm.mdx</include>
+
+<div class="install-steps">
+
+## Create a project
+
+Skip this if you already have an Astro site with React. Create the site, then add React for the islands.
+
+```package-install
+npm create astro@latest
+```
+
+```package-install
+npx astro add react
+```
+
+## Install the packages
+
+The agent cursor and the React bindings. Nothing else: the provider loads a WebMCP polyfill where the browser has
+none, and the devtools panel in development.
+
+```package-install
+npm install @webmcp-agents/core @webmcp-agents/react
+```
+
+## Add the styles
+
+Import the cursor's stylesheet in your layout's front matter, next to your own.
+
+```astro src/layouts/Layout.astro
+---
+import "@webmcp-agents/core/cursor.css"; // [!code highlight]
+---
+```
+
+## Add the provider
+
+`<WebAgentsProvider>` installs the cursor and registers your tools; in a browser without WebMCP it loads a polyfill
+first, by itself, and in development it installs the devtools panel. It goes on a page in the next step.
+
+<include meta='title="src/components/providers.tsx"'>/_examples/astro/src/components/providers.tsx</include>
+
+## Add your first tool
+
+The action is one function with two callers: a person clicks the button, an agent calls the tool. `useWebTool`
+registers the tool while the component is on the page. A plain `<button>` is enough: the cursor finds it by its role
+and name.
+
+<include meta='title="src/components/clear-cart.tsx"'>/_examples/shared/components/clear-cart.install.tsx</include>
+
+Put the component inside the provider in one island, and render the island on a page. `client:load` renders it on
+the server and hydrates it in the browser.
+
+<include meta='title="src/components/cart.tsx"'>/_examples/astro/src/components/cart.tsx</include>
+
+```astro src/pages/index.astro
+---
+import { Cart } from "../components/cart";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout>
+  <Cart client:load />
+</Layout>
+```
+
+## Run it
+
+Start the site and open it.
+
+```package-install
+npm run dev
+```
+
+Open the devtools panel (bottom right, or **Alt+Shift+A**), expand `clear_cart` and press **Run**. The cursor flies
+to **Clear cart** and waits there. Click the button yourself: the cart empties, and the tool answers "The cart is
+empty."
+
+</div>
+
+## Next
+
+<Card title="Define a tool" href="/build/define-a-tool?view=Astro" arrow>
+  What you just wrote, line by line: `execute`, the `title` the cursor looks for, and `target` for when the name is
+  not enough.
+</Card>
