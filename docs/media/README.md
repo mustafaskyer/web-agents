@@ -12,4 +12,4 @@ pnpm capture        # starts the four example apps, records with Playwright's Ch
 (≤ 1.5 MB each) and the hero clip to `hero.gif` (≤ 3 MB, for GitHub).
 
 The chat stills that need a live model (`chat/tool-card.png`, `chat/subagent.png`) are only produced when
-`apps/ecommerce/.env.local` holds a provider key; the picker still needs none.
+`examples/ecommerce/.env.local` holds a provider key; the picker still needs none.
