@@ -53,5 +53,5 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: apps/*/playwright-report
+          path: examples/*/playwright-report
           retention-days: 7

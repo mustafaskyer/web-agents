@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { open, openChat, run, sleep, still } from "./helpers";
 
 const STORE = "http://localhost:5174";
-const envFile = join(import.meta.dirname, "..", "apps", "ecommerce", ".env.local");
+const envFile = join(import.meta.dirname, "..", "examples", "ecommerce", ".env.local");
 const hasKey = existsSync(envFile) && /^[A-Z_]*_API_KEY=\S+/m.test(readFileSync(envFile, "utf8"));
 
 test("chat: the on-device model picker (no key needed)", async ({ page }, info) => {
@@ -23,7 +23,7 @@ test("chat: the on-device model picker (no key needed)", async ({ page }, info) 
 test("chat: a tool call card and a sub-agent card (needs a model key)", async ({ page }, info) => {
   test.skip(
     !hasKey,
-    "Put ANTHROPIC_API_KEY (or another provider's key) in apps/ecommerce/.env.local to capture the chat with a live model.",
+    "Put ANTHROPIC_API_KEY (or another provider's key) in examples/ecommerce/.env.local to capture the chat with a live model.",
   );
   await open(page, STORE, "open_product");
   await openChat(page);

@@ -23,7 +23,7 @@ export default defineConfig({
   timeout: 120_000,
   use: { trace: "off", screenshot: "off" },
   webServer: [
-    app("playground", 5173),
+    app("@webmcp-agents/example-playground", 5173),
     app("@webmcp-agents/example-ecommerce", 5174),
     app("@webmcp-agents/example-flights", 5175),
     app("@webmcp-agents/example-nextjs", 5176),

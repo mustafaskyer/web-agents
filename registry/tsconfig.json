@@ -6,8 +6,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "types": ["node"],
     "paths": {
-      "@/components/ui/*": ["./../apps/nextjs/components/ui/*"],
-      "@/lib/*": ["../apps/nextjs/lib/*"],
+      "@/components/ui/*": ["../examples/ui/src/components/*"],
       "@/components/web-agents/agent-tool": ["./default/agent-tool/agent-tool.tsx"],
       "@/components/web-agents/agent-reasoning": ["./default/agent-reasoning/agent-reasoning.tsx"],
       "@/components/web-agents/agent-subagent": ["./default/agent-subagent/agent-subagent.tsx"],
@@ -16,13 +15,13 @@
       "@webmcp-agents/chat": ["../packages/chat/src/index.ts"],
       "@webmcp-agents/react": ["../packages/react/src/index.ts"],
       "@webmcp-agents/core": ["../packages/core/src/index.ts"],
-      "react": ["../apps/nextjs/node_modules/@types/react"],
-      "react/jsx-runtime": ["../apps/nextjs/node_modules/@types/react/jsx-runtime"],
-      "react-dom": ["../apps/nextjs/node_modules/@types/react-dom"],
-      "*": ["../apps/nextjs/node_modules/*", "../apps/nextjs/node_modules/@types/*"],
-      "node:*": ["../apps/nextjs/node_modules/@types/node/*"]
+      "react": ["../examples/nextjs/node_modules/@types/react"],
+      "react/jsx-runtime": ["../examples/nextjs/node_modules/@types/react/jsx-runtime"],
+      "react-dom": ["../examples/nextjs/node_modules/@types/react-dom"],
+      "*": ["../examples/nextjs/node_modules/*", "../examples/nextjs/node_modules/@types/*"],
+      "node:*": ["../examples/nextjs/node_modules/@types/node/*"]
     },
-    "typeRoots": ["../apps/nextjs/node_modules/@types"]
+    "typeRoots": ["../examples/nextjs/node_modules/@types"]
   },
   "include": ["default/**/*.tsx", "test/**/*.ts"]
 }

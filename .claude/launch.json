@@ -16,7 +16,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--filter",
-        "playground",
+        "@webmcp-agents/example-playground",
         "dev"
       ],
       "port": 5173

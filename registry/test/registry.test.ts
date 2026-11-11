@@ -40,7 +40,7 @@ describe("registry sources", () => {
     for (const item of source.items) {
       for (const f of item.files) {
         const name = f.path.split("/").at(-1)!;
-        const installed = join(here, "..", "..", "apps", "nextjs", "components", "web-agents", name);
+        const installed = join(here, "..", "..", "examples", "nextjs", "components", "web-agents", name);
         expect(readFileSync(installed, "utf8"), name).toBe(readFileSync(join(here, "..", "..", f.path), "utf8"));
       }
     }
