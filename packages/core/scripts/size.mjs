@@ -34,11 +34,12 @@ const index = fileURLToPath(new URL("../src/index.ts", import.meta.url));
  * controls, leaving a control that is no longer under the hand, a parked confirmation that follows its control,
  * a background tab and a frame-less pane add about 0.7 KB to both: 9.96 KB and 17.2 KB. Budgets raised to 10 KB and
  * 17.25 KB. The confirm gate's 10 s limit and a person's own call cancelling a waiting confirmation add about 0.2 KB
- * outside the visuals (17.41 KB): the whole-package budget went to 17.5 KB.
+ * outside the visuals (17.41 KB): the whole-package budget went to 17.5 KB. The person clicking elsewhere or
+ * scrolling cancelling a waiting confirmation (2026-11-11) adds about 0.3 KB (17.71 KB): budget 17.75 KB.
  */
 const CHECKS = [
   { name: "visuals (installAgentVisuals, onAgentEvent)", exports: "{ installAgentVisuals, onAgentEvent }", budget: 10 * KB },
-  { name: "whole package", exports: "*", budget: 17.5 * KB },
+  { name: "whole package", exports: "*", budget: 17.75 * KB },
 ];
 
 async function size(exports) {

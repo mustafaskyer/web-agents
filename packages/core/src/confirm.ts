@@ -15,6 +15,7 @@ import { emit } from "./events";
 import { usable } from "./locate";
 import { abortError, WebToolError } from "./result";
 import type { WebTool } from "./web-tool";
+import { UI_HOST_ATTR } from "./user-yield";
 import type { FieldValue } from "./write";
 
 /** On a ModelContextTool: the selector a confirmation click must land in. Survives `{ ...tool }`. */
@@ -134,6 +135,21 @@ const clickable = (el: Element): boolean => el.isConnected && usable(el);
 const RECHECK_MS = 300;
 
 /**
+ * Wheel events closer together than this belong to one gesture. A trackpad keeps firing momentum wheel events for a
+ * second or more after the fingers lift: a scroll the person made before the prompt appeared must not dismiss it.
+ */
+const GESTURE_GAP_MS = 200;
+
+/** How long after a click elsewhere the gate gives up, so a tool call that click starts can supersede it by name. */
+const CLICK_SETTLE_MS = 150;
+
+/** Keys that scroll the page when nothing focusable has focus (Space and the arrows on a button or field do not). */
+const SCROLL_KEYS = new Set(["PageUp", "PageDown", "Home", "End", "ArrowUp", "ArrowDown", " "]);
+
+/** Input inside a library UI (chat, devtools) is the person driving the agent, not walking away from the prompt. */
+const fromUi = (e: Event): boolean => e.composedPath().some((n) => n instanceof Element && n.hasAttribute(UI_HOST_ATTR));
+
+/**
  * Resolve when the user clicks one of the elements `target` finds (a selector, or a resolver returning the
  * elements a click may land in, the one to park on first); reject with an AbortError when `signal` aborts. Fails
  * closed: with nothing clickable on the page (missing, or disabled), or once it goes away while waiting, reject
@@ -175,16 +191,45 @@ export function waitForConfirmation(
     const observer = new MutationObserver(check);
     // A media or container query hides a control (a header link folding into a menu) with no mutation to observe.
     const recheck = setInterval(check, RECHECK_MS);
-    const give = (by: string): void => {
+    // The person moved on (another call of theirs, a click elsewhere, a scroll): a prompt left parked gets in their way.
+    const leave = (did: string): void => {
       done();
       reject(
         new WebToolError(
           "cancelled",
-          `"${toolId}" was waiting for the user's confirmation; the user ran "${by}" instead. Call it again only if they still want it.`,
+          `"${toolId}" was waiting for the user's confirmation; the user ${did} instead. Call it again only if they still want it.`,
         ),
       );
     };
+    const give = (by: string): void => leave(`ran "${by}"`);
     waiting.add(give);
+    // A wheel gesture already under way when the prompt appeared (trackpad momentum) is not an answer to it.
+    let coasting = true;
+    let gestureEnd: ReturnType<typeof setTimeout> | undefined;
+    const coast = (): void => {
+      clearTimeout(gestureEnd);
+      gestureEnd = setTimeout(() => (coasting = false), GESTURE_GAP_MS);
+    };
+    coast();
+    const moved = (e: Event): void => {
+      const at = e.target;
+      if (!e.isTrusted || fromUi(e)) return;
+      if (e.type === "wheel" && coasting) coast();
+      else if (e.type === "pointerdown") {
+        if (at instanceof Node && find().some((el) => el.contains(at))) return;
+        // Let the click land first: when it starts a tool call (a chip), `supersedeWaiting` names that call instead.
+        const later = (): unknown => setTimeout(() => settled.signal.aborted || leave("clicked elsewhere"), CLICK_SETTLE_MS);
+        addEventListener("pointerup", later, { once: true, signal: settled.signal });
+      }
+      // Only keys that scroll the page itself: a key on a focused control (the gate's own button included) is its own.
+      else if (
+        e.type !== "keydown" ||
+        (SCROLL_KEYS.has((e as KeyboardEvent).key) && (at === document.body || at === document.documentElement))
+      )
+        leave("scrolled the page");
+    };
+    for (const type of ["wheel", "pointerdown", "touchmove", "keydown"])
+      addEventListener(type, moved, { capture: true, passive: true, signal: settled.signal });
     // Nobody is there to confirm: the agent hears so, rather than hold a prompt on the page for ever.
     const expire = setTimeout(() => {
       done();
@@ -198,6 +243,7 @@ export function waitForConfirmation(
     const done = (): void => {
       waiting.delete(give);
       clearTimeout(expire);
+      clearTimeout(gestureEnd);
       observer.disconnect();
       clearInterval(recheck);
       settled.abort();

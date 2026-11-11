@@ -2,6 +2,7 @@ import { userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmationUnavailableError, waitForConfirmation } from "./confirm";
 import { cleanupFixtures, fixture, recordEvents } from "./test-utils";
+import { UI_HOST_ATTR } from "./user-yield";
 
 const timeout = (ms: number) => new Promise<"timeout">((r) => setTimeout(() => r("timeout"), ms));
 
@@ -111,6 +112,46 @@ describe("waitForConfirmation", () => {
     const ac = new AbortController();
     const confirmed = waitForConfirmation('[toolname="t_confirm"]', ac.signal, "t_confirm").then(() => "confirmed");
     el.click();
+    expect(await Promise.race([confirmed, timeout(100)])).toBe("timeout");
+    ac.abort();
+    await confirmed.catch(() => {});
+  });
+
+  it("is cancelled by a trusted click elsewhere on the page", async () => {
+    button();
+    const other = fixture('<button type="button">Other</button>').querySelector("button") as HTMLButtonElement;
+    const confirmed = waitForConfirmation('[toolname="t_confirm"]', new AbortController().signal, "t_confirm").catch((err) => err);
+    await userEvent.click(other);
+    expect(await confirmed).toMatchObject({ code: "cancelled", message: expect.stringMatching(/clicked elsewhere/) });
+  });
+
+  it("is cancelled when the person scrolls, but not by a scroll already under way", async () => {
+    const { el } = button();
+    const ac = new AbortController();
+    const confirmed = waitForConfirmation('[toolname="t_confirm"]', ac.signal, "t_confirm").then(
+      () => "confirmed",
+      (err: { code?: string }) => err.code,
+    );
+    // Momentum from before the prompt: back-to-back wheel events with no gap.
+    for (let i = 0; i < 3; i++) {
+      await userEvent.hover(el);
+      await userEvent.wheel(el, { delta: { y: 1 } });
+    }
+    expect(await Promise.race([confirmed, timeout(50)])).toBe("timeout");
+    await timeout(300); // the gesture ends
+    await userEvent.wheel(el, { delta: { y: 1 } });
+    expect(await confirmed).toBe("cancelled");
+  });
+
+  it("ignores clicks inside a library UI and a script's clicks elsewhere", async () => {
+    button();
+    const ui = fixture(`<div ${UI_HOST_ATTR}><button type="button">Chat</button></div>`).querySelector("button") as HTMLButtonElement;
+    const other = fixture('<button type="button">Other</button>').querySelector("button") as HTMLButtonElement;
+    const ac = new AbortController();
+    const confirmed = waitForConfirmation('[toolname="t_confirm"]', ac.signal, "t_confirm").then(() => "confirmed");
+    await userEvent.click(ui);
+    other.click();
+    other.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     expect(await Promise.race([confirmed, timeout(100)])).toBe("timeout");
     ac.abort();
     await confirmed.catch(() => {});
