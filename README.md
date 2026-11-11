@@ -37,7 +37,7 @@ landing page at `/`, whose own actions are WebMCP tools you can try from the pag
 
 | App | |
 |---|---|
-| [`apps/playground`](apps/playground) | A storefront where every action is a WebMCP tool: forms as `useWebTool` + React Hook Form, an app-wide catalog with `match`, confirm-gated place-order and clear-cart, and one declarative form as the alternative. |
+| [`examples/playground`](examples/playground) | A storefront where every action is a WebMCP tool: forms as `useWebTool` + React Hook Form, an app-wide catalog with `match`, confirm-gated place-order and clear-cart, and one declarative form as the alternative. |
 
 ## Examples
 
@@ -47,9 +47,9 @@ traveler details on TanStack Form), and a confirm gate on the consequential step
 
 | App | Port | |
 |---|---|---|
-| [`apps/ecommerce`](apps/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
-| [`apps/flights`](apps/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
-| [`apps/nextjs`](apps/nextjs) | 5176 | **Field Store on Next.js**: App Router + shadcn/ui; the chat is a shadcn block from the `@webmcp-agents` registry (`registry/`), `defineWebAgent` shared between the route handler and the client, the key tainted server-side; the same `<WebAgentsProvider tools={tools}>` line as the Vite apps. |
+| [`examples/ecommerce`](examples/ecommerce) | 5174 | **Field Store**: catalogue, product pages, a cart drawer whose tools exist only while it's open, checkout. |
+| [`examples/flights`](examples/flights) | 5175 | **Skyline**: flight search, results with filters and sort, traveler details, booking and look-up. |
+| [`examples/nextjs`](examples/nextjs) | 5176 | **Field Store on Next.js**: App Router + shadcn/ui; the chat is a shadcn block from the `@webmcp-agents` registry (`registry/`), `defineWebAgent` shared between the route handler and the client, the key tainted server-side; the same `<WebAgentsProvider tools={tools}>` line as the Vite apps. |
 | [`apps/docs`](apps/docs) | 4321 | **The website**: the landing page, the Demos page (agent-browser clips of Skyline and Field Store) and the docs in one site. The site is an example too: its demos, docs links, FAQ, copy buttons, theme switch and search are WebMCP tools (`defineWebTool`), run from the hero's chips ("Try it as an agent would") or by any agent. |
 
 `pnpm --filter @webmcp-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
@@ -179,17 +179,21 @@ export const tools = {
 `createWebAgents({ tools })` from `@webmcp-agents/core` is the same provider.
 
 ```
-apps/playground/src/
-  tools/              ← PURE. No cursor code anywhere.
-    index.ts             defineWebTool: get_cart (everywhere), list_orders (match "/orders")
-    AddToCartForm.tsx    useWebTool + React Hook Form: add_to_cart_<sku>
-    ClearCartButton.tsx  useWebTool clear_cart (destructive, requireConfirmation)
-    PlaceOrderButton.tsx useWebTool place_order (requireConfirmation)
-    ApplyPromoForm.tsx   the one declarative <form toolname="apply_promo"> (the alternative)
-  App.tsx             ← <WebAgentsProvider tools={tools}> (installs the cursor, and the devtools in dev)
-  store.tsx           ← the cart: a module store
+examples/playground/src/
+  webmcp-agents/      ← PURE. No cursor code anywhere.
+    tools/               defineWebTool: get_cart (everywhere), list_orders (match "/orders"); index.ts is the catalog
+    hooks/
+      use-add-to-cart.ts       useWebTool + React Hook Form: add_to_cart_<sku>
+      use-clear-cart.ts        useWebTool clear_cart (destructive, requireConfirmation)
+      use-place-order.ts       useWebTool place_order (requireConfirmation)
+      use-remove-promo.ts      useWebTool remove_promo
+      use-apply-promo.ts       answers the one declarative <form toolname="apply_promo"> (the alternative)
+  components/         ← UI only: props + hooks (add-to-cart-form.tsx, apply-promo-form.tsx, cart-panel.tsx, …)
+  hooks/              ← app hooks: use-cart.ts (the store in React), use-orders.ts, use-page.ts, use-nav-link.ts
+  app.tsx             ← <WebAgentsProvider tools={tools}> (installs the cursor, and the devtools in dev)
+  store/cart.ts       ← the cart: a module store
   main.tsx            ← render (the provider loads the polyfill where it is needed)
-  Devtools.tsx        ← dev only, lazy, with ?tanstack: the devtools as a TanStack tab (devtools={false} on the provider)
+  devtools.tsx        ← dev only, lazy, with ?tanstack: the devtools as a TanStack tab (devtools={false} on the provider)
 packages/core         ← OUR LOGIC. Event-driven, installed once, never imports a tool. Holds the polyfill (src/polyfill/).
 packages/react        ← provider + hooks: which tools are on, registered without churn; loads the devtools in dev
 packages/polyfill     ← deprecated: re-exports core's polyfill (document.modelContext + declarative forms + events)
@@ -214,11 +218,11 @@ deploy_.
 
 - pnpm workspaces + Turborepo (`turbo run build|typecheck|test|dev`), Biome for lint and format.
 - CI (`.github/workflows/ci.yml`): Biome, typecheck, unit + browser tests, build, size budgets, publint +
-  are-the-types-wrong (`check-exports`), then Playwright e2e. Releases: Changesets (`pnpm changeset`), published by
-  `.github/workflows/release.yml`.
+  are-the-types-wrong (`check-exports`), then Playwright e2e. Releases: Changesets (`pnpm changeset`), published from
+  a maintainer's machine by `pnpm release` (`scripts/release.mjs`); no CI job publishes.
 - Packages build with tsdown. In this repo, apps and type-checking resolve packages to their
   TypeScript source through the `"@webmcp-agents/source"` export condition, so edits hot-reload
   without a build; published packages use `dist/`.
 - Tests: Vitest. `*.test.ts` run in Node; `*.browser.test.ts` run in real Chromium (Vitest
   browser mode + Playwright). First run: `pnpm exec playwright install chromium`. The example apps
-  add Playwright e2e tests in `apps/*/e2e` (`pnpm e2e`), which drive tools through `window.agent`.
+  add Playwright e2e tests in `examples/*/e2e` (`pnpm e2e`), which drive tools through `window.agent`.

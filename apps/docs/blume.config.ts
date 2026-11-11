@@ -34,7 +34,7 @@ export default defineConfig({
   github: { owner: "mustafaskyer", repo: "web-agents", dir: "apps/docs" },
   theme: {
     // the landing page's typefaces, so both halves of the site read as one
-    fonts: { display: "geist", body: "geist", mono: "geist-mono" },
+    fonts: { display: "ibm-plex-sans", body: "ibm-plex-sans", mono: "ibm-plex-mono" },
   },
   navigation: {
     // Get started, Build, Concepts, More and Examples under "Docs"; the per-API pages get their own sidebar under "Reference".

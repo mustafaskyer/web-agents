@@ -33,13 +33,15 @@ pnpm install
 pnpm dev                                   # every app with HMR into package source: playground :5173, ecommerce :5174, flights :5175,
                                            # nextjs :5176, the website (landing + docs) :4321
 pnpm check                                 # biome ci + typecheck + test + build + size (what CI runs)
-pnpm --filter @webmcp-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 10 KB, whole package ≤ 17.5 KB
+pnpm --filter @webmcp-agents/core size        # core bundle budget (min+gz): visuals-only ≤ 10 KB, whole package ≤ 17.75 KB
                                            # (the polyfill chunk, loaded on demand, is reported, not counted)
 pnpm typecheck | pnpm test | pnpm build    # via turbo
 pnpm lint / pnpm format                    # biome
 pnpm turbo run check-exports               # publint + are-the-types-wrong on every package (CI runs it)
-pnpm changeset                             # describe a change to a published package (release.yml publishes)
-pnpm e2e                                   # Playwright e2e of apps/ecommerce, apps/flights and apps/nextjs (not part of pnpm check)
+pnpm changeset                             # describe a change to a published package
+pnpm release [patch|minor|major]           # local release (scripts/release.mjs): bump + gate + npm publish + push; no CI job
+                                           # publishes. --dry-run, release:version / :publish / :snapshot / :status
+pnpm e2e                                   # Playwright e2e of examples/ecommerce, examples/flights and examples/nextjs (not part of pnpm check)
 pnpm registry:build                        # shadcn build → apps/docs/public/r/*.json (part of pnpm check, with registry:typecheck + registry:test)
 pnpm capture                               # docs/media/**: stills + clips of the four apps via Playwright's Chromium + ffmpeg (not in pnpm check)
 pnpm --filter @webmcp-agents/core test        # one package
@@ -55,16 +57,27 @@ pnpm exec playwright install chromium      # once, for browser-mode tests
 ## Project Structure
 
 ```
-apps/playground/        demo storefront; every action is a WebMCP tool (useWebTool + React Hook Form, an app-wide catalog with `match`,
+examples/               the example apps, all on shadcn/ui from examples/ui. Each keeps everything agent-side in webmcp-agents/
+                        (src/webmcp-agents in Vite apps, webmcp-agents/ in Next.js): agents.ts (defineWebAgent), tools/ (one
+                        defineWebTool per file + index.ts, the catalog, whose header maps where every tool lives), components/
+                        (components that own a tool's state and call useWebTool inline: forms, search). A defined tool that is
+                        on only while a component is open is not in the catalog: the component calls useWebTool(tool, { enabled }).
+                        Docs are the source of truth for the examples: change the code to match them.
+examples/ui/            @webmcp-agents/examples-ui (private, source only): the shadcn/ui components (base-nova, Base UI, lucide,
+                        Tailwind v4) every example imports as @webmcp-agents/examples-ui/components/<name>, and styles.css (an
+                        app's CSS imports it + `@source "../"`). Components import each other relatively; `shadcn add` from
+                        examples/ui writes `@/` imports that must be made relative.
+examples/playground/    demo storefront; every action is a WebMCP tool (useWebTool + React Hook Form, an app-wide catalog with `match`,
                         one declarative form as the alternative)
-apps/ecommerce/         "Field Store" example (React Router 7): an app-wide catalog, component tools (the cart drawer's exist only
+examples/ecommerce/     "Field Store" example (React Router 7): an app-wide catalog, component tools (the cart drawer's exist only
                         while it is open), confirm-gated checkout; data/ (mock JSON + pure queries), store/ (module stores: cart,
-                        ui, cartRules), lib/navigate.ts (the router's navigate for module tools), tools/, e2e/ (Playwright)
-apps/flights/           "Skyline" example: search in the URL, results tools with `match` on the results route, forms on React Hook
+                        ui, cart-rules), lib/navigate.ts (the router's navigate for module tools), e2e/ (Playwright)
+examples/flights/       "Skyline" example: search in the URL, results tools with `match` on the results route, forms on React Hook
                         Form (traveler details on TanStack Form), confirm-gated booking
-apps/nextjs/            "Field Store on Next.js" (App Router + shadcn/ui, port 5176): Server Components render pages, client
-                        components hold the tools, the chat is the registry's agent-chat block, lib/env.server.ts taints the key.
-                        Consumes the packages' dist (predev builds them); app/layout.tsx imports @webmcp-agents/core/cursor.css.
+examples/nextjs/        "Field Store on Next.js" (App Router, port 5176): Server Components render pages, client components hold
+                        the tools, the chat is the registry's agent-chat block, lib/env.server.ts taints the key. tsconfig maps
+                        `@/components/ui/*` to examples/ui for the registry blocks. Consumes the packages' dist (predev builds
+                        them); app/layout.tsx imports @webmcp-agents/core/cursor.css.
 apps/docs/              @webmcp-agents/docs (private, port 4321): the one website, a Blume site. The docs are ../../docs, mounted
                         under /docs (`basePath`; edit content in docs/). The home page is the landing: pages/index.astro (its own
                         document, not Blume's PageLayout) hydrates components/landing/landing.tsx as one React island, styled by
@@ -73,15 +86,19 @@ apps/docs/              @webmcp-agents/docs (private, port 4321): the one websit
                         needs OPENDESIGNS_TOKEN in the env, see components.json) over components/ui (shadcn, React Aria).
                         pages/demos.astro (/demos) hydrates components/landing/demos.tsx the same way: the recorded clips
                         (demos-data.ts) in browser frames; pages/docs/demos.astro redirects the docs header's Demos link.
-                        components/landing/: site-tools.ts (the site's own defineWebTool tools: homeTools, demosTools),
-                        docs-search.tsx (search_docs, a tool with an input), agent-layer.tsx (the provider, which brings the
-                        devtools in dev, + the first-visit intro, a real show_tools call), try-it.tsx (the hero's grouped chips that run the tools),
-                        site-chrome.tsx (the header and footer both pages share), demo-frame.tsx, outline.ts, steps.tsx,
-                        faq-data.ts. Consumes the packages' dist (predev builds them). scripts/record-demo.sh <demo>
+                        Business and UI apart, like the examples: webmcp-agents/tools/<id>.ts (one defineWebTool from core per
+                        file; index.ts: the homeTools/demosTools catalogs + a map of every tool), webmcp-agents/hooks/ (hooks
+                        that call tools: use-agent-layer (ready + onReady + use-intro, the first-visit show_tools call),
+                        use-tools-ready (invokeWhenReady), use-try-it (the hero's chips), use-linked-demo (/demos#<id> replays
+                        it)); hooks/use-*.ts (docs search, copy buttons, FAQ open question, theme toggle, typed word); lib/
+                        (React-free: docs-search store + Blume search client, clipboard, faq event, demo-frame lookup/replay,
+                        outline, tools-row, when-idle, call-code). components/landing/*.tsx only take props and call hooks
+                        (agent-layer.tsx: the provider, which brings the devtools in dev; landing.tsx / demos.tsx pass it
+                        the catalog, the one wiring point); *-data.ts there is plain data. Consumes the packages' dist (predev builds them). scripts/record-demo.sh <demo>
                         re-records public/demo (agent-browser); theme.css gives the docs the landing's dark palette;
                         public/r/ is the built shadcn registry (gitignored)
 registry/               the @webmcp-agents shadcn registry: registry.json + default/<item>/<item>.tsx (agent-chat, agent-tool,
-                        agent-subagent, agent-reasoning, agent-model-selector); copies live in apps/nextjs/components/web-agents
+                        agent-subagent, agent-reasoning, agent-model-selector); copies live in examples/nextjs/components/web-agents
                         and must stay identical (registry/test checks it)
 packages/core/          @webmcp-agents/core: visuals (cursor.ts, motion.ts, visuals.ts), events.ts, user-yield.ts,
                         webmcp.ts (global WebMCP types), cursor.css (shipped as @webmcp-agents/core/cursor.css; cursor-native.css, optional,
@@ -105,7 +122,7 @@ packages/chat/         @webmcp-agents/chat: <AgentChat> (components/), AgentAdap
 packages/local-agent/   @webmcp-agents/local-agent: createLocalAdapter (index.ts), loop.ts (shared on-device agent loop),
                         tool-call-parser.ts, tools.ts (rank/compact/validate), providers/transformers (worker + engine +
                         main-thread provider), providers/prompt-api (Chrome LanguageModel)
-packages/vercel-api/    @webmcp-agents/vercel-api (private): createVercelChatRoute for apps/*/api/chat.ts — origin, per-IP
+packages/vercel-api/    @webmcp-agents/vercel-api (private): createVercelChatRoute for examples/*/api/chat.ts — origin, per-IP
                         rate limit (Upstash or in-memory) and daily budget guards around the chat handler
 packages/devtools/      @webmcp-agents/devtools: store.ts (tools, calls, settings), schema-form/ (JSON-Schema form), ui/ (React
                         panel in a shadow root), vanilla.tsx (installWebAgentsDevtools), react.tsx (<WebAgentsDevtools />,
@@ -118,7 +135,8 @@ capture/                the docs media harness: playwright.config.ts (webServer 
                         projects), *.capture.ts, encode.mjs (ffmpeg → docs/media, budgets: clips ≤ 1.5 MB, hero.gif ≤ 3 MB)
 docs/                   the docs site's content (apps/docs renders it), ordered by framework and by step (docs/README.md
                         "How these docs are written"): (get-started)/ (index.mdx, installation/ with one page per framework),
-                        build/ (the ten-page path), concepts/, more/ (incl. deploy.md), examples/, reference/<package>/<api>.md
+                        build/ (the ten-page path), concepts/, security/ (locking /api/chat: sessions, tool allowlist, Turnstile, limits),
+                        more/ (incl. deploy.md), examples/, reference/<package>/<api>.md
                         (one file per public API, one template); _examples/ holds the code the pages show as real files that
                         type-check (`@webmcp-agents/docs-examples`), pulled in with <include>; framework-specific code sits in
                         <View> blocks titled Vite, Next.js, TanStack Start, Astro. Update reference/ with the API, and the
@@ -132,7 +150,7 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 
 ## Architecture
 
-- **Tools are pure.** Tool components (`apps/*/src/tools`) never import visuals. A tool is `execute` plus an optional
+- **Tools are pure.** Tools (`examples/*/src/webmcp-agents`) never import visuals. A tool is `execute` plus an optional
   `target`: nothing is added to the JSX for the cursor. The control is found by role and accessible name (the tool's `title`,
   or its id read as words; `locate` in core), or by an explicit `target`; each parameter is typed into the field with that
   `name` or label. `toolname="<id>"` markers still work as a fallback, and declarative forms are made of them.
@@ -213,7 +231,7 @@ tsconfig.base.json      shared compiler options (incl. customConditions)
 - The test helpers install the polyfill on import. A test of a page *without* `document.modelContext` (the provider
   loading the polyfill, `polyfill: false`) is a file of its own that imports no helper: each browser test file gets a
   fresh page (`web-agents.polyfill.browser.test.ts`, `provider.polyfill.browser.test.tsx`).
-- Example apps: `apps/*/e2e/*.spec.ts` (Playwright, desktop + Pixel 7, reduced motion so the cursor snaps) drive
+- Example apps: `examples/*/e2e/*.spec.ts` (Playwright, desktop + Pixel 7, reduced motion so the cursor snaps) drive
   tools through `window.agent` (`e2e/agent.ts`); a confirm gate is asserted with `.agent-cursor.is-waiting` + `data-agent-active` on the control, then a
   real click (`parkedOn` in `e2e/agent.ts`). Apps typecheck twice: `tsconfig.json` (src, `vite/client`) and `tsconfig.node.json` (configs + e2e).
 
@@ -267,11 +285,12 @@ mid-run (the cursor must vanish and the tool still complete).
   tools miss the next request. Claude Opus 5.5 can't disable thinking: signed reasoning is kept in the history
   (`AgentPart` "reasoning") and sent back; `maxOutputTokens` must leave room for it.
 - `docs/media/**` is generated: change a capture spec and run `pnpm capture` (ffmpeg on PATH); never hand-edit. Chat
-  stills that need a live model are skipped without a key in `apps/ecommerce/.env.local`. Clips are `<video>` with
+  stills that need a live model are skipped without a key in `examples/ecommerce/.env.local`. Clips are `<video>` with
   WebM + MP4 sources in `.mdx`; stills are relative PNGs (Blume converts them to WebP).
-- Edit the registry blocks in `registry/default/**`, then copy them to `apps/nextjs/components/web-agents/`
-  (`cp registry/default/*/agent-*.tsx apps/nextjs/components/web-agents/`): the registry test fails when they differ.
-  The blocks import `cn` from the `cn` package and primitives from `@/components/ui/*`, as shadcn's base style does.
+- Edit the registry blocks in `registry/default/**`, then copy them to `examples/nextjs/components/web-agents/`
+  (`cp registry/default/*/agent-*.tsx examples/nextjs/components/web-agents/`): the registry test fails when they differ.
+  The blocks import `cn` from the `cn` package and primitives from `@/components/ui/*`, as shadcn's base style does
+  (resolved to `examples/ui/src/components` by tsconfig paths in examples/nextjs, registry/ and docs/_examples).
 - The landing's blocks (`apps/docs/components/opendesigns`) come from the OpenDesigns registry (`apps/docs/components.json`):
   `OPENDESIGNS_TOKEN=… pnpm dlx shadcn@latest add @opendesigns/<block>` inside `apps/docs`. The token is personal and never
   goes in the repo. The installed copies are ours to edit (reworded labels, slots); Biome ignores
@@ -292,7 +311,10 @@ mid-run (the cursor must vanish and the tool still complete).
   usable control is left, CSS-hidden included (it polls: a container query mutates nothing). The gate also gives up
   after 10 s (`CONFIRM_TIMEOUT_MS`, `needs_user`), and a call the person starts themself (one that begins within 1 s
   of a trusted click elsewhere: a chip, the devtools' Run) cancels every waiting confirmation (`supersedeWaiting`,
-  `cancelled`); an agent's own next call never does, the cursor just returns to the waiting control afterwards.
+  `cancelled`); an agent's own next call never does, the cursor just returns to the waiting control afterwards. The
+  person moving on cancels it too: a trusted pointerdown off the control (given effect 150 ms after the pointerup, so
+  a chip's own call supersedes it by name first), a wheel (a gesture already coasting when the gate started is
+  ignored until a 200 ms gap), a touchmove, or a scroll key on the body; input inside `[data-web-agents-ui]` never does.
 - The cursor scrolls its target to the middle of the viewport when the target is within 64 px of the fold; `show_demo`
   targets a demo frame element (`demoFrame(id)`, a function `target` returning an Element). On the Demos page a frame is
   header-wide unless the window is too short to show all of it (`landing.css`, `.demo .demo-well`).
@@ -304,9 +326,9 @@ mid-run (the cursor must vanish and the tool still complete).
   pane that reports itself visible but fires no rAF is slower, not stuck: each move lands by timer (`STALLED_MS`
   after it should have). Show the pane before driving the site's tools there if you want to see or time the cursor.
 - Nothing gates rendering on the polyfill, so Next.js prerenders every page inside `<Providers>`: a client component that
-  calls `useSearchParams()` needs a `<Suspense>` boundary (`apps/nextjs/app/cart/page.tsx`), or `next build` fails.
+  calls `useSearchParams()` needs a `<Suspense>` boundary (`examples/nextjs/app/cart/page.tsx`), or `next build` fails.
 - Playwright's `page.waitForFunction` does not await an async predicate (a Promise is truthy): wait for `window.agent`,
-  then `expect.poll(() => list(page))` for the tools (`apps/*/e2e/agent.ts` `open`). The tools register a few ms after
+  then `expect.poll(() => list(page))` for the tools (`examples/*/e2e/agent.ts` `open`). The tools register a few ms after
   `window.agent` exists in a browser without WebMCP, once the polyfill the provider loads is there.
 - `cursor.css` must stay free of unknown pseudo-classes (Turbopack fails the build on one): Chrome's native `:tool-form-active` / `:tool-submit-active` rules live only in the optional `cursor-native.css`, one rule each.
 - Agents: `defineWebAgent` is plain shared data; the browser sends only the agent **id** and the server reads
