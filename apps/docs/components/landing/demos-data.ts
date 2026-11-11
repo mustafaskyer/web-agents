@@ -45,7 +45,7 @@ fill_traveler_details({ firstName: "Mustafa", lastName: "Elsayed",
 book_flight({ acceptTerms: true })   // parks until the person clicks`,
     note: "list_results and select_flight are the results page's tools (match); search, traveler details and booking are forms with useWebTool (React Hook Form, and TanStack Form for the travelers), and book_flight has requireConfirmation, so it waits for a click.",
     docs: `${DOCS}/examples/skyline`,
-    source: `${REPO}/tree/main/apps/flights`,
+    source: `${REPO}/tree/main/examples/flights`,
   },
   {
     id: "field-store",
@@ -65,7 +65,7 @@ checkout({ email: "mustafa@mail.test", name: "Mustafa Elsayed",
   postcode: "12214", country: "Saudi Arabia" })   // parks until the person clicks`,
     note: "open_product and go_to_page are app-wide tools that navigate; search, add to cart and checkout are React Hook Form forms with useWebTool, and checkout has requireConfirmation, so it waits for a click.",
     docs: `${DOCS}/examples/field-store`,
-    source: `${REPO}/tree/main/apps/ecommerce`,
+    source: `${REPO}/tree/main/examples/ecommerce`,
   },
 ];
 

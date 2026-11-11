@@ -43,6 +43,3 @@ export const FAQ = [
 
 export type FaqTopic = (typeof FAQ)[number]["id"];
 export const FAQ_TOPICS = FAQ.map((q) => q.id) as [FaqTopic, ...FaqTopic[]];
-
-/** `open_faq` asks the page to open a question with this event (detail: the topic). */
-export const OPEN_FAQ_EVENT = "webmcp:open-faq";

@@ -8,13 +8,13 @@
  */
 import { MotionBoundary } from "@/components/opendesigns/_shared/motion-boundary";
 import { DOCS, QUICKSTART } from "@/lib/site";
-import { useCallback } from "react";
+import { useLinkedDemo } from "@/webmcp-agents/hooks/use-linked-demo";
+import { demosTools } from "@/webmcp-agents/tools";
 import { AgentLayer } from "./agent-layer";
-import { DemoFrame, showDemo } from "./demo-frame";
+import { DemoFrame } from "./demo-frame";
 import { DEMOS } from "./demos-data";
 import { InstallCommand } from "./install-command";
 import { SiteFooter, SiteHeader } from "./site-chrome";
-import { demosTools } from "./site-tools";
 
 export interface DemosProps {
   /** The year in the footer, fixed at build time so the server's markup and the browser's agree. */
@@ -25,10 +25,7 @@ export interface DemosProps {
 
 export default function Demos({ year, calls }: DemosProps) {
   // Arrived from show_demo on another page (/demos#field-store): replay that clip, now that the page is ready.
-  const onReady = useCallback(() => {
-    const id = decodeURIComponent(location.hash.slice(1));
-    if (DEMOS.some((demo) => demo.id === id)) showDemo(id);
-  }, []);
+  const onReady = useLinkedDemo();
 
   return (
     <MotionBoundary className="landing bg-background text-foreground">
