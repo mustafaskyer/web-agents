@@ -23,6 +23,8 @@ export {
 export type { WebAgent, WebAgentConfig, WebAgentInvokeOptions, WebAgentResult, WebAgentStep } from "./agent";
 export { createCloudAdapter } from "./adapter/cloud";
 export type { CloudAdapterOptions } from "./adapter/cloud";
+export { turnstileHeaders } from "./adapter/turnstile";
+export type { TurnstileHeadersOptions } from "./adapter/turnstile";
 export { useAgentChat } from "./session/use-agent-chat";
 export type { AgentChat as AgentChatState, ToolPhase, UseAgentChatOptions } from "./session/use-agent-chat";
 export { useWebAgent } from "./session/use-web-agent";

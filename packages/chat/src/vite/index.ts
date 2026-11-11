@@ -8,7 +8,9 @@
 import type { Plugin } from "vite";
 import { loadEnv } from "vite";
 import type { WebAgent } from "../agent";
+import type { AllowedTool } from "../server/allowlist";
 import { createChatHandler } from "../server/handler";
+import type { ChatSessionOptions } from "../server/session";
 import { sendWebResponse, toWebRequest } from "./node-bridge";
 
 /** Options for `webAgentsChatDev`. */
@@ -22,17 +24,28 @@ export interface WebAgentsChatDevOptions {
    * every `VITE_` variable into the browser bundle. Default true.
    */
   secretGuard?: boolean;
-  /** The page's agents (`defineWebAgent`), for the default handler: the same list the page passes to `<AgentChat>`. */
+  /**
+   * The page's agents (`defineWebAgent`), for the default handler: the same list the page passes to `<AgentChat>`.
+   * With agents, a request must name one (`requireAgent`), as in production.
+   */
   agents?: readonly WebAgent[];
+  /** The tools the page may offer the model, for the default handler (`createChatHandler({ tools })`). Default: all. */
+  tools?: readonly AllowedTool[];
+  /**
+   * Chat sessions for the default handler (`createChatHandler({ session })`), so dev runs the production path. The
+   * secret is WEB_AGENTS_SESSION_SECRET from the .env files, else a random one per dev server. With
+   * TURNSTILE_SECRET_KEY there, a session needs a solved Turnstile challenge (`turnstile` on). Default on; `false` off.
+   */
+  session?: false | ChatSessionOptions;
   /**
    * Which variables from the `.env` files (and `process.env`) reach the default handler. Default: every `*_API_KEY`,
-   * `AI_GATEWAY_*`, `VERCEL_OIDC_TOKEN` and `WEB_AGENTS_*`.
+   * `AI_GATEWAY_*`, `VERCEL_OIDC_TOKEN`, `WEB_AGENTS_*` and `TURNSTILE_SECRET_KEY`.
    */
   envKeys?: (key: string) => boolean;
 }
 
 /** The server-side variables the handler reads: provider keys, the gateway's, and the WEB_AGENTS_* settings. */
-const SERVER_ENV = /^(.*_API_KEY|AI_GATEWAY_.*|VERCEL_OIDC_TOKEN|WEB_AGENTS_.*)$/;
+const SERVER_ENV = /^(.*_API_KEY|AI_GATEWAY_.*|VERCEL_OIDC_TOKEN|WEB_AGENTS_.*|TURNSTILE_SECRET_KEY)$/;
 
 /** A `VITE_` variable Vite would ship to the browser, named like a secret. */
 const LEAKY = /^VITE_.*(_API_KEY|_SECRET|_TOKEN)$/;
@@ -43,6 +56,8 @@ export function webAgentsChatDev({
   handler,
   secretGuard = true,
   agents,
+  tools,
+  session = {},
   envKeys = (key) => SERVER_ENV.test(key),
 }: WebAgentsChatDevOptions = {}): Plugin {
   let serve = handler;
@@ -64,7 +79,9 @@ export function webAgentsChatDev({
       for (const key of new Set([...Object.keys(loaded), ...Object.keys(process.env)])) {
         if (envKeys(key)) env[key] = loaded[key] ?? process.env[key];
       }
-      serve = createChatHandler({ env, agents });
+      // Turnstile gates new sessions as soon as its secret is in the .env files, as in production
+      const sessions = session === false ? false : { turnstile: Boolean(env.TURNSTILE_SECRET_KEY), ...session };
+      serve = createChatHandler({ env, agents, tools, session: sessions, requireAgent: (agents?.length ?? 0) > 0 });
     },
     configureServer(server) {
       server.middlewares.use(path, (req, res, next) => {

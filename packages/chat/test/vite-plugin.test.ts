@@ -20,6 +20,12 @@ beforeAll(async () => {
       webAgentsChatDev({
         handler: async (req) => {
           const url = new URL(req.url);
+          if (url.searchParams.has("cookies")) {
+            const headers = new Headers({ "content-type": "application/json" });
+            headers.append("set-cookie", "a=1; Path=/api/chat; HttpOnly");
+            headers.append("set-cookie", "b=2; Path=/api/chat; HttpOnly");
+            return new Response(JSON.stringify({ cookie: req.headers.get("cookie") }), { headers });
+          }
           if (url.searchParams.has("stream")) {
             const enc = new TextEncoder();
             return new Response(
@@ -49,6 +55,12 @@ describe("webAgentsChatDev", () => {
     const res = await fetch(`${base}/api/chat`, { method: "POST", body: '{"hi":1}' });
     expect(await res.json()).toEqual({ method: "POST", path: "/api/chat", body: '{"hi":1}' });
     expect(await (await fetch(`${base}/api/chat`)).json()).toMatchObject({ method: "GET", path: "/api/chat" });
+  });
+
+  it("passes every Set-Cookie out and the Cookie header in (chat sessions)", async () => {
+    const res = await fetch(`${base}/api/chat?cookies`, { headers: { cookie: "web_agents_session=v1.x" } });
+    expect(res.headers.getSetCookie()).toEqual(["a=1; Path=/api/chat; HttpOnly", "b=2; Path=/api/chat; HttpOnly"]);
+    expect(await res.json()).toEqual({ cookie: "web_agents_session=v1.x" });
   });
 
   it("streams the response body through", async () => {

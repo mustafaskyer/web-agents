@@ -27,8 +27,11 @@ export function toWebRequest(req: IncomingMessage, res: ServerResponse, url: str
 export async function sendWebResponse(res: ServerResponse, response: Response): Promise<void> {
   res.statusCode = response.status;
   response.headers.forEach((value, key) => {
-    res.setHeader(key, value);
+    if (key !== "set-cookie") res.setHeader(key, value);
   });
+  // one header per cookie (forEach would let the last one win)
+  const cookies = response.headers.getSetCookie();
+  if (cookies.length) res.setHeader("set-cookie", cookies);
   if (!response.body) {
     res.end();
     return;

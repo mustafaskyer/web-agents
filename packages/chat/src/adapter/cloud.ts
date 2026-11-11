@@ -25,6 +25,12 @@ export interface CloudAdapterOptions {
   maxSteps?: number;
   /** Extra request headers (auth, CSRF), or a function returning them per request. */
   headers?: Record<string, string> | (() => Record<string, string>);
+  /**
+   * Headers for the request that starts a chat session (`createChatHandler({ session })`), awaited only when the
+   * server asks for one (a `401 session_required`): a bot check's token, e.g. `turnstileHeaders({ siteKey })`.
+   * A throw is shown as "Couldn't start a chat session". Default: none.
+   */
+  sessionHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
   /** Injectable for tests and custom transports. Default `globalThis.fetch`. */
   fetch?: typeof fetch;
   /**
@@ -49,9 +55,21 @@ const MESSAGES: Record<string, string> = {
   network: "Couldn't reach the assistant. Check your connection and try again.",
 };
 
+/** A 401 that means "no chat session" (`createChatHandler({ session })`), the one refusal worth a retry. */
+async function sessionMissing(res: Response): Promise<boolean> {
+  const body = (await res
+    .clone()
+    .json()
+    .catch(() => null)) as { error?: string } | null;
+  return body?.error === "session_required";
+}
+
 /** What a refused or failed request means to the person: only "not configured" disables the chat. */
 async function failure(res: Response): Promise<Extract<AgentStreamPart, { type: "error" }>> {
   const body = (await res.json().catch(() => null)) as { error?: string; reason?: string } | null;
+  if (res.status === 401 && body?.error === "session_required") {
+    return { type: "error", error: "Couldn't start a chat session. Reload the page and try again." };
+  }
   if (res.status === 503 && body?.reason === "daily_budget") {
     return {
       type: "error",
@@ -164,17 +182,26 @@ export function createCloudAdapter(opts: CloudAdapterOptions = {}): AgentAdapter
         // ---------- 1. one model step ----------
         let res: Response;
         try {
-          res = await doFetch(api, {
-            method: "POST",
-            headers: headers(),
-            signal,
-            body: JSON.stringify({
-              messages: forServer(window(history)),
-              tools: req.tools, // read fresh: the page's tools change between steps
-              page: typeof location === "undefined" ? undefined : { url: location.href },
-              agent: req.agent?.id, // only the id: the server holds the instructions
-            }),
+          const body = JSON.stringify({
+            messages: forServer(window(history)),
+            tools: req.tools, // read fresh: the page's tools change between steps
+            page: typeof location === "undefined" ? undefined : { url: location.href },
+            agent: req.agent?.id, // only the id: the server holds the instructions
           });
+          const post = () => doFetch(api, { method: "POST", headers: headers(), signal, body });
+          res = await post();
+          // no session yet (run before the first check answered) or it expired: the GET starts one, then retry once
+          if (res.status === 401 && (await sessionMissing(res))) {
+            let extra: Record<string, string> = {};
+            try {
+              extra = (await opts.sessionHeaders?.()) ?? {};
+            } catch (err) {
+              if (signal.aborted) return yield aborted;
+              console.warn("[web-agents/chat] couldn't get the session headers:", err);
+            }
+            await doFetch(api, { headers: { ...headers(), ...extra }, signal });
+            res = await post();
+          }
         } catch {
           if (signal.aborted) return yield aborted;
           return yield { type: "error", error: MESSAGES.network!, code: "network" };
