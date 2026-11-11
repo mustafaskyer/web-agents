@@ -5,11 +5,8 @@
  */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useWebTool } from "@webmcp-agents/react";
-import { useForm } from "react-hook-form";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { productLine, searchProducts } from "@/lib/catalog";
 import { navigate } from "@/lib/navigate";
 
@@ -17,9 +14,18 @@ const schema = z.object({
   query: z.string().describe("One key word, e.g. mug"),
 });
 
-type SearchInput = z.infer<typeof schema>;
+/** The search form's values. */
+export type SearchInput = z.infer<typeof schema>;
 
-export function SearchBox() {
+/** What the search box renders and submits. */
+export interface SearchProducts {
+  form: UseFormReturn<SearchInput>;
+  /** For `form.handleSubmit`: shows the matches on the home page (`/?q=`). */
+  submit(input: SearchInput): void;
+}
+
+/** Registers search_products and returns the form both callers share. */
+export function useSearchProducts(): SearchProducts {
   const form = useForm<SearchInput>({ resolver: zodResolver(schema), defaultValues: { query: "" } });
 
   const search = ({ query }: SearchInput) => {
@@ -42,27 +48,10 @@ export function SearchBox() {
     execute: search,
   });
 
-  // A person submits this.
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(search)} className="flex gap-2">
-        <FormField
-          control={form.control}
-          name="query"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="sr-only">Search products</FormLabel>
-              <FormControl>
-                <Input type="search" placeholder="Search products" className="w-48" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" variant="outline" aria-label="Search products">
-          Search
-        </Button>
-      </form>
-    </Form>
-  );
+  return {
+    form,
+    submit: (input) => {
+      search(input);
+    },
+  };
 }
