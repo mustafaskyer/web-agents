@@ -1,6 +1,17 @@
+/*
+ * The examples' shared Tailwind v4 entry: Tailwind, tw-animate-css, shadcn's base, the theme tokens (shadcn base-nova,
+ * neutral) and a source for this package's own components. An app imports this file once and adds an @source for its
+ * own files:
+ *
+ *   @import "@webmcp-agents/examples-ui/styles.css";
+ *   @source "../";
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/* the components' classes live here, not in the app */
+@source "./";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -118,6 +129,11 @@
 }
 
 @layer base {
+  /* the fonts the theme reads, as defaults: an app (or next/font's variable class) sets its own, unlayered, and wins */
+  :root {
+    --font-sans: ui-sans-serif, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
   * {
     @apply border-border outline-ring/50;
   }
