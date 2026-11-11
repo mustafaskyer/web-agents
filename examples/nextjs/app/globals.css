@@ -1,0 +1,4 @@
+/* Tailwind v4 + the examples' shared shadcn theme (@webmcp-agents/examples-ui), and this app's own files as a source */
+@import "@webmcp-agents/examples-ui/styles.css";
+
+@source "../";

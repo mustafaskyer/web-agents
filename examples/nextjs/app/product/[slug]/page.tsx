@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { allProducts, findProduct, money, tileStyle } from "@/lib/catalog";
-import { AddToCartForm } from "@/tools/AddToCartForm";
+import { AddToCartForm } from "@/components/add-to-cart-form";
 
 export function generateStaticParams() {
   return allProducts().map((p) => ({ slug: p.slug }));

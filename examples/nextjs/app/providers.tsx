@@ -5,23 +5,24 @@
  * stay Server Components. The provider follows the URL itself (no pathname, no router hook), loads the polyfill
  * itself where the browser has no WebMCP (there is no "ready" gate) and the devtools in development.
  */
-import { createCloudAdapter } from "@webmcp-agents/chat";
+import { createCloudAdapter, turnstileHeaders } from "@webmcp-agents/chat";
 import { WebAgentsProvider } from "@webmcp-agents/react";
-import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
-import { shopper } from "@/agents";
+import type { ReactNode } from "react";
+import { shopper } from "@/webmcp-agents/agents";
 import { Header } from "@/components/header";
 import { AgentChatBlock } from "@/components/web-agents/agent-chat";
-import { setNavigate } from "@/lib/navigate";
-import { tools } from "@/tools";
+import { useRouterNavigate } from "@/hooks/use-router-navigate";
+import { tools } from "@/webmcp-agents/tools";
 
+// With a Turnstile site key (public), a chat session starts only after an invisible Turnstile check; the route checks
+// the token with TURNSTILE_SECRET_KEY (server-only, never NEXT_PUBLIC_).
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 // once per page: the cloud adapter checks /api/chat on first use
-const ADAPTERS = [createCloudAdapter()];
+const ADAPTERS = [createCloudAdapter({ sessionHeaders: SITE_KEY ? turnstileHeaders({ siteKey: SITE_KEY }) : undefined })];
 
 export function Providers({ children }: { children: ReactNode }) {
   // the app-wide tools navigate with the App Router: no page load, so no call is lost
-  const router = useRouter();
-  useEffect(() => setNavigate((to) => router.push(to)), [router]);
+  useRouterNavigate();
   // Server-rendered with the page: the provider loads the WebMCP polyfill in a browser without WebMCP, and the
   // tools register once it is there. In `next dev` it also installs the devtools panel (Alt+Shift+A) and
   // window.agent, which the e2e tests drive.
