@@ -1,16 +1,11 @@
 /**
- * The cart: one store for the page, outside React. Components read it with `useCart()`; tools import `cart` and read
- * or change it directly, so a catalog tool needs nothing passed in. Every action returns a sentence for the agent
- * and throws a readable error on bad input. Actions read and write the latest state, so an agent's calls in quick
- * succession see each other's changes.
+ * The cart: one store for the page, outside React. Hooks follow it (`useCart()` in hooks/use-cart.ts, through
+ * `cart.subscribe`); tools import `cart` and read or change it directly, so a catalog tool needs nothing passed in.
+ * Every action returns a sentence for the agent and throws a readable error on bad input. Actions read and write the
+ * latest state, so an agent's calls in quick succession see each other's changes.
  */
-import { useSyncExternalStore } from "react";
-
-export interface Product {
-  sku: string;
-  name: string;
-  price: number;
-}
+import { PRODUCTS, type Product } from "../data/products";
+import { money } from "../lib/money";
 
 export interface CartItem extends Product {
   qty: number;
@@ -42,14 +37,6 @@ export interface CartState {
 export const PROMO_CODE = "123";
 const PROMO_DISCOUNT = 0.1;
 
-export const PRODUCTS: readonly Product[] = [
-  { sku: "mug-01", name: "Enamel mug", price: 18 },
-  { sku: "tee-02", name: "Logo tee", price: 29 },
-  { sku: "cap-03", name: "Wool cap", price: 24 },
-];
-
-export const money = (n: number): string => `$${n.toFixed(2)}`;
-
 function totalsFor(items: CartItem[], promo: string | null): Totals {
   const subtotal = items.reduce((n, i) => n + i.price * i.qty, 0);
   const discount = promo === PROMO_CODE ? subtotal * PROMO_DISCOUNT : 0;
@@ -66,10 +53,14 @@ function commit(next: Partial<Omit<CartState, "totals">>): CartState {
   return state;
 }
 
-/** The cart's actions, and its state right now (`cart.state`). */
+/** The cart's actions, its state right now (`cart.state`), and `subscribe` for a hook to follow it. */
 export const cart = {
   get state(): CartState {
     return state;
+  },
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   },
   add(sku: string, qty: number): string {
     const product = PRODUCTS.find((p) => p.sku === sku);
@@ -109,16 +100,3 @@ export const cart = {
       : `Order ${order.id} placed for ${money(order.total)}.`;
   },
 };
-
-const subscribe = (listener: () => void): (() => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
-const snapshot = (): CartState => state;
-
-/** The cart's state, re-rendering on every change. The actions are on `cart`. */
-export function useCart(): CartState {
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
-}
-
-export const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
