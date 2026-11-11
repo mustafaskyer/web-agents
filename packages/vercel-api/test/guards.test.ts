@@ -1,4 +1,5 @@
 import { convertArrayToReadableStream, MockLanguageModelV4 } from "ai/test";
+import { defineWebAgent } from "@webmcp-agents/chat/server";
 import { describe, expect, it, vi } from "vitest";
 import {
   budgetGuard,
@@ -13,6 +14,28 @@ import {
 const post = (headers: Record<string, string> = {}, body = "{}") =>
   new Request("https://demo.example/api/chat", { method: "POST", headers: { "content-type": "application/json", ...headers }, body });
 const get = (headers: Record<string, string> = {}) => new Request("https://demo.example/api/chat", { headers });
+const SECRET = "s".repeat(32);
+/** A model that answers "ok". */
+const okModel = () =>
+  new MockLanguageModelV4({
+    doStream: async () => ({
+      stream: convertArrayToReadableStream([
+        { type: "stream-start", warnings: [] },
+        { type: "text-start", id: "t" },
+        { type: "text-delta", id: "t", delta: "ok" },
+        { type: "text-end", id: "t" },
+        {
+          type: "finish",
+          finishReason: { unified: "stop", raw: undefined },
+          usage: { inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 1, text: 1, reasoning: 0 } },
+        },
+      ]),
+    }),
+  });
+/** The session cookie the route's GET hands out, as a Cookie header value. */
+const sessionCookie = async (route: { GET: (req: Request) => Promise<Response> }) =>
+  (await route.GET(get())).headers.get("set-cookie")!.split(";")[0]!;
+const hi = JSON.stringify({ messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }], tools: [] });
 
 describe("originGuard", () => {
   it("POST needs this deployment's own Origin (any host it's served on); GET needs nothing", async () => {
@@ -138,20 +161,19 @@ describe("createVercelChatRoute", () => {
       }),
     });
     const route = createVercelChatRoute({ app: "budget", env: { RATE_LIMIT_GLOBAL_DAILY: "1" }, model });
-    for (let i = 0; i < 3; i++) expect((await route.POST(post({ origin: "https://demo.example" }, "{}"))).status).toBe(400);
+    const cookie = await sessionCookie(route);
+    const send = (body: string) => route.POST(post({ origin: "https://demo.example", cookie }, body));
+    for (let i = 0; i < 3; i++) expect((await send("{}")).status).toBe(400);
     const body = JSON.stringify({ messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }], tools: [] });
     // the first valid request still has the whole budget
-    const first = await route.POST(post({ origin: "https://demo.example" }, body));
+    const first = await send(body);
     expect(first.status).toBe(200);
     await first.text();
-    expect(await (await route.POST(post({ origin: "https://demo.example" }, body))).json()).toEqual({
-      error: "unavailable",
-      reason: "daily_budget",
-    });
+    expect(await (await send(body)).json()).toEqual({ error: "unavailable", reason: "daily_budget" });
   });
 
   it("without a key: GET says offline, a same-origin POST gets 503; a foreign origin 403", async () => {
-    const route = createVercelChatRoute({ app: "test", env: { VERCEL_ENV: "preview" } });
+    const route = createVercelChatRoute({ app: "test", env: { VERCEL_ENV: "preview", WEB_AGENTS_SESSION_SECRET: SECRET } });
     expect(await (await route.GET(get())).json()).toEqual({
       enabled: false,
       model: "anthropic/claude-sonnet-5-5",
@@ -161,5 +183,61 @@ describe("createVercelChatRoute", () => {
     const body = JSON.stringify({ messages: [{ id: "u", role: "user", parts: [{ type: "text", text: "hi" }] }], tools: [] });
     expect((await route.POST(post({ origin: "https://demo.example" }, body))).status).toBe(503);
     expect((await route.POST(post({ origin: "https://evil.example" }, body))).status).toBe(403);
+  });
+
+  it("sessions are on: a POST without the GET's cookie is 401, with it 200", async () => {
+    const route = createVercelChatRoute({ app: "session", env: {}, model: okModel() });
+    expect((await route.POST(post({ origin: "https://demo.example" }, hi))).status).toBe(401);
+    const res = await route.POST(post({ origin: "https://demo.example", cookie: await sessionCookie(route) }, hi));
+    expect(res.status).toBe(200);
+    await res.text();
+  });
+
+  it("a session has RATE_LIMIT_PER_SESSION requests; a new session starts fresh (per-IP limits still apply)", async () => {
+    const route = createVercelChatRoute({ app: "per-session", env: { RATE_LIMIT_PER_SESSION: "1" }, model: okModel() });
+    const cookie = await sessionCookie(route);
+    await (await route.POST(post({ origin: "https://demo.example", cookie }, hi))).text();
+    const limited = await route.POST(post({ origin: "https://demo.example", cookie }, hi));
+    expect(limited.status).toBe(429);
+    expect(await limited.json()).toEqual({ error: "rate_limited" });
+    const fresh = await route.POST(post({ origin: "https://demo.example", cookie: await sessionCookie(route) }, hi));
+    expect(fresh.status).toBe(200);
+    await fresh.text();
+  });
+
+  it("a Vercel deployment without WEB_AGENTS_SESSION_SECRET keeps chat off (fails closed)", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const route = createVercelChatRoute({ app: "nosecret", env: { VERCEL_ENV: "production", ANTHROPIC_API_KEY: "k" } });
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("WEB_AGENTS_SESSION_SECRET"));
+    expect(await (await route.GET(get())).json()).toEqual({ enabled: false });
+    const res = await route.POST(post({ origin: "https://demo.example" }, hi));
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("chat_disabled");
+    error.mockRestore();
+  });
+
+  it("with agents, a POST must name one; only allowed tools reach the model", async () => {
+    const model = okModel();
+    const shopper = defineWebAgent({ id: "shopper", instructions: "Shop." });
+    const route = createVercelChatRoute({ app: "agents", env: {}, model, agents: [shopper], tools: ["get_cart"] });
+    const cookie = await sessionCookie(route);
+    expect((await route.POST(post({ origin: "https://demo.example", cookie }, hi))).status).toBe(400);
+    const tool = (name: string) => ({ name, description: name, inputSchema: { type: "object", properties: {} } });
+    const body = JSON.stringify({ ...JSON.parse(hi), agent: "shopper", tools: [tool("get_cart"), tool("write_poem")] });
+    await (await route.POST(post({ origin: "https://demo.example", cookie }, body))).text();
+    expect((model.doStreamCalls[0]!.tools ?? []).map((t) => t.name)).toEqual(["get_cart"]);
+  });
+
+  it("with TURNSTILE_SECRET_KEY set, a GET without a solved challenge starts no session", async () => {
+    const route = createVercelChatRoute({ app: "turnstile", env: { TURNSTILE_SECRET_KEY: "k" }, model: okModel() });
+    const res = await route.GET(get());
+    expect((await res.json()).enabled).toBe(true);
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect((await route.POST(post({ origin: "https://demo.example" }, hi))).status).toBe(401);
+    // sessions off: Turnstile has nothing to gate
+    const open = createVercelChatRoute({ app: "turnstile-off", env: { TURNSTILE_SECRET_KEY: "k" }, model: okModel(), session: false });
+    const ok = await open.POST(post({ origin: "https://demo.example" }, hi));
+    expect(ok.status).toBe(200);
+    await ok.text();
   });
 });

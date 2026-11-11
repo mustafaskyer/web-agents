@@ -67,3 +67,20 @@ export function budgetGuard(limiter: Limiter): Guard {
     return json({ error: "unavailable", reason: r.degraded ? "busy" : "daily_budget" }, 503);
   };
 }
+
+/**
+ * A per-session request limit, for `beforeModel` (the session id comes from the handler's context). 429
+ * `rate_limited` once a session used its requests: the page has to start a new session, which `verify` can gate.
+ */
+export async function sessionGuard(limiter: Limiter, session: string): Promise<Response | undefined> {
+  const r = await limiter.limit(session);
+  if (r.success) return undefined;
+  const seconds = Math.max(1, Math.ceil((r.reset - Date.now()) / 1000));
+  return json({ error: "rate_limited" }, 429, { "retry-after": String(seconds) });
+}
+
+/** Chat off until the deployment has a session secret: GET says disabled, POST gets 503 `chat_disabled`. */
+export const secretMissingGuard: Guard = (req) =>
+  req.method === "GET"
+    ? json({ enabled: false }, 200)
+    : json({ error: "chat_disabled", message: "Set WEB_AGENTS_SESSION_SECRET on the server." }, 503);
