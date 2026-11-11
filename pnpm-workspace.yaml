@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
+  - "examples/*"
   - "packages/*"
   # the code the docs show, type-checked (docs/README.md "How these docs are written")
   - "docs/_examples"

@@ -37,6 +37,7 @@
       "outputs": []
     },
     "e2e": {
+      "dependsOn": ["^build"],
       "cache": false,
       "passThroughEnv": ["CI", "PLAYWRIGHT_*"]
     }

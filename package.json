@@ -7,7 +7,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=./apps/*",
+    "dev": "turbo run dev --filter=./apps/* --filter=./examples/*",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -20,7 +20,13 @@
     "registry:test": "vitest run --root registry",
     "registry:typecheck": "tsc -p registry/tsconfig.json",
     "capture": "playwright test -c capture/playwright.config.ts && node capture/encode.mjs",
-    "capture:typecheck": "tsc -p capture/tsconfig.json"
+    "capture:typecheck": "tsc -p capture/tsconfig.json",
+    "changeset": "changeset",
+    "release": "node scripts/release.mjs",
+    "release:status": "node scripts/release.mjs status",
+    "release:version": "node scripts/release.mjs version",
+    "release:publish": "node scripts/release.mjs publish",
+    "release:snapshot": "node scripts/release.mjs snapshot"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -43,6 +49,7 @@
   },
   "workspaces": [
     "apps/*",
+    "examples/*",
     "packages/*",
     "docs/_examples"
   ],

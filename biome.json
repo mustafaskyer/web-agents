@@ -14,13 +14,14 @@
       "!.claude",
       "!pnpm-lock.yaml",
       "!**/*.md",
-      "!apps/nextjs/components/ui",
-      "!apps/nextjs/.next",
-      "!apps/nextjs/next-env.d.ts",
+      "!examples/ui/src/components",
+      "!examples/ui/src/hooks",
+      "!examples/ui/src/lib",
+      "!examples/ui/src/styles.css",
+      "!examples/nextjs/.next",
+      "!examples/nextjs/next-env.d.ts",
       "!apps/docs/public",
-      "!apps/nextjs/lib/highlighter.tsx",
-      "!apps/nextjs/lib/utils.ts",
-      "!apps/nextjs/app/globals.css",
+      "!examples/nextjs/app/globals.css",
       "!apps/docs/components/opendesigns",
       "!apps/docs/components/ui",
       "!apps/docs/lib/utils.ts",
@@ -58,6 +59,10 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["examples/*/src/styles/app.css"],
+      "css": { "parser": { "tailwindDirectives": true } }
+    },
     {
       "includes": ["docs/_examples/**"],
       "formatter": { "lineWidth": 72 }
