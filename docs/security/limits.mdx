@@ -1,0 +1,71 @@
+---
+title: Limits and budgets
+description: Bound what the chat can cost even when someone gets past every other check. Limits per IP and per session, a daily budget, caps per request, and a spend limit at your model provider.
+sidebar:
+  label: Limits and budgets
+related:
+  - /security/sessions
+  - /more/deploy
+  - /reference/vercel-api/create-vercel-chat-route
+---
+
+Sessions, the allowlist and Turnstile make abuse expensive. Limits make it bounded: whatever gets through, it can only
+cost so much per visitor, per session and per day, and your provider stops the key at a fixed amount.
+
+## Where each limit goes
+
+The route has two hooks:
+
+- **`guard`** runs first, before anything is read. Per-IP limits go here: they refuse floods at once.
+- **`beforeModel`** runs after the request is validated, right before the model call, with the agent and the session
+  id. Per-session limits and the daily budget go here, so malformed requests never use them up.
+
+```ts
+const handler = createChatHandler({
+  session: true,
+  guard: (req) => perIp(req), // a Response refuses
+  beforeModel: (req, { session }) => perSession(session) ?? dailyBudget(),
+});
+```
+
+Keep the counts in a shared store (Redis, Upstash, your database). In memory, every server instance counts on its own,
+and a serverless host runs many.
+
+## What to limit
+
+| Limit | Suggested | Why |
+|---|---|---|
+| Requests per IP per minute | 30 | Each tool step is one request: a 6-step answer is 7. Leave room for a few in a row. |
+| Requests per IP per day | 300 | Bounds one visitor. |
+| Requests per session per day | 150 | Bounds one session; with [Turnstile](/security/turnstile), each new session costs a challenge. |
+| Model calls per day, all visitors | 3000 | Bounds the day. Fail **closed**: if the store is down, refuse. |
+| Output tokens per step (`maxOutputTokens`) | 4096 | Bounds each answer; thinking counts against it. |
+| Tool steps per message (`maxSteps`) | 6 | Bounds each turn (counted from the conversation the page sends, so the budget is what really bounds it). |
+
+Per-IP and per-session limits may fail **open** (a store outage shouldn't take the chat down); the daily budget must
+fail closed (an outage shouldn't become an unbounded bill).
+
+`@webmcp-agents/vercel-api`, which the example apps use, is all of this in one line, each limit an environment
+variable: see [`createVercelChatRoute`](/reference/vercel-api/create-vercel-chat-route) and
+[Deploy](/more/deploy#3-guards).
+
+## A spend limit at your provider
+
+The last guard isn't in your code. Give the site's key a cap at the provider, so that if every check above failed, the
+provider stops serving the key instead of billing on:
+
+- **Anthropic**: in the Console, create a workspace for the site, make the key there, and set the workspace's monthly
+  spend limit. Add a spend notification below it.
+- **OpenAI**: a project for the site, with its own key and a monthly budget.
+- **Vercel AI Gateway**: a budget on the gateway key.
+
+Use a key for this site only: a cap shared with your other apps stops them too, and a leak is easier to see and to
+rotate.
+
+## Watch it
+
+- Log refusals (`401`, `429`, the budget's `503`) with the session id, not the person's messages.
+- A session that hits its limit every day, or many sessions from one IP, is a script: block the IP at your host's
+  firewall.
+- When the daily budget trips before the evening, raise it or tighten the per-session limit; the chat tells visitors
+  "This demo has reached its daily limit" meanwhile.
