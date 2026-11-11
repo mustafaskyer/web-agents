@@ -17,6 +17,8 @@ import type { AgentMessage } from "../types";
 import { modelAvailability, ModelUnavailableError, parseModelId, providerOptionsFor, type ReasoningLevel, resolveModel } from "./models";
 import { DEFAULT_SYSTEM_PROMPT } from "./system-prompt";
 import { type ChatRequest, chatRequestSchema, isCrossSite, LIMITS, readCappedText, samePagePath } from "./validate";
+import { type AllowedTool, applyAllowlist, buildAllowlist } from "./allowlist";
+import { type ChatSession, type ChatSessionOptions, createSessionKeeper } from "./session";
 import { toToolLoopAgentSettings, type WebAgentSettings } from "./web-agent";
 
 /** Claude Opus 5.5 through its own SDK: the roadmap's default. Override with WEB_AGENTS_MODEL (e.g. anthropic/claude-sonnet-5-5). */
@@ -59,18 +61,49 @@ export interface ChatHandlerOptions {
    * Runs after the request is validated and chat is known to be enabled, right before the model call: count budgets
    * here, so malformed or refused requests never use them up. Return a Response to refuse.
    */
-  beforeModel?: (req: Request) => Promise<Response | undefined> | Response | undefined;
+  beforeModel?: (req: Request, context: BeforeModelContext) => Promise<Response | undefined> | Response | undefined;
   /**
    * Tune the AI SDK `ToolLoopAgent` the handler builds for each request (add `prepareStep`, telemetry, middleware…).
    * The settings carry the model, the instructions and the page's tools already applied; return what to use.
    */
   prepareAgent?: (settings: WebAgentSettings, context: { agent?: WebAgent; request: Request }) => WebAgentSettings;
-  /** Where the provider keys and WEB_AGENTS_MODEL come from. Default `process.env`. */
+  /**
+   * Require a chat session: the GET the page makes first sets a random, signed, httpOnly cookie, and a POST without a
+   * valid one gets 401 `session_required` (the cloud adapter then starts a new session and retries once). `true` or
+   * `{}` for the defaults; `verify` is where a bot check gates new sessions. Default false.
+   */
+  session?: boolean | ChatSessionOptions;
+  /**
+   * The tools a page may offer the model, as tools from `defineWebTool` (their description and schema are taken from
+   * here, never from the request) or tool ids (the page's own description is used: tools defined inline in a
+   * component). Tool ids the registered agents list are allowed too. Any other tool the request lists is dropped.
+   * Default: not set, every tool the page sends is used.
+   */
+  tools?: readonly AllowedTool[];
+  /** Refuse (400) a POST that names no agent, so every conversation runs with a registered agent's instructions. Default false. */
+  requireAgent?: boolean;
+  /** Where the provider keys, WEB_AGENTS_MODEL and WEB_AGENTS_SESSION_SECRET come from. Default `process.env`. */
   env?: Record<string, string | undefined>;
+}
+
+/** What `beforeModel` gets besides the request. */
+export interface BeforeModelContext {
+  /** The registered agent the request named, if any. */
+  agent?: WebAgent;
+  /** The request's session id, with `session` on: key per-session limits on it. */
+  session?: string;
 }
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+
+/** The response with a `Set-Cookie` added (a copy: a streamed response's headers may be immutable). */
+const withCookie = (res: Response, cookie: string | undefined): Response => {
+  if (!cookie) return res;
+  const headers = new Headers(res.headers);
+  headers.append("set-cookie", cookie);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+};
 
 /** Assistant messages with tool calls since the last user message: the steps this turn has taken. */
 function stepsThisTurn(messages: ChatRequest["messages"]): number {
@@ -111,6 +144,8 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
       : opts.effort
     : (opts.reasoning ?? "low");
   let warnedUnavailable = false;
+  const sessions = opts.session ? createSessionKeeper(opts.session === true ? {} : opts.session, env) : undefined;
+  const allowlist = opts.tools ? buildAllowlist(opts.tools, registry.values()) : undefined;
 
   /** The default model's availability (an instance is always available). */
   const availability = () =>
@@ -133,12 +168,17 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
     if (blocked) return blocked;
     const available = availability();
     if (req.method === "GET") {
-      return json({
+      const res = json({
         enabled: available.enabled,
         model: instance ? (instance.modelId ?? "custom") : modelId,
         provider: available.provider,
         agents: [...registry.keys()],
       });
+      if (!sessions || !available.enabled) return res;
+      // the page's first request: start a session, or keep the one it has (renewed when due)
+      const current = await sessions.read(req);
+      if (!current) return withCookie(res, await sessions.issue(req));
+      return withCookie(res, sessions.due(current) ? await sessions.issue(req, current) : undefined);
     }
 
     if (!available.enabled) {
@@ -148,11 +188,18 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
       }
       return json({ error: "chat_disabled", message: available.message }, 503);
     }
+    // before the body is read: a request without a session costs nothing
+    let session: ChatSession | undefined;
+    if (sessions) {
+      session = await sessions.read(req);
+      if (!session) return json({ error: "session_required", message: "No chat session: GET this endpoint first (the page does)." }, 401);
+    }
     const body = await readBody(req);
     if (!body.ok) return body.response;
     const parsed = chatRequestSchema.safeParse(body.value);
     if (!parsed.success) return json({ error: "bad_request", issues: parsed.error.issues.slice(0, 10) }, 400);
-    const { messages, tools: pageTools, page } = parsed.data;
+    const { messages, page } = parsed.data;
+    const pageTools = allowlist ? applyAllowlist(parsed.data.tools, allowlist) : parsed.data.tools;
     const agent = parsed.data.agent ? registry.get(parsed.data.agent) : undefined;
     if (parsed.data.agent && !agent) {
       return json(
@@ -160,8 +207,12 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
         400,
       );
     }
-    const refused = await opts.beforeModel?.(req);
+    if (opts.requireAgent && !agent) {
+      return json({ error: "bad_request", message: "Name an agent: this endpoint only runs its registered agents." }, 400);
+    }
+    const refused = await opts.beforeModel?.(req, { agent, session: session?.id });
     if (refused) return refused;
+    const renewal = session && sessions?.due(session) ? await sessions.issue(req, session) : undefined;
 
     const maxSteps = agent?.maxSteps ?? opts.maxSteps ?? 8;
     const budgetSpent = stepsThisTurn(messages) >= maxSteps;
@@ -180,7 +231,7 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
       });
       if (opts.prepareAgent) settings = opts.prepareAgent(settings, { agent, request: req });
       const loop = new ToolLoopAgent<never, ToolSet>(settings);
-      return await createAgentUIStreamResponse({
+      const streamed = await createAgentUIStreamResponse({
         agent: loop,
         uiMessages: toUIMessages(messages as AgentMessage[]),
         abortSignal: req.signal,
@@ -193,6 +244,7 @@ export function createChatHandler(opts: ChatHandlerOptions = {}): (req: Request)
           return "The assistant had a problem answering. Try again.";
         },
       });
+      return withCookie(streamed, renewal);
     } catch (err) {
       if (err instanceof ModelUnavailableError) {
         console.error(`[web-agents/chat] ${err.message}`);

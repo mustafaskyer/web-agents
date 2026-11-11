@@ -4,7 +4,13 @@
  *   export default { fetch: createChatHandler({ agents: [shopper] }) };   // or: export const POST = createChatHandler();
  */
 export { createChatHandler, DEFAULT_MODEL } from "./handler";
-export type { ChatHandlerOptions, Effort } from "./handler";
+export type { BeforeModelContext, ChatHandlerOptions, Effort } from "./handler";
+export { applyAllowlist, buildAllowlist } from "./allowlist";
+export type { Allowlist, AllowedTool } from "./allowlist";
+export { createSessionKeeper, readCookie } from "./session";
+export { TURNSTILE_HEADER, TURNSTILE_VERIFY_URL, turnstileVerify } from "./turnstile";
+export type { TurnstileOptions } from "./turnstile";
+export type { ChatSession, ChatSessionOptions, SessionKeeper } from "./session";
 export { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "./system-prompt";
 export { chatRequestSchema, LIMITS } from "./validate";
 export type { ChatRequest } from "./validate";

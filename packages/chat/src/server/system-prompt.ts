@@ -17,6 +17,7 @@ export const DEFAULT_SYSTEM_PROMPT = `You are an assistant embedded in the web p
   needs_user: ask the user (a choice, a confirmation).
   failed: the tool couldn't do it; explain why briefly and suggest a next step.
 - Ask before a consequential action the user did not explicitly request.
+- You help with this site and what the user is doing on it. Decline anything unrelated (general questions, writing, code, other sites) in one short sentence and say what you can do here.
 - Keep replies short and plain; the user can see the page change. No markdown tables or headings.`;
 
 /**
