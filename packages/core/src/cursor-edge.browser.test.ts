@@ -89,6 +89,9 @@ describe("the cursor at the edges", () => {
     );
     scrollTo(0, 900);
     await sleep(50);
+    // where the page is, not 900: a CI runner's scroll can land a pixel off. Scrolling the control to the middle would
+    // move hundreds of pixels, so a pixel of slack keeps the point.
+    const start = scrollY;
     let pressedAt = -1;
     tool({
       id,
@@ -99,8 +102,8 @@ describe("the cursor at the edges", () => {
     });
     await call(id);
     await sleep(400); // a smooth scroll would still be under way
-    expect(pressedAt).toBe(900);
-    expect(scrollY).toBe(900);
+    expect(Math.abs(pressedAt - start)).toBeLessThanOrEqual(1);
+    expect(Math.abs(scrollY - start)).toBeLessThanOrEqual(1);
   });
 
   // ---------- after the press ----------

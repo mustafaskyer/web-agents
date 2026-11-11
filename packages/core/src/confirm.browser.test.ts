@@ -127,16 +127,15 @@ describe("waitForConfirmation", () => {
 
   it("is cancelled when the person scrolls, but not by a scroll already under way", async () => {
     const { el } = button();
+    await userEvent.hover(el);
     const ac = new AbortController();
     const confirmed = waitForConfirmation('[toolname="t_confirm"]', ac.signal, "t_confirm").then(
       () => "confirmed",
       (err: { code?: string }) => err.code,
     );
-    // Momentum from before the prompt: back-to-back wheel events with no gap.
-    for (let i = 0; i < 3; i++) {
-      await userEvent.hover(el);
-      await userEvent.wheel(el, { delta: { y: 1 } });
-    }
+    // Momentum from before the prompt: back-to-back wheel events with no gap, in one command (one round trip per
+    // event spaced them more than the gesture gap on a CI runner).
+    await userEvent.wheel(el, { delta: { y: 1 }, times: 4 });
     expect(await Promise.race([confirmed, timeout(50)])).toBe("timeout");
     await timeout(300); // the gesture ends
     await userEvent.wheel(el, { delta: { y: 1 } });
