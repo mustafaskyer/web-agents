@@ -2,7 +2,10 @@
   "$schema": "https://turborepo.com/schema.json",
   "extends": ["//"],
   "tasks": {
-    "build": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/docs/**"], "outputs": ["dist/**"] },
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/docs/**", "$TURBO_ROOT$/registry/registry.json", "$TURBO_ROOT$/registry/default/**"],
+      "outputs": ["dist/**", "public/r/**"]
+    },
     "test": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/docs/**"] }
   }
 }
