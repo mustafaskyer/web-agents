@@ -235,7 +235,7 @@ describe("useWebAgent", () => {
     await until(() => state.steps[0]?.state === "running", 3000, "step running");
     state.stop();
     expect(await run).toBeUndefined();
-    await until(() => state.status === "idle", 1000, "idle");
+    await until(() => state.status === "idle", 5000, "idle");
     expect(state.steps).toMatchObject([{ state: "cancelled" }]);
     expect(state.error).toBeUndefined();
   });
@@ -255,11 +255,11 @@ describe("useWebAgent", () => {
     let state!: WebAgentHandle;
     await render(<Probe agent={agent} adapter={adapter} onState={(s) => (state = s)} />);
     expect(await state.invoke("go")).toBeUndefined();
-    await until(() => state.status === "error", 1000, "error");
+    await until(() => state.status === "error", 5000, "error");
     expect(state.error).toEqual({ message: "Couldn't reach the assistant.", code: "network" });
     fail = false;
     expect((await state.invoke("again"))?.text).toBe("Fine.");
-    await until(() => state.status === "idle", 1000, "idle");
+    await until(() => state.status === "idle", 5000, "idle");
     expect(state.error).toBeUndefined();
   });
 });

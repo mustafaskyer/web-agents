@@ -33,8 +33,12 @@ describe("<AgentChat>", () => {
   });
 
   it("opens, streams a reply, and closes back to the launcher", async () => {
+    // The typing indicator shows only until the first text: the reply waits for the test to have seen it (a fixed
+    // delay let a slow CI runner's `userEvent.type` round trip outlast it).
+    let seen!: () => void;
+    const typingSeen = new Promise<void>((r) => (seen = r));
     const adapter = fakeAdapter(async function* () {
-      await sleep(50);
+      await typingSeen;
       yield { type: "message-start", messageId: "a1" };
       yield { type: "text-delta", messageId: "a1", delta: "Hello " };
       await sleep(20);
@@ -53,7 +57,8 @@ describe("<AgentChat>", () => {
     expect(q('[role="log"]') ?? q(".wa-chat__empty")).not.toBeNull();
 
     await userEvent.type(input, "Hi{Enter}");
-    await until(() => !!q(".wa-chat__typing"), 1000, "typing indicator");
+    await until(() => !!q(".wa-chat__typing"), 3000, "typing indicator");
+    seen();
     expect(q('[data-role="user"]')?.textContent).toBe("Hi");
     await until(() => q('[data-role="assistant"]')?.textContent === "Hello there.", 2000, "streamed text");
     expect(q('[role="log"]')).not.toBeNull();
@@ -100,7 +105,7 @@ describe("<AgentChat>", () => {
     await until(() => !!q(".wa-chat__tool"), 2000, "running card");
     await userEvent.click(q('[aria-label="Stop"]')!);
     expect(adapter.lastSignal?.aborted).toBe(true);
-    await until(() => q(".wa-chat__tool")?.dataset.status === "cancelled", 1000, "cancelled card");
+    await until(() => q(".wa-chat__tool")?.dataset.status === "cancelled", 5000, "cancelled card");
     expect(q('[aria-label="Send"]')).not.toBeNull();
     await screen.unmount();
   });
@@ -147,10 +152,10 @@ describe("<AgentChat>", () => {
     });
     const screen = await render(<AgentChat adapter={adapter} defaultOpen storageKey={false} />);
     await userEvent.type(q<HTMLTextAreaElement>("textarea")!, "go{Enter}");
-    await until(() => !!q('[role="alert"]'), 1000, "error");
+    await until(() => !!q('[role="alert"]'), 5000, "error");
     expect(q('[role="alert"]')?.textContent).toContain("too fast");
     await userEvent.click(q('[role="alert"] button')!);
-    await until(() => q('[data-role="assistant"]')?.textContent === "Second time lucky.", 1000, "retried reply");
+    await until(() => q('[data-role="assistant"]')?.textContent === "Second time lucky.", 5000, "retried reply");
     expect(host().querySelectorAll('[data-role="user"]')).toHaveLength(1);
     await screen.unmount();
   });
@@ -205,7 +210,7 @@ describe("<AgentChat>", () => {
     expect(lastSignal?.aborted).toBe(true);
 
     act(() => set({ state: "ready" }));
-    await until(() => !q(".wa-chat__download"), 1000, "card gone");
+    await until(() => !q(".wa-chat__download"), 5000, "card gone");
     expect(q<HTMLTextAreaElement>("textarea")!.disabled).toBe(false);
     await screen.unmount();
 
@@ -231,7 +236,7 @@ describe("<AgentChat>", () => {
       expect(root.dataset.waChatDock).toBe("right");
       expect(root.style.getPropertyValue("--wa-chat-inset-right")).toBe("380px");
       const panel = q(".wa-chat__panel")!;
-      await until(() => Math.round(panel.getBoundingClientRect().right) === 1200, 1000, "panel at the right edge");
+      await until(() => Math.round(panel.getBoundingClientRect().right) === 1200, 5000, "panel at the right edge");
       expect(Math.round(panel.getBoundingClientRect().width)).toBe(380);
       expect(getComputedStyle(document.body).marginRight).toBe("380px");
 

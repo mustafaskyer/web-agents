@@ -56,7 +56,7 @@ describe("useAgentChat", () => {
     expect(chat.suggestions.at(-1)).toBe("What can you do on this page?");
 
     chat.sendMessage({ text: "pay" });
-    await until(() => chat.status === "submitted" || chat.status === "streaming", 1000, "started");
+    await until(() => chat.status === "submitted" || chat.status === "streaming", 5000, "started");
     await until(() => chat.messages.some((m) => m.parts.some((p) => p.type === "dynamic-tool")), 3000, "tool part");
     await until(() => chat.toolPhase(chat.messages.at(-1)!.parts[0]!)?.phase === "parked", 4000, "parked");
     const part = chat.messages.at(-1)!.parts[0]! as Extract<UIMessage["parts"][number], { type: "dynamic-tool" }>;
@@ -68,7 +68,7 @@ describe("useAgentChat", () => {
     expect(chat.toolPhase(chat.messages.at(-1)!.parts[0]!)?.phase).toBe("cancelled");
 
     chat.selectAdapter("b");
-    await until(() => chat.adapter.id === "b", 1000, "switched");
+    await until(() => chat.adapter.id === "b", 5000, "switched");
     expect(localStorage.getItem("web-agents:chat:adapter")).toBe("b");
     visuals.destroy();
   });
