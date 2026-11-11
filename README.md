@@ -1,21 +1,115 @@
+<div align="center">
+
 # webmcp-agents
 
-Helpers for [WebMCP](https://developer.chrome.com/docs/ai/webmcp) pages: make every agent action
-visible to the person using the page (a ghost cursor, field replay, a parked "waiting for your
-confirmation" state) without the tools knowing it exists, plus the tooling around it. A tool is its `execute`
-function (and a schema): the cursor finds the control it belongs to by role and name, so nothing is added to your
-markup.
+**Let AI agents use your web app, and let your users watch them do it.**
 
-## Install
+An agent's [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tool calls, played on the page: a ghost cursor that
+flies to the right control, types into the real fields, and stops for a person's click before anything consequential.
+Your tools stay plain functions. Nothing is added to your markup.
 
-The packages are on npm (`@webmcp-agents/*`, one shared version):
+[![npm](https://img.shields.io/npm/v/@webmcp-agents/core?label=%40webmcp-agents%2Fcore&color=111)](https://www.npmjs.com/package/@webmcp-agents/core)
+[![CI](https://github.com/webmcp-agents/webmcp-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/webmcp-agents/webmcp-agents/actions/workflows/ci.yml)
+[![core ≤ 17.75 KB](https://img.shields.io/badge/core-%E2%89%A4%2017.75%20KB%20min%2Bgz-111)](packages/core)
 
-```
+[**Live demos**](https://webmcp-agents.dev/demos) · [Docs](https://webmcp-agents.dev/docs) ·
+[Installation](https://webmcp-agents.dev/docs/installation) · [Examples](#examples)
+
+<a href="https://webmcp-agents.dev/demos">
+  <img src="docs/media/demo/field-store-checkout.gif" alt="An agent shops on Field Store: it searches for a bag, adds the Canvas Tote to the cart, fills the checkout form field by field, then waits on Place order until the person clicks it" width="880">
+</a>
+
+<sub>An agent searches, adds to cart and fills checkout on <b>Field Store</b>. It never places the order itself: the
+cursor waits on <i>Place order</i> for the person's click.</sub>
+
+</div>
+
+## The cursor
+
+Every tool call is something you can see, and nothing the agent does gets in the person's way.
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="docs/media/cursor/typing.gif" alt="The cursor types a size and a quantity into the product form and presses Add to cart">
+      <h3>It works the real UI</h3>
+      <p>Finds the control by role and accessible name, types each value like a person (React Hook Form and TanStack
+      Form hear it), presses the button. Your <code>execute</code> runs at the press.</p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="docs/media/cursor/confirm.gif" alt="The cursor fills checkout, then parks on Place order with a 'Click to confirm' label until the person clicks">
+      <h3>It waits for a yes</h3>
+      <p><code>requireConfirmation: true</code> parks the cursor on the button. The action runs on the person's own
+      click, never the agent's; it gives up if they move on.</p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="docs/media/cursor/yield.gif" alt="The cart drawer opens while the cursor steps aside as the person scrolls">
+      <h3>It never fights you</h3>
+      <p>Scroll, click or type and the cursor vanishes at once; the tool still finishes. It comes back when you stop.
+      Reduced motion snaps instead of flying.</p>
+    </td>
+  </tr>
+</table>
+
+## Why
+
+- **Tools are pure.** A tool is `execute` plus a schema. The visual layer listens to events; tools never import it, and
+  tools registered by other WebMCP libraries animate too.
+- **One action, two callers.** The same `useWebTool` is what an agent calls and what the button does, so the agent
+  can't drift from your UI.
+- **Any agent.** Chrome's native WebMCP, a browser extension, the bundled `<AgentChat>` on any frontier model through
+  the AI SDK, or a small model running on-device.
+- **Works today, in any browser.** Where there is no native `document.modelContext`, the provider loads a polyfill (its
+  own chunk, never downloaded where WebMCP exists).
+- **Devtools included.** In development a panel lists the page's tools with a form per schema, shows the control each
+  one finds, and records every call. `Alt+Shift+A`.
+
+## Quick start
+
+```bash
 npm install @webmcp-agents/core @webmcp-agents/react
 ```
 
+```tsx
+import "@webmcp-agents/core/cursor.css";
+import { WebAgentsProvider, useWebTool } from "@webmcp-agents/react";
+
+function ClearCart() {
+  const cart = useCart();
+
+  // An agent calls this: the cursor finds the "Clear cart" button and waits for the person's click.
+  useWebTool({
+    id: "clear_cart",
+    title: "Clear cart",
+    description: "Empty the cart. The user confirms on the page.",
+    requireConfirmation: true,
+    execute: () => cart.clear(),
+  });
+
+  // A person clicks this.
+  return <Button onClick={() => cart.clear()}>Clear cart</Button>;
+}
+
+<WebAgentsProvider>
+  <App />
+</WebAgentsProvider>;
+```
+
 Then follow [Installation](https://webmcp-agents.dev/docs/installation) for your framework (Vite, Next.js, TanStack
-Start, Astro, or no framework). The docs and live demos are at [webmcp-agents.dev](https://webmcp-agents.dev).
+Start, Astro, or no framework). The packages are on npm (`@webmcp-agents/*`, one shared version).
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://webmcp-agents.dev/demos"><img src="docs/media/demo/skyline-booking.gif" alt="An agent books a flight on Skyline: it searches Riyadh to Dubai, fills traveler details and parks on Book flight"></a>
+      <br><b>Skyline</b> <sub>flight search, traveler details on TanStack Form, a confirm-gated booking</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/media/devtools/timeline.png" alt="The devtools timeline under the playground: each call, who made it, how long it took, and when the person took over">
+      <br><b>Devtools</b> <sub>every tool, a form per schema, a timeline of every call</sub>
+    </td>
+  </tr>
+</table>
 
 ## Develop
 
@@ -66,8 +160,6 @@ traveler details on TanStack Form), and a confirm gate on the consequential step
 | [`apps/docs`](apps/docs) | 4321 | **The website**: the landing page, the Demos page (agent-browser clips of Skyline and Field Store) and the docs in one site. The site is an example too: its demos, docs links, FAQ, copy buttons, theme switch and search are WebMCP tools (`defineWebTool`), run from the hero's chips ("Try it as an agent would") or by any agent. |
 
 `pnpm --filter @webmcp-agents/example-ecommerce dev` (or `…-flights`) runs one app on its own.
-
-![The agent adds a tee to the cart: the ghost cursor flies to the form, types, clicks, and the cart opens](docs/media/hero.gif)
 
 Roadmap and per-phase implementation plans live in [`.agents/plans/`](.agents/plans/00-web-agents-roadmap.md).
 
