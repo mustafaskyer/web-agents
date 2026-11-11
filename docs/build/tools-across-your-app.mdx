@@ -107,9 +107,60 @@ during it.
 |---|---|---|
 | **Everywhere** | A catalog tool with no `match` | `get_cart`, `get_time` |
 | **Per path** | A catalog tool with `match` | `list_orders` on `/orders` |
-| **Per component** | `useWebTool`, on while the component is mounted (`{ enabled }` to switch it by state) | `add_to_cart` on a product's page |
+| **Per component** | `useWebTool`, on while the component is mounted (`{ enabled }` to switch it by state): a config written in the component, or a tool you defined in a file | `add_to_cart` on a product's page, `clear_cart` while the cart is open |
 
 A tool in a component rarely needs `match`: it is on while the component is. `useWebTool` ignores `match`.
+
+## A defined tool, on with a component
+
+A tool written with `defineWebTool` does not have to go in the catalog. Hand it to `useWebTool` instead, and it is on
+while that component is mounted, like a tool written in the component. Here `clear_cart`, the definition from
+[Define a tool](/build/define-a-tool), is on only while the cart panel is open.
+
+<View title="Vite">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="Next.js">
+
+<include meta='title="tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="components/cart-panel.tsx" {12}'>/_examples/nextjs/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="TanStack Start">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+<View title="Astro">
+
+<include meta='title="src/tools/clear-cart.ts"'>/_examples/shared/tools/clear-cart.ts</include>
+
+<include meta='title="src/components/cart-panel.tsx" {10}'>/_examples/shared/components/cart-panel.tsx</include>
+
+</View>
+
+The tool keeps the best of both: it lives in a file of its own, so an agent lists it by reference
+(`defineWebAgent({ tools: [clearCart] })`) and a server file can import it, and it is on only where its control is.
+`enabled` switches it by state, as for any component tool. What to know:
+
+- **`execute` cannot see the component.** A defined tool is made once, outside any component, so it reads only its
+  input and module state: a store, the router's `navigate`. A tool that needs the component's props, state or form is
+  written in the component ([Define a tool](/build/define-a-tool)).
+- **One place per tool.** Put a tool in the catalog or hand it to `useWebTool`, not both: they would register the same
+  id twice, and the newest registration wins.
+- **One component at a time.** Every mounted component that calls `useWebTool(clearCart)` registers `clear_cart`. For a
+  list (a card per product), call it once in the component that owns the list, or write the tool in the card with
+  its own id per item (`add_to_cart_mug-01`).
 
 ## Only some of them: `availableTools`
 

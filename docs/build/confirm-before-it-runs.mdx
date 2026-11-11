@@ -46,7 +46,7 @@ title matches too.
   return value is the agent's answer. Only a trusted click counts: a script calling `button.click()` cannot confirm
   for them.
 - **Until they click, the agent waits.** The call does not time out while it is parked, and the chat shows it as
-  waiting for the person. Moving the mouse or typing elsewhere does not cancel it.
+  waiting for the person. Moving the mouse or typing in a field does not cancel it; clicking or scrolling elsewhere does.
 
 The input is validated before the cursor moves, so the person never approves a call that then fails its schema.
 
@@ -54,8 +54,10 @@ The input is validated before the cursor moves, so the person never approves a c
 
 The call waits 10 seconds for the click. After that it fails with `Error [needs_user]`, which tells the agent to ask
 the person and call again, and the prompt leaves the page. It also ends early, with `Error [cancelled]`, when the
-person starts another tool call themself (a button or chip that runs a tool, the devtools): they chose to do
-something else. An agent's own next call never cancels it.
+person moves on: they click anywhere but the control, scroll the page (wheel, touch, Page Down or Space), or start
+another tool call themself (a button or chip that runs a tool, the devtools). Input inside the chat or the devtools
+does not count, nor does a trackpad scroll still coasting from before the prompt appeared. An agent's own next call
+never cancels it.
 
 ## It needs exactly one control
 

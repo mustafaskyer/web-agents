@@ -54,7 +54,7 @@ agent**; it just stops waiting for the animation.
 A tool with **`requireConfirmation: true`** makes the agent wait for the person: the cursor types what it can, then
 parks on the tool's control with a `Click "…" to confirm` prompt, and the call waits for a trusted click on it. That
 click is the only thing that completes the call. It waits 10 seconds: after that the agent is told the person did
-not confirm (`needs_user`), and the prompt goes. A
+not confirm (`needs_user`), and the prompt goes. A click elsewhere or a scroll ends it at once (`cancelled`). A
 [declarative form](/more/declarative-forms) without `toolautosubmit` gets the same pause from the browser.
 
 The control that is parked on carries `data-agent-active`, and the cursor has the `is-waiting` class (what the example

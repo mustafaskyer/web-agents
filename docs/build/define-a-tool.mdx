@@ -135,7 +135,9 @@ Either way, when an agent calls `clear_cart`, the cursor finds the button named 
 `requireConfirmation`, and the work runs after the person's own click. What `execute` returns is the agent's answer.
 
 A `defineWebTool` tool is registered by handing it to the provider (`tools={{ clearCart }}`), which is the subject of
-[Tools across your app](/build/tools-across-your-app). A `useWebTool` tool registers itself.
+[Tools across your app](/build/tools-across-your-app). A `useWebTool` tool registers itself. The two also meet:
+`useWebTool(clearCart)` turns a defined tool on only while a component is mounted
+([A defined tool, on with a component](/build/tools-across-your-app#a-defined-tool-on-with-a-component)).
 
 ## How the cursor finds the control
 

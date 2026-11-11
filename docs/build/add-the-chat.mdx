@@ -55,7 +55,7 @@ secret. In production, `/api/chat` is a function of your host's. On Vercel, a fi
 <include meta='title="app/api/chat/route.ts"'>/_examples/nextjs/app/api/chat/route.ts</include>
 
 To make sure the key can never reach a client component, read it in a module that starts with
-`import "server-only"` and taint it with React's `experimental_taintUniqueValue`, as `apps/nextjs/lib/env.server.ts`
+`import "server-only"` and taint it with React's `experimental_taintUniqueValue`, as `examples/nextjs/lib/env.server.ts`
 does ([Field Store on Next.js](/examples/nextjs)). The taint APIs are behind a flag: set `experimental: { taint: true }` in
 `next.config.ts`.
 
@@ -105,6 +105,12 @@ It is read on the server only. **Never give it a public prefix**: `VITE_` (Vite,
 (Next.js) or `PUBLIC_` (Astro). Those variables are copied into the JavaScript the browser downloads.
 
 Without a key the widget says "Chat isn't configured on this site", and the rest of the page works as before.
+
+:::warning[Before you put it online]
+The key stays on your server, but `/api/chat` is a public URL: a script can call it and chat on your key. The route above
+is the simplest one, fine for development. Before you deploy, lock it to your page with sessions, a tool allowlist,
+Turnstile and limits: [Secure the chat](/security).
+:::
 
 ## Pick a model
 
