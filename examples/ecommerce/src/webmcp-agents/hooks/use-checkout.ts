@@ -10,12 +10,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
 import { useWebTool, WebToolError } from "@webmcp-agents/react";
-import { useForm } from "react-hook-form";
+import type { BaseSyntheticEvent } from "react";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { z } from "zod";
-import { money } from "../data/catalog";
-import { navigate } from "../lib/navigate";
-import { cart, type Order } from "../store/cart";
-import styles from "./forms.module.css";
+import { money } from "../../lib/format";
+import { navigate } from "../../lib/navigate";
+import { cart, type Order } from "../../store/cart";
 
 const COUNTRIES = [
   "United States",
@@ -41,9 +41,23 @@ const schema = z.object({
   note: z.string().optional().describe("Optional delivery note"),
 });
 
-type CheckoutInput = z.input<typeof schema>;
+export type CheckoutInput = z.input<typeof schema>;
 
-export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(order: Order): void }) {
+export interface CheckoutOptions {
+  /** The page keeps showing the placed order until it moves on. */
+  onPlaced(order: Order): void;
+}
+
+export interface Checkout {
+  form: UseFormReturn<CheckoutInput>;
+  /** The Country select's options. */
+  countries: readonly string[];
+  /** The form's onSubmit: places the order. */
+  submit(e?: BaseSyntheticEvent): Promise<unknown>;
+}
+
+/** The checkout form: one `placeOrder` for the agent's confirmed call and the person's submit, and the checkout tool. */
+export function useCheckout({ onPlaced }: CheckoutOptions): Checkout {
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", name: "", address: "", city: "", postcode: "", country: "United States", note: "" },
@@ -56,12 +70,12 @@ export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(orde
     } catch (err) {
       throw new WebToolError("failed", errorText(err));
     }
-    onPlaced(order); // the page keeps showing this order until it moves on
+    onPlaced(order);
     navigate(`/order/${order.id}`);
     return `Order ${order.id} placed for ${money(order.totals.total)}. A confirmation goes to ${order.contact.email}.`;
   };
 
-  // An agent calls this.
+  // An agent calls this. It runs on the person's click.
   useWebTool({
     id: "checkout",
     title: "Place order",
@@ -69,62 +83,12 @@ export function CheckoutForm({ total, onPlaced }: { total: number; onPlaced(orde
       "Place the order for everything in the cart, shipped to the user's address. Only on the checkout page (go_to_page checkout first). Ask the user for an email or address you don't have; never invent them. The user confirms on the page (Place order).",
     inputSchema: schema,
     requireConfirmation: true,
+
     // every value in the form's state too, before the person confirms
     fill: (values) => form.reset(values),
+
     execute: placeOrder,
   });
 
-  // A person submits this.
-  return (
-    <form className={styles.stack} onSubmit={form.handleSubmit(placeOrder)}>
-      <fieldset className={styles.fieldset}>
-        <legend>Contact</legend>
-        <div className={styles.grid}>
-          <label className={`field ${styles.full}`}>
-            <span>Email</span>
-            <input type="email" className="input" required autoComplete="email" {...form.register("email")} />
-          </label>
-          <label className={`field ${styles.full}`}>
-            <span>Full name</span>
-            <input className="input" required autoComplete="name" {...form.register("name")} />
-          </label>
-        </div>
-      </fieldset>
-      <fieldset className={styles.fieldset}>
-        <legend>Shipping address</legend>
-        <div className={styles.grid}>
-          <label className={`field ${styles.full}`}>
-            <span>Address</span>
-            <input className="input" required autoComplete="street-address" {...form.register("address")} />
-          </label>
-          <label className="field">
-            <span>City</span>
-            <input className="input" required autoComplete="address-level2" {...form.register("city")} />
-          </label>
-          <label className="field">
-            <span>Postcode</span>
-            <input className="input" required autoComplete="postal-code" {...form.register("postcode")} />
-          </label>
-          <label className={`field ${styles.full}`}>
-            <span>Country</span>
-            <select className="input" required autoComplete="country-name" {...form.register("country")}>
-              {COUNTRIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <label className={`field ${styles.full}`}>
-            <span>Order note (optional)</span>
-            <textarea className="input" rows={2} {...form.register("note")} />
-          </label>
-        </div>
-      </fieldset>
-      <button type="submit" className="btn primary block">
-        Place order · <span className="tabular">{money(total)}</span>
-      </button>
-      <p className="muted" style={{ fontSize: 13, textAlign: "center" }}>
-        Demo store: no payment is taken and nothing ships.
-      </p>
-    </form>
-  );
+  return { form, countries: COUNTRIES, submit: form.handleSubmit(placeOrder) };
 }

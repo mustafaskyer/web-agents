@@ -2,7 +2,8 @@
  * add_to_cart, on a product's page: a form, so a tool with an input schema. One schema checks the agent's call and the
  * person's submit (React Hook Form's zod resolver), and `add` is what both run. When an agent calls it, the cursor
  * writes the size into the Size select and the quantity into the stepper (the fields named `variant` and `qty`),
- * presses "Add to cart", and `add` runs. On success the cart drawer opens.
+ * presses "Add to cart", and `add` runs. On success the cart drawer opens. The Size select is shadcn's NativeSelect:
+ * a native control the cursor writes like a person, so no `fill` is needed.
  *
  * One stable name on every product page: only one product is on screen, so the product is implied and the agent
  * picks the size and quantity. Adding is reversible, so there is nothing to confirm.
@@ -14,16 +15,14 @@
  */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { errorText } from "@webmcp-agents/core";
-import { useWebTool, waitingForUser, WebToolError } from "@webmcp-agents/react";
-import { useEffect, useId, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useWebTool, WebToolError, waitingForUser } from "@webmcp-agents/react";
+import { type BaseSyntheticEvent, useEffect, useState } from "react";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { z } from "zod";
-import { QtyStepper } from "../components/QtyStepper";
-import type { Product } from "../data/catalog";
-import { cart } from "../store/cart";
-import { MAX_QTY } from "../store/cartRules";
-import { ui } from "../store/ui";
-import styles from "./forms.module.css";
+import type { Product } from "../../data/catalog";
+import { cart } from "../../store/cart";
+import { MAX_QTY } from "../../store/cart-rules";
+import { ui } from "../../store/ui";
 
 /** How long an agent's add waits for the person to pick the missing option. */
 const ASK_TIMEOUT_MS = 60_000;
@@ -43,22 +42,45 @@ function schemaFor(product: Product) {
   });
 }
 
-type AddToCartInput = z.infer<ReturnType<typeof schemaFor>>;
+export type AddToCartInput = z.infer<ReturnType<typeof schemaFor>>;
 
+/** An agent's add waiting for the person to pick the option it left out. */
 interface Asking {
   qty: number;
   settle(variant: string | null): void;
 }
 
-export function AddToCartForm({ product }: { product: Product }) {
+export interface AddToCart {
+  form: UseFormReturn<AddToCartInput>;
+  /** The product's one option axis ("Size" and its options), or undefined when it has none. */
+  axis: Product["variants"];
+  /** The most the stepper allows: stock, capped at MAX_QTY. */
+  max: number;
+  /** The last failure, the same text the agent got; shown under the form. */
+  error: string | null;
+  /** An agent left out the option and the person is being asked for it (how many it wants to add); null otherwise. */
+  asking: { qty: number } | null;
+  /** The person picked an option: answers a waiting agent, and clears the error. */
+  pick(variant: string | undefined): void;
+  /** The person declines to pick: the agent is told to ask them instead. */
+  notNow(): void;
+  /** The person changed a field: the last error goes. */
+  clearError(): void;
+  /** The form's onSubmit. */
+  submit(e?: BaseSyntheticEvent): Promise<unknown>;
+}
+
+/** The product page's add-to-cart form: one `add` for the agent's call and the person's submit, and the add_to_cart tool. */
+export function useAddToCart(product: Product): AddToCart {
   const axis = product.variants;
-  const max = Math.min(product.stock, MAX_QTY);
   const [schema] = useState(() => schemaFor(product));
-  const form = useForm<AddToCartInput>({ resolver: zodResolver(schema), defaultValues: { variant: undefined, qty: 1 } });
+
+  const form = useForm<AddToCartInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { variant: undefined, qty: 1 },
+  });
+
   const [error, setError] = useState<string | null>(null);
-  const errorId = useId();
-  const selectRef = useRef<HTMLSelectElement | null>(null);
-  // An agent's add waiting for the person to pick the missing option.
   const [asking, setAsking] = useState<Asking | null>(null);
 
   /** The person picks the size an agent left out; null: they didn't (Not now, or no pick in time). */
@@ -78,7 +100,7 @@ export function AddToCartForm({ product }: { product: Product }) {
     });
 
   /** Add, and the sentence for the agent; a failure shows the same text under the form. */
-  const add = async ({ variant, qty }: AddToCartInput, asked = false) => {
+  const add = async ({ variant, qty }: AddToCartInput, asked = false): Promise<string> => {
     if (axis && !variant) {
       const picked = await ask(qty);
       if (picked === null)
@@ -88,6 +110,7 @@ export function AddToCartForm({ product }: { product: Product }) {
         );
       return add({ variant: picked, qty }, true);
     }
+
     try {
       const text = cart.add(product.slug, qty, variant ?? null);
       setError(null);
@@ -99,6 +122,11 @@ export function AddToCartForm({ product }: { product: Product }) {
     }
   };
 
+  // Asking: put the person on the size field.
+  useEffect(() => {
+    if (asking) form.setFocus("variant");
+  }, [asking, form]);
+
   // An agent calls this.
   useWebTool({
     id: "add_to_cart",
@@ -108,82 +136,19 @@ export function AddToCartForm({ product }: { product: Product }) {
     execute: (input) => add(input),
   });
 
-  // Asking: put the person on the field.
-  useEffect(() => {
-    if (asking) selectRef.current?.focus();
-  }, [asking]);
-
-  const variantField = form.register("variant", {
-    onChange: (e: { target: HTMLSelectElement }) => {
+  return {
+    form,
+    axis,
+    max: Math.min(product.stock, MAX_QTY),
+    error,
+    asking: asking && { qty: asking.qty },
+    pick: (variant) => {
       setError(null);
-      if (asking && e.target.value) asking.settle(e.target.value);
+      if (asking && variant) asking.settle(variant);
     },
-  });
-
-  // A person submits this.
-  return (
-    <form className={styles.stack} onSubmit={form.handleSubmit((input) => add(input).catch(() => {}))}>
-      {axis && (
-        <label className="field">
-          <span>{axis.name}</span>
-          <select
-            className="input"
-            required
-            data-asking={asking ? "" : undefined}
-            aria-invalid={error && !form.getValues("variant") ? true : undefined}
-            aria-describedby={error || asking ? errorId : undefined}
-            {...variantField}
-            ref={(el) => {
-              variantField.ref(el);
-              selectRef.current = el;
-            }}
-          >
-            <option value="">Choose a {axis.name.toLowerCase()}</option>
-            {axis.options.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <div className={styles.row}>
-        <Controller
-          control={form.control}
-          name="qty"
-          render={({ field }) => (
-            <QtyStepper
-              name={field.name}
-              value={field.value}
-              max={max}
-              onChange={(v) => {
-                field.onChange(v);
-                setError(null);
-              }}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <button type="submit" className="btn primary" style={{ flex: 1 }}>
-          Add to cart
-        </button>
-      </div>
-      {asking && axis ? (
-        <div id={errorId} className={styles.ask} role="status">
-          <p>
-            Choose a {axis.name.toLowerCase()} to add {asking.qty} × {product.name}.
-          </p>
-          <button type="button" className="link" onClick={() => asking.settle(null)}>
-            Not now
-          </button>
-        </div>
-      ) : (
-        error && (
-          <p id={errorId} className="field-error" role="alert">
-            {error}
-          </p>
-        )
-      )}
-    </form>
-  );
+    notNow: () => asking?.settle(null),
+    clearError: () => setError(null),
+    // a failure is already under the form
+    submit: form.handleSubmit((input) => add(input).catch(() => {})),
+  };
 }
