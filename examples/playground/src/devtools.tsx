@@ -1,5 +1,5 @@
 /**
- * `?tanstack` (dev only, loaded lazily by App): the devtools as a "Web Agents" tab in TanStack Devtools, instead of
+ * `?tanstack` (dev only, loaded lazily by app.tsx): the devtools as a "Web Agents" tab in TanStack Devtools, instead of
  * the floating panel <WebAgentsProvider> installs in development. App passes devtools={false} meanwhile, and the tab
  * drives the provider's cursor all the same.
  */
