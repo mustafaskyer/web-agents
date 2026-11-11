@@ -1,6 +1,6 @@
 /**
  * The cart: one store for the page, outside React, persisted to sessionStorage. Module-level tools import `cart` and
- * call it directly; components read it with `useCart()` (lib/cart.tsx). Every action returns a sentence for the agent
+ * call it directly; components read it with `useCart()` (hooks/use-cart.ts). Every action returns a sentence for the agent
  * and throws a readable error on bad input. Actions read and write the latest state, not a render's: two calls in the
  * same tick (an agent, then the person) must both see each other's changes.
  *
