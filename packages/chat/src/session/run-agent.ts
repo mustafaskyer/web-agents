@@ -110,6 +110,31 @@ export const answerText = (messages: readonly AgentMessage[]): string =>
     .join("\n\n")
     .trim();
 
+/**
+ * Where the page is, as `AgentMessage.page` holds it: path, query and hash (a search kept in the URL, a hash router),
+ * capped at 300 characters.
+ */
+export const pagePath = (): string | undefined =>
+  typeof location === "undefined" ? undefined : (location.pathname + location.search + location.hash).slice(0, 300);
+
+/**
+ * The history the model sees: a user message sent from another page than the one the previous turn left (where its
+ * run ended, or where an unanswered message was sent from: the person navigated themself between turns) starts with a one-line note saying so, or the model reads "that item" against
+ * what the last turn found. Only the sent copy changes; a conversation where nothing moved goes out as is, and the
+ * note stays on that message in later requests, so the prompt prefix (and its cache) is stable.
+ */
+export function withPageMoves(messages: AgentMessage[]): AgentMessage[] {
+  let moved = false;
+  const out = messages.map((m, i) => {
+    const before = messages[i - 1];
+    if (m.role !== "user" || !m.page || !before?.page || before.page === m.page) return m;
+    moved = true;
+    const note = `(Since your last reply the user went from the page ${JSON.stringify(before.page)} to ${JSON.stringify(m.page)} on their own. This message is about the page they are on now; earlier results may no longer apply.)`;
+    return { ...m, parts: [{ type: "text" as const, text: note }, ...m.parts] };
+  });
+  return moved ? out : messages;
+}
+
 type ToolPart = Extract<AgentPart, { type: "tool" }>;
 
 /** Every tool call in `messages` as a step, nested sub-agent runs included (each with the sub-agent's id). */
@@ -271,7 +296,7 @@ export async function runAgent({
     let end: RunAgentResult["reason"] = "stop";
     let failure: Extract<AgentStreamPart, { type: "error" }> | undefined;
     try {
-      for await (const part of adapter.run(makeRequest(messages, agent))) {
+      for await (const part of adapter.run(makeRequest(withPageMoves(messages), agent))) {
         if (signal.aborted) return result("aborted");
         report(part);
         if (part.type === "finish") end = part.reason;
