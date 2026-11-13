@@ -15,7 +15,9 @@ const firstText = (req: AgentRunRequest | undefined): string => {
   return part?.type === "text" ? part.text : "";
 };
 
-function fakeAdapter(script: (req: AgentRunRequest, n: number) => AsyncGenerator<AgentStreamPart>): AgentAdapter & { requests: AgentRunRequest[] } {
+function fakeAdapter(
+  script: (req: AgentRunRequest, n: number) => AsyncGenerator<AgentStreamPart>,
+): AgentAdapter & { requests: AgentRunRequest[] } {
   const adapter: AgentAdapter & { requests: AgentRunRequest[] } = {
     id: "fake",
     label: "Fake",
@@ -45,10 +47,14 @@ describe("useAgentSession: page moves between turns", () => {
     history.replaceState(null, "", "/results?from=CAI");
     await render(<AgentChat adapter={adapter} defaultOpen storageKey={KEY} />);
     await userEvent.type(textarea(), "find flights{Enter}");
-    await until(() => {
-      const last = stored().at(-1);
-      return last?.role === "assistant" && last.page === "/results?from=CAI";
-    }, 3000, "the run's end stamp");
+    await until(
+      () => {
+        const last = stored().at(-1);
+        return last?.role === "assistant" && last.page === "/results?from=CAI";
+      },
+      3000,
+      "the run's end stamp",
+    );
 
     history.replaceState(null, "", "/results?from=JFK");
     await userEvent.type(textarea(), "book the cheapest{Enter}");

@@ -3,7 +3,12 @@ import { initialSession, sessionReducer } from "../src/session/reducer";
 import { withPageMoves } from "../src/session/run-agent";
 import type { AgentMessage } from "../src/types";
 
-const user = (id: string, text: string, page?: string): AgentMessage => ({ id, role: "user", parts: [{ type: "text", text }], ...(page && { page }) });
+const user = (id: string, text: string, page?: string): AgentMessage => ({
+  id,
+  role: "user",
+  parts: [{ type: "text", text }],
+  ...(page && { page }),
+});
 const assistant = (id: string, text: string, page?: string): AgentMessage => ({
   id,
   role: "assistant",
