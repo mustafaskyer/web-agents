@@ -15,8 +15,8 @@ import { newId } from "../shared";
 import { listToolDescriptors } from "../tools";
 import type { AdapterStatus, AgentAdapter, AgentMessage, ToolDescriptor } from "../types";
 import { useAdapterStatus } from "./use-adapter-status";
-import { initialSession, resumable, type SessionError, type SessionState, sessionReducer } from "./reducer";
-import { runAgent } from "./run-agent";
+import { initialSession, resumable, type SessionError, type SessionState, sessionReducer, userMessage } from "./reducer";
+import { pagePath, runAgent, toolsSettled } from "./run-agent";
 
 /** Options for `useAgentSession`. */
 export interface UseAgentSessionOptions {
@@ -111,6 +111,8 @@ export function useAgentSession(
 
   // ---------- runs ----------
   const controller = useRef<AbortController | null>(null);
+  /** Counts runs, so a run that ended only stamps the page while no newer run has started. */
+  const runs = useRef(0);
   useEffect(() => () => controller.current?.abort(), []);
 
   const run = useCallback(
@@ -118,6 +120,7 @@ export function useAgentSession(
       controller.current?.abort();
       const ctrl = new AbortController();
       controller.current = ctrl;
+      const runId = ++runs.current;
       try {
         // the loop is shared with `agent.invoke` and `useWebAgent` (./run-agent); this session renders its parts
         await runAgent({
@@ -133,6 +136,10 @@ export function useAgentSession(
       } finally {
         if (controller.current === ctrl) controller.current = null;
       }
+      // Where this run left the page, once a navigation its last call started has landed: the next message is
+      // compared with it (`withPageMoves`). A newer run (or a reset) owns the conversation by then: leave it be.
+      await toolsSettled();
+      if (runs.current === runId) dispatch({ type: "ended", page: pagePath() });
     },
     [adapter, agent, refreshTools],
   );
@@ -142,9 +149,9 @@ export function useAgentSession(
       const trimmed = text.trim();
       if (!trimmed || latest.current.status === "streaming") return;
       const id = newId("u");
-      const messages: AgentMessage[] = [...latest.current.messages, { id, role: "user", parts: [{ type: "text", text: trimmed }] }];
-      dispatch({ type: "send", id, text: trimmed });
-      void run(messages);
+      const page = pagePath();
+      dispatch({ type: "send", id, text: trimmed, page });
+      void run([...latest.current.messages, userMessage(id, trimmed, page)]);
     },
     [run],
   );
